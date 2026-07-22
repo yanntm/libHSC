@@ -7,4 +7,6 @@ target_sources(hsc PRIVATE
   int_set.cc
   diagram.cc
   operation.cc
+  surface_parser.cc
+  surface_translate.cc
 )
