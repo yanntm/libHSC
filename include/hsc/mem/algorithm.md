@@ -145,4 +145,65 @@ traffic on the hottest path in the library.
 
 ## 4. The operation cache (`cache.hh`)
 
-Pending.
+Adapted from libsdd's `sdd/mem/cache.hh`, `cache_entry.hh`, `lru_list.hh` and
+`hash_table.hh` (Alexandre Hamez, BSD-2), with the deltas noted below.
+
+**Operation as key.** There is no key/value pair: the operation object *is*
+the key, and it knows how to compute its own result. A client type supplies
+`hash()`, `operator==`, and `result_type operator()(Context&)`. The cache is
+then `cache<Context, Operation>` — two template parameters, both load-bearing,
+and no variadic filter chain.
+
+**Fixed capacity, all memory at construction.** Buckets and entries are
+allocated once; the table never rehashes and the pool never grows. A cache
+that cannot grow cannot surprise you, and a fixed bucket array means bucket
+addresses are stable across a re-entrant evaluation.
+
+**Everything intrusive.** An entry carries its own bucket chain link *and*
+its own LRU links. libsdd keeps the LRU order in a `std::list<entry*>`, which
+mallocs a list node on every miss; ours costs two pointers in an entry that
+was going to be allocated anyway.
+
+    entry: bucket_next | older | newer | hash | operation | result
+
+    lookup(op):
+      if not admitted(op): ++filtered ; return op(cxt)      # never stored
+      h = op.hash()
+      walk bucket h & mask:
+        if entry.hash == h and entry.operation == op:
+          ++hits ; move entry to the MRU end ; return entry.result
+      ++misses
+      result = op(cxt)          # may re-enter this cache
+      if full: evict()
+      insert(op, result)        # re-walks the bucket: see below
+      return result
+
+**Evaluate, then re-probe.** libsdd computes the insertion point *before*
+evaluating and commits into it afterwards. Evaluating an operation
+re-enters the cache (that is the whole point of a memoized recursion), so we
+re-walk the bucket at insertion time and yield to an entry a nested call may
+have placed there. One extra chain walk, on the miss path only, where an
+entire operation has just been evaluated.
+
+**Eviction: LRU, in batches of K.** K is a constructor knob, default 1
+(libsdd's behaviour). The roadmap asks for batching on the grounds that
+evicting one entry per insertion at capacity thrashes. The reasoning does not
+obviously hold — total eviction work is the same either way, and evicting K
+discards K−1 entries that were still wanted — so it ships as a knob with a
+measurement (`bench/bench_cache.cc`) rather than as a default.
+
+**Admission** is two questions, both cheap: an optional `cacheable()` on the
+operation (the operation knows whether it is worth storing — a compile-time
+question, answered by a concept, costing nothing when absent), and an
+optional runtime filter installed on the cache (the policy hook M7 grows
+into). No compile-time filter chain.
+
+**Lifetime, and why there is no GC event to survive.** An operation holds its
+operands, and it should hold them as `strong` handles. Then a live entry
+keeps its operands alive, retention is continuous, and collection has nothing
+to invalidate — the wipe-all-caches-at-GC problem is *dissolved* rather than
+solved. Whether an entry is *retained* is then policy (M7), and memory is
+bounded by live roots plus cache capacity. The cache itself takes no position:
+it stores what the operation type holds. Clients that store `weak` handles
+instead must hold `certificate`s and check them, which is what generations
+are for.

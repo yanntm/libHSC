@@ -8,6 +8,8 @@ add_executable(hsc_tests
   main.cc
   test_hash.cc
   test_intern.cc
+  test_cache.cc
+  test_stats.cc
 )
 target_link_libraries(hsc_tests PRIVATE hsc::hsc doctest::doctest)
 target_compile_options(hsc_tests PRIVATE

@@ -34,9 +34,20 @@ operation terms, residuals and kernels.
   traffic), `strong<T>` (a refcounted root), `certificate<T>` (id plus
   generation: the only honest citation across a collection).
 
+* `cache.hh` — the bounded operation cache. The operation *is* the key and
+  knows how to compute itself; the cache is `cache<Context, Operation>` and
+  holds its context by reference, because contexts are explicit and there are
+  no singletons. Fixed capacity, all memory taken at construction, no rehash;
+  bucket chain and LRU order both intrusive, so a miss costs no allocation at
+  all. Adapted from libsdd (Alexandre Hamez, BSD-2) — see the file header for
+  what we changed and `algorithm.md` §4 for why.
+
 ## Pending (M1)
 
-* `cache.hh` — the bounded operation cache.
-* `manager.hh` — the owner of tables and caches; no singletons.
+* `manager.hh` — the owner of tables and caches. Arrives with `core/`: until
+  there are diagrams there is nothing for a manager to own, and an empty one
+  would be a guess. The discipline it will enforce is already in force —
+  every component here takes its context as an argument and none of them
+  reaches for global state.
 
 See `algorithm.md` for the designs, which are written before the code.
