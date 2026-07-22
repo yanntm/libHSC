@@ -76,10 +76,16 @@ G5. **Memo/GC as first-class policy.** No cache is sacrosanct —
     generalized); whether they are *retained* is policy. This is where
     the long-standing cache/GC feature goals land.
 
-G6. **Modern base.** C++20/23, CMake, concepts for the theory contracts,
+G6. **Modern base.** C++23, CMake, concepts for the theory contracts,
     transparent lookup in the intern tables (kills the tmpid probe-slot
-    hack), no vendored sparsehash, no REENTRANT/TBB ifdef forest, clean
-    repo (no tracked build artifacts).
+    hack), no REENTRANT/TBB ifdef forest, clean repo (no tracked build
+    artifacts). Google sparsehash stays — as a fetched, maintained
+    external dependency rather than a vendored copy: sparse hashing is
+    a different algorithm (bitmapped groups, ~2 bits/entry overhead)
+    that earned its place on memory (30–40% under `unordered_map`-family
+    tables on DD workloads), and `sparsetable` serves the sparse
+    refcounts. No boost (C++23 `std::flat_set` where libsdd used
+    boost's). Dependency policy detailed in `roadmap.md`.
 
 G7. **The surface.** SMT-flavored declarations (sorts, theories,
     interchange declared; alphabets discovered), an interactive mode in

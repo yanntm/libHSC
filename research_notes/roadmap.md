@@ -8,7 +8,7 @@ convention and is not restated per milestone. Supersedes §7 of
 
 ## Relation to legacy code, once and for all
 
-Four modes, and nothing else:
+Five modes, and nothing else:
 
 - **Reference.** `~/git/libDDD` and `~/git/libITS` are read to understand
   semantics and pitfalls. Never linked, never wrapped, never built into
@@ -18,11 +18,27 @@ Four modes, and nothing else:
   table: the SDED union as Construction 3.3, the F/L/G schedule, the
   ExprHom query semantics. Code is written new; the legacy source is the
   spec.
-- **Port.** Exactly one component is ported as a design with its code
-  adapted: the flat-engine storage (trailing-array nodes, id-based unique
-  table) as the internals of the fast leaf theory — at M6, not before.
-- **Baseline.** Legacy tools run as external binaries for benchmark
-  comparison. They are competitors, not dependencies.
+- **Adapt (libsdd).** `~/git/libsdd` (Hamez, BSD-2) is the third
+  reference base (see `ddd_to_hsc.md` §8); selected files are adapted
+  into GPL variants with attribution kept — Alexandre Hamez is cited in
+  the adapted headers and in the README. This starts at M1 (the cache
+  and its intrusive table), not M6.
+- **Port.** The legacy flat-engine storage (trailing-array nodes,
+  single-TU hot loop) as the internals of the fast leaf theory — at M6,
+  not before.
+- **Baseline.** Legacy tools and libsdd run as external binaries for
+  benchmark comparison. They are competitors, not dependencies.
+
+**Dependencies policy.** C++23, CMake. External deps: **google
+sparsehash** (github.com/sparsehash/sparsehash — maintained, std-only,
+fetched not vendored). It is kept on merit, not nostalgia: sparse
+hashing is a genuinely different algorithm (bitmapped groups, ~2 bits
+overhead per entry) that measured 30–40% less memory than
+`unordered_map`-family tables on DD workloads, whose dense-buckets
+assumptions have not fundamentally changed; `sparsetable` also serves
+the sparse refcount array. **No boost** — where libsdd uses
+`boost::container::flat_set`, C++23 `std::flat_set` or a sorted vector
+replaces it. Everything else is std.
 
 Decisions already burned in (see `ddd_to_hsc.md` §5 and discussion):
 positional variable naming by unconditional application of the declared
@@ -32,22 +48,108 @@ M1, prerequisite for M7); no `top`, no `invert`, no MLHom.
 
 ---
 
-## M1 — The interfaces
+## M1 — Infrastructure and interfaces
 
-**Feature: the API *is* the calculus, reviewable as such.**
+**Feature: a measured hash-consing and caching substrate, plus headers
+that read as the calculus.** Hashing and caching are *the* cross-cutting
+concern of a DD library; M1 gets them right once, as comfortable
+infrastructure, before anything is built on top.
 
-Headers defining the structural elements, compilable, minimally stubbed:
+### Source organization (created at M1)
 
-- Shapes (`1 | ⟨A⟩ | (V_h,V_t)`), positions as paths.
-- The code/interning layer: one mechanism, id-coded, generation-tagged.
-- The leaf-theory concept: tiers E/J/G, `split_equiv`, `apply_local`
-  (whole terms), exported maps — as C++20 concepts with contracts stated
-  in comments.
-- Diagram and operation-term declarations (basis: `id`, `local`,
-  `query;case`, `∘`, `+`, `∗` — `∗` declared, inert until M5).
+```
+include/hsc/
+  util/      hash primitives, small utilities
+  mem/       interning + caches — the M1 substrate
+  core/      shapes, theory concepts, diagram declarations
+  leaves/    leaf theories (M2+; empty at M1)
+  ops/       operation terms (M4+; declarations only)
+src/         non-header implementation
+tests/       correctness (differential where possible)
+bench/       measurements; every M1 claim gets a number here
+examples/    (M3+, surface examples)
+```
 
-Deliverable is a design review artifact: reading the headers against
-`hsc_core4.md` should be a §-by-§ correspondence.
+Mirrors the Python prototype's layering (core / classify / ops /
+leaves); `mem/` and `util/` sit below everything; nothing in `mem/`
+knows about diagrams. No singletons anywhere: tables and caches are
+owned by a `manager` object and threaded as explicit contexts (libsdd's
+design — `sdd/manager.hh`, `sdd/hom/context.hh`).
+
+### Modules, with provenance
+
+- `util/hash.hh` — the `hash()` customization point; integer mixers
+  (from legacy `ddd/hashfunc.hh`: wang32 et al.); **non-commutative
+  combine** as the only sanctioned way to hash composites (kills the
+  legacy XOR-pair collision, `hash_support.hh:96`); hashing style per
+  libsdd `sdd/util/hash.hh` (seed/combine visitors).
+
+- `mem/intern.hh` — `intern<T, Id = uint32_t>`, *the* unique table, one
+  mechanism for nodes, terms, kernels alike. Design from legacy
+  `ddd/UniqueTableId.hh` — id handles, index vector id→object, free
+  list, **sparse refcounts** (`google::sparsetable`) — with the known
+  fixes applied from day one: heterogeneous/transparent probe lookup
+  (no tmpid slot, no temp allocation on the hit path), explicit free
+  list (no pointer punning), iterative marking hook, swap-not-copy on
+  rebuild, and **generation tags** (bumped on id reuse; checked by
+  certificate holders, never on the hot handle path). Backing store:
+  `sparse_hash_set` of ids. The insert path adopts libsdd's
+  **allocation cache** (`sdd/mem/unique_table.hh::allocate` — the table
+  keeps the largest recently-freed block to serve the next miss).
+  Ids are 32-bit by default and stay shorter than pointers — 64 bits
+  per edge is too expensive, and at 4G nodes we are dead in the water
+  anyway — but `Id` is a parameter, the system is not hostile to wider
+  ids.
+
+- `mem/handle.hh` — `weak<T>` (a raw id: trivially copyable, zero RC
+  churn on the hot path) and `strong<T>` (refcounted through the
+  table). The legacy GDDD/DDD split, kept because it is right; libsdd's
+  per-copy RC churn is what we are avoiding.
+
+- `mem/cache.hh` + `mem/pool.hh` — the bounded operation cache: GPL
+  variant of libsdd `sdd/mem/cache.hh`, `cache_entry.hh`, `lru_list.hh`
+  and the intrusive no-rehash `sdd/mem/hash_table.hh` (attribution
+  kept). Fixed capacity, all memory at construction, pool-allocated
+  entries, operation-as-key (the op object holds its operands), LRU
+  eviction — with three deltas: a **batch-eviction knob** (evict K, not
+  1 — the evict-one-at-capacity steady state thrashes), runtime filters
+  alongside the compile-time chain, and the stats struct extended
+  toward the invoice.
+
+- `mem/stats.hh` — statistics structs for every table and cache
+  (libsdd's `cache_statistics`/`unique_table_statistics`, extended).
+  The invoice starts at M1: nothing is ever added to `mem/` without its
+  meter.
+
+- `core/shape.hh`, `core/theory.hh`, `core/diagram.hh` — the calculus
+  interfaces: shapes (`1 | ⟨A⟩ | (V_h,V_t)`) as interned trees with
+  positions as paths; the leaf-theory concepts (tiers E/J/G,
+  `split_equiv`, `apply_local`, exported maps) with contracts in
+  comments; diagram and operation-term declarations (`id`, `local`,
+  `query;case`, `∘`, `+`, `∗` — `∗` inert until M5). Reading these
+  against `hsc_core4.md` should be a §-by-§ correspondence.
+
+### Hygiene rules (set once, at M1, enforced thereafter)
+
+1. Everything interned defines `hash()` and `==`; hash memoization is a
+   per-type decision, never an infra assumption.
+2. Composite hashes use the non-commutative combine; XOR of hashes is
+   banned.
+3. No singletons; no global state outside the manager.
+4. Every table/cache exports its stats struct; `(bill)` will read them.
+5. Probe by view, allocate only on miss.
+6. An id is never silently reused while cited: generation bump on free,
+   `valid(id, gen)` as the check.
+7. New interned kinds are instantiations of `intern<T>`, never parallel
+   mechanisms.
+
+### Deliverable
+
+Compiling library + `bench/` numbers: interning throughput and resident
+memory vs `std::unordered_set` on node-shaped payloads (the sparsehash
+memory claim, re-measured on our workload, in a committed report), and
+cache hit/eviction behavior on a memoized recursion. The feature is the
+substrate *with its numbers* — M2 builds on it without revisiting it.
 
 ## M2 — Hierarchical integer sets
 
