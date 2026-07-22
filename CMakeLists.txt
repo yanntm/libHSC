@@ -8,6 +8,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)  # for tooling
 
 option(HSC_BUILD_TESTS "Build the test suite" ON)
 option(HSC_BUILD_BENCH "Build the benchmarks" ON)
+set(HSC_SANITIZE "" CACHE STRING
+    "Sanitizers to build with, e.g. address,undefined (needs libasan/libubsan)")
+
+if(HSC_SANITIZE)
+  add_compile_options(-fsanitize=${HSC_SANITIZE} -fno-omit-frame-pointer -g)
+  add_link_options(-fsanitize=${HSC_SANITIZE})
+endif()
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "" FORCE)
