@@ -59,10 +59,11 @@ Run one directly to see its output:
   *inside* the operator term, so the memo keys on saturated nodes: one
   application, and a node is saturated once (§6.5).
 
-  **A balanced shape is not free here.** At n=16 the spine finishes in
-  0.000 s and the balanced tree takes 0.025 s. Hanoi's events reach a
-  *suffix* of the frontier, which is exactly what a spine makes cheap: they
-  land in F and get pushed down. A balanced tree cuts across every event, so
-  they land in G at every level and get chained instead. Hierarchy pays when
-  the shape matches the model's locality, and Hanoi's locality is a spine's.
-  The philosophers example is the other way round.
+  **The shape is a compromise, not a win.** At n=16 the spine finishes in
+  0.000 s and the fully balanced tree takes 0.025 s. Hanoi's events reach a
+  *suffix* of the frontier, which a spine makes cheap: they land in F and
+  get pushed down, where a balanced tree cuts across every event so they
+  land in G at every level and get chained. Neither extreme is the good
+  answer — blocks of four or five rings beat both. Choosing the shape is
+  out of scope for the library (see `research_notes/roadmap.md`): our input
+  is shaped, and deriving a shape is a spec-rewriting problem upstream.
