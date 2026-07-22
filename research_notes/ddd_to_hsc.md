@@ -221,41 +221,12 @@ already follows this order — core / classify / ops / leaves):
 
 ## 7. Milestones
 
-M0. *(this commit)* Repo, drafts, bridge document, Python prototype moved
-    in.
-
-M1. **Theory seam on paper then in Python.** Re-align the prototype to
-    the current draft: `split_equiv` contract per §7 (kernel/labelling,
-    merge), the case construct per §8, skip from `id` with the oracle
-    ladder. The prototype's scope table (its README) is the worklist.
-    Products: revised `hsc_spec` for the seam, prototype passing
-    brute-force differential tests.
-
-M2. **C++ theory interface.** The concepts header, written against two
-    theories: enumerated (oracle) and `_GDDD`-backed FDD. Differential
-    tests between them. No diagrams yet.
-
-M3. **Diagram type + canonicalizer.** Port SDED's union as Construction
-    3.3 over the theory interface; internalisation typing; congruence
-    tower inspection.
-
-M4. **Operations + saturation, once.** The basis, the schedule, the
-    rewrite rules from the legacy factories re-expressed as the §4.8
-    system. **Gate: parity with libDDD on P/T saturation** (declared
-    regime, no case ever called). This is where G4 is proven or the
-    design goes back to M2.
-
-M5. **Query/case + LIA.** Port the ExprHom semantics to the general arc
-    type (this is "equiv-split over SDD", now a port not a research
-    project). GAL models as the test corpus; the legacy GAL engine as
-    the baseline.
-
-M6. **Policy & surface.** Durable certificates, retention policies,
-    invoice; the SMT-flavored surface and interactive mode.
-
-M7. **The paper.** From the then-current draft, with the library as its
-    model and the invoice as its experimental section.
-
-Each milestone follows the house convention: spec before code, report
-after, and the calculus draft revised when implementation pressure
-teaches something (that is what "seed of its own iteration" means).
+Superseded by the feature-level plan in [`roadmap.md`](roadmap.md):
+milestones are features (what you can do after that you couldn't
+before), the surface arrives early (M3) so every later feature lands as
+a runnable example, and legacy code enters through exactly four named
+modes — reference, re-expression, port (the flat-engine storage only,
+at M6), baseline — never wrapping or linking. The house convention
+(spec before code, report after, calculus draft revised when
+implementation teaches something) applies per milestone and is stated
+once, there.
