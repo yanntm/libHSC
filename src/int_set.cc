@@ -1,0 +1,112 @@
+#include "hsc/leaves/int_set.hh"
+
+#include <algorithm>
+#include <ostream>
+
+namespace hsc::leaves {
+
+namespace {
+
+/// The probe view: a set that has not been built.
+struct int_set_view {
+  std::span<const std::int32_t> values;
+
+  [[nodiscard]] std::size_t hash() const {
+    std::size_t seed = util::hash_value(
+        static_cast<std::uint32_t>(values.size()));
+    util::hash_range(seed, values.begin(), values.end());
+    return seed;
+  }
+  [[nodiscard]] bool equals(const int_set& s) const {
+    return s.count == values.size() &&
+           std::equal(values.begin(), values.end(), s.data());
+  }
+  [[nodiscard]] std::size_t extra_bytes() const {
+    return values.size() * sizeof(std::int32_t);
+  }
+  int_set* construct(void* mem) const {
+    auto* p = new (mem) int_set{static_cast<std::uint32_t>(values.size())};
+    std::copy(values.begin(), values.end(),
+              const_cast<std::int32_t*>(p->data()));
+    return p;
+  }
+};
+
+}  // namespace
+
+core::code int_set_theory::of_sorted(std::span<const std::int32_t> values) {
+  if (values.empty()) return core::none;  // absence, never a code
+  return table_.get(int_set_view{values});
+}
+
+core::code int_set_theory::of(std::span<const std::int32_t> values) {
+  scratch_.assign(values.begin(), values.end());
+  std::ranges::sort(scratch_);
+  const auto dup = std::ranges::unique(scratch_);
+  scratch_.erase(dup.begin(), dup.end());
+  return of_sorted(scratch_);
+}
+
+core::code int_set_theory::singleton(std::int32_t v) {
+  return of_sorted(std::span<const std::int32_t>(&v, 1));
+}
+
+core::code int_set_theory::interval(std::int32_t lo, std::int32_t hi) {
+  if (hi <= lo) return core::none;
+  scratch_.clear();
+  scratch_.reserve(static_cast<std::size_t>(hi - lo));
+  for (std::int32_t v = lo; v < hi; ++v) scratch_.push_back(v);
+  return of_sorted(scratch_);
+}
+
+std::span<const std::int32_t> int_set_theory::elements(core::code c) const {
+  if (c == core::none) return {};
+  return table_[c].elements();
+}
+
+core::code int_set_theory::join(core::code a, core::code b) {
+  if (a == b) return a;
+  const auto x = elements(a);
+  const auto y = elements(b);
+  std::vector<std::int32_t> out;
+  out.reserve(x.size() + y.size());
+  std::ranges::set_union(x, y, std::back_inserter(out));
+  return of_sorted(out);
+}
+
+core::code int_set_theory::meet(core::code a, core::code b) {
+  if (a == b) return a;
+  const auto x = elements(a);
+  const auto y = elements(b);
+  std::vector<std::int32_t> out;
+  out.reserve(std::min(x.size(), y.size()));
+  std::ranges::set_intersection(x, y, std::back_inserter(out));
+  return of_sorted(out);
+}
+
+core::code int_set_theory::minus(core::code a, core::code b) {
+  if (a == b) return core::none;
+  const auto x = elements(a);
+  const auto y = elements(b);
+  std::vector<std::int32_t> out;
+  out.reserve(x.size());
+  std::ranges::set_difference(x, y, std::back_inserter(out));
+  return of_sorted(out);
+}
+
+double int_set_theory::cardinal(core::code c) const {
+  return static_cast<double>(elements(c).size());
+}
+
+void int_set_theory::print(std::ostream& os, core::code c) const {
+  os << '{';
+  bool first = true;
+  for (const std::int32_t v : elements(c)) {
+    if (!first) os << ',';
+    first = false;
+    os << v;
+  }
+  os << '}';
+}
+
+}  // namespace hsc::leaves

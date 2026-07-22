@@ -4,4 +4,6 @@
 target_sources(hsc PRIVATE
   stats.cc
   timing.cc
+  int_set.cc
+  diagram.cc
 )
