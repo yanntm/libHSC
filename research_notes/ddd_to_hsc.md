@@ -61,11 +61,20 @@ G4. **Performance is a gate, not a hope.** The declared regime over the
     feature is accepted. Every degradation the math recognizes must be
     recoverable by the compiler.
 
-G5. **Memo/GC as first-class policy.** Durable saturation certificates
-    ("a node is saturated once, ever" must survive collection), cache
-    retention policies as pluggable objects, and the cost-model invoice
-    counters and the retention policy reading the same meters. This is
-    where the long-standing cache/GC feature goals land.
+G5. **Memo/GC as first-class policy.** No cache is sacrosanct —
+    saturation memos included: "a node is saturated once, ever" is the
+    bound achieved under full retention, not a requirement, and every
+    memo is an ordinary staleness bet. What the reboot must add is the
+    *possibility* of selective retention, which legacy structurally
+    lacks: id recycling forces wipe-all-at-GC because an entry citing a
+    dead id is indistinguishable from one citing that id's next life.
+    Hence: attributable invalidation (generation-tagged codes), cache
+    retention policies as pluggable, declared objects, and the
+    cost-model invoice counters and the retention policies reading the
+    same meters. Cache keys are made context-free so entries are
+    reusable in principle (the composite layer's context-currying,
+    generalized); whether they are *retained* is policy. This is where
+    the long-standing cache/GC feature goals land.
 
 G6. **Modern base.** C++20/23, CMake, concepts for the theory contracts,
     transparent lookup in the intern tables (kills the tmpid probe-slot
@@ -104,16 +113,33 @@ Where the calculus already runs in legacy code. References are to
 | Commutation-enabled rewrites | `notInRange` / `commutative`, `And` normal form via `addCompositionParameter`, guard-hoisting in the `fixpoint()` factories (`ddd/Hom.cpp` 1873–2257, `ddd/SHom.cpp` 2828–2943) | Implemented as dynamic_cast pattern-match chains; different final equations in the two layers; becomes the §4.8 rewriting system, written once |
 | Declared vs discovered regimes (§12) | `Hom_Basic` / P/T-net homs (never query) vs the GAL Expr engine (always query) | Both regimes run today, unnamed and unpriced |
 | Intension vs extension (§11) | The 2002 decision for homomorphisms over transition-relation DDs; the DED cache as accumulated trace | Thm 11.1 is that decision, proved |
-| Currification (§2.6) | The `PIntExpression`/`env` split (`its/gal/PIntExpression.*`) | Half of it: parametric skeletons interned, but positions are still a flat global order (`GalOrder`) |
+| Currification (§2.6) | The `PIntExpression`/`env` split; per-type `GalOrder` (dense, 0-based) shared by all instances of a type via the model registry (`findType`/`TypeCacher`) | Exists at declared-type granularity — instances share expression/hom codes and caches; identity is nominal (name registry + `GalOrder*`), not positional — see D1 |
 | Codes / interning | `UniqueTableId` (id-based, nodes), `UniqueTable` (pointer-based: homs, expressions), separate stacks for DDD/SDD/Hom/SHom/MLHom/expressions | One mechanism, ~6 instantiations; unify, add transparent lookup, keep the id design |
 | GC / memo lifecycle | `MemoryManager`, `GCHook`, wipe-all caches at GC; `QueryCache`'s `CacheHook` | The negative example: G5 exists because "saturated once, ever" is false under wipe-all |
 
 ## 4. Gaps — no prototype anywhere
 
-D1. **Position-relative codes** (§2.6 full strength). Everything legacy
-    is committed to a flat global variable order; sharing across
-    isomorphic positions — the sharpest expressiveness delta of the
-    calculus — has no implementation. Largest single gap.
+D1. **Position-relative codes beyond declared boundaries** (§2.6 full
+    strength). The legacy stack already achieves currification *at the
+    granularity the modeller declares*: `GalOrder` is per GAL type,
+    dense from 0; the model registry identifies types, so all instances
+    of a type share one `GalOrder` and therefore one set of expression
+    codes, hom codes and cache entries, with the SDD level addressing
+    the instance (`localApply`) — this is why scalar/circular sets
+    scale. What remains nominal rather than positional: variable
+    identity is a global name registry
+    (`IntExpressionFactory::var_names`), and hom identity anchors on
+    the `GalOrder*` (compared by pointer). Sharing therefore stops at
+    declared type boundaries — two isomorphic but separately declared
+    types, or isomorphic sub-regions of one flattened GAL with
+    qualified names (`p0.x` vs `p1.x`), share only `PIntExpression`
+    skeletons, never codes. §2.6 requires isomorphism to be
+    *discovered* (positions are paths; equal subterms are one object),
+    not declared. The gap, restated: promote the existing
+    type-granularity sharing to arbitrary positions. Two hygiene notes
+    found while verifying: the `var_names` registry only grows and is
+    never collected, and a rebuilt `GalOrder` would silently orphan
+    every cache entry keyed on the old pointer (stale, not unsound).
 
 D2. **Kernel/labelling split and the retroactive merge** (§7.5–7.6). The
     QueryCache merges only syntactically identical residuals; partition
