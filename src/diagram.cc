@@ -219,13 +219,61 @@ code diagram_engine::apply_local(code term, code value) {
 /// head and tail algebras and re-canonicalises; which algebra interprets `h`
 /// is settled by the shape, so a leaf theory and a nested diagram are the
 /// same case (Cor. 3.6).
+code diagram_engine::term_sum(code a, code b) {
+  return owner_.operations().sum(a, b);
+}
+
+code diagram_engine::term_closure(code t) {
+  // The naive closure. The saturating one needs the sort, so it is
+  // core::saturate() in operation.hh.
+  return owner_.operations().fixpoint(t);
+}
+
 code diagram_engine::do_apply(code term, code d) {
   const op_term& t = owner_.operations()[term];
   switch (t.kind) {
-    case op_kind::sum:
-      return join(apply_local(t.a, d), apply_local(t.b, d));
+    case op_kind::sum: {
+      code result = none;
+      for (const code s : t.operands()) result = join(result, apply_local(s, d));
+      return result;
+    }
     case op_kind::compose:
-      return apply_local(t.a, apply_local(t.b, d));
+      return apply_local(t.operand(0), apply_local(t.operand(1), d));
+
+    case op_kind::fixpoint: {
+      // Round-based iteration, kept for comparison: it rebuilds a fresh
+      // object every round and so misses the memo every round (§6.5).
+      const code h = t.operand(0);
+      code x = d;
+      for (;;) {
+        const code y = join(x, apply_local(h, x));
+        if (y == x) return x;
+        x = y;
+      }
+    }
+
+    case op_kind::saturate: {
+      // The schedule of §6.2, as libsdd's _saturation_fixpoint::operator()
+      // and libDDD's Fixpoint::eval both run it: settle everything below,
+      // then the edge, then chain the crossing events, until nothing moves.
+      // F and L are already closures, built by the rewrite; the recursion
+      // that makes this hierarchical happened there, not here.
+      const std::span<const code> parts = t.operands();
+      const code f_part = parts[0];
+      const code l_part = parts[1];
+      code current = d;
+      code previous = none;
+      do {
+        previous = current;
+        current = apply_local(f_part, current);
+        current = apply_local(l_part, current);
+        for (const code g : parts.subspan(2)) {
+          current = join(current, apply_local(g, current));
+        }
+      } while (current != previous);
+      return current;
+    }
+
     case op_kind::node:
       break;
   }
@@ -236,12 +284,12 @@ code diagram_engine::do_apply(code term, code d) {
   support_algebra& head = head_algebra(sort);
   support_algebra& tail = tail_algebra(sort);
 
-  if (t.a == op_table::id) {
+  if (t.operand(0) == op_table::id) {
     // Skip on the head: the primes are untouched, so they are still pairwise
     // disjoint and only the regroup by sub is owed. The sieve never runs.
     accumulator acc(head);
     for (const arc& x : n.arcs()) {
-      acc.add(tail.apply_local(t.b, x.sub), x.prime);
+      acc.add(tail.apply_local(t.operand(1), x.sub), x.prime);
     }
     return finish(sort, acc);
   }
@@ -250,9 +298,9 @@ code diagram_engine::do_apply(code term, code d) {
   std::vector<arc> bag;
   bag.reserve(n.arity);
   for (const arc& x : n.arcs()) {
-    const code prime = head.apply_local(t.a, x.prime);
+    const code prime = head.apply_local(t.operand(0), x.prime);
     if (prime == none) continue;
-    const code sub = tail.apply_local(t.b, x.sub);
+    const code sub = tail.apply_local(t.operand(1), x.sub);
     if (sub == none) continue;
     bag.push_back({prime, sub});
   }

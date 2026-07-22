@@ -57,6 +57,18 @@ class support_algebra {
   /// method is on this interface rather than on a separate one.
   virtual code apply_local(code term, code value) = 0;
 
+  /// \name Building local terms
+  ///
+  /// A sort must be able to combine and close terms of its own language, so
+  /// that the saturation rewrite (§6) can push a closure down to it without
+  /// knowing what the language is.
+  ///@{
+  /// The term acting as \p a or \p b.
+  virtual code term_sum(code a, code b) = 0;
+  /// The reflexive closure `(t + id)*`, as a term.
+  virtual code term_closure(code t) = 0;
+  ///@}
+
   /// \brief How many elements \p c denotes.
   ///
   /// A double because state spaces are exponential and this number is for

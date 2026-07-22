@@ -113,6 +113,11 @@ class diagram_engine final : public support_algebra {
   /// Apply an operation term (see `operation.hh`) to a diagram. This is the
   /// diagram theory answering Def 2.3 for itself — Corollary 3.6.
   code apply_local(code term, code value) override;
+  /// Terms at a composite sort are operation terms, so these delegate to the
+  /// operation table. The *saturating* closure needs to know the sort and is
+  /// therefore `core::saturate` in `operation.hh`, not this.
+  code term_sum(code a, code b) override;
+  code term_closure(code t) override;
   [[nodiscard]] double cardinal(code c) const override;
   void print(std::ostream& os, code c) const override;
   ///@}

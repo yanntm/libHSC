@@ -46,20 +46,31 @@ enum class int_action : std::uint8_t {
   shift,   ///< x := x + arg
 };
 
-/// \brief A local term of this theory (Def 2.3): a guard, then an action.
+/// How a term is built.
+enum class int_shape : std::uint8_t {
+  primitive,  ///< a guard, then an action
+  sum,        ///< a or b
+  closure,    ///< `(a + id)*`
+};
+
+/// \brief A local term of this theory (Def 2.3).
 ///
-/// Small and closed on purpose. It is enough for a Petri transition
-/// (`m >= w` then `m -= w`) and for a Hanoi move (`pos == a` then
-/// `pos := b`), which is the whole of the non-crossing fragment. Only
-/// pushforwards appear — Def 2.2 exports no preimage and none is wanted.
+/// A guard then an action, plus sum and star closure — which is the term
+/// language Def 2.3 says a theory is handed *whole*. Enough for a Petri
+/// transition (`m >= w` then `m -= w`) and a Hanoi move (`pos == a` then
+/// `pos := b`). Only pushforwards appear: Def 2.2 exports no preimage and
+/// none is wanted.
 struct int_term {
-  core::code guard = core::none;  ///< `none` means no guard
+  int_shape shape = int_shape::primitive;
   int_action action = int_action::keep;
   std::int32_t arg = 0;
+  core::code a = core::none;  ///< primitive: the guard; sum/closure: operand
+  core::code b = core::none;  ///< sum: the second operand
 
   friend bool operator==(const int_term&, const int_term&) = default;
   [[nodiscard]] std::size_t hash() const {
-    return util::hash_all(guard, static_cast<std::uint8_t>(action), arg);
+    return util::hash_all(static_cast<std::uint8_t>(shape),
+                          static_cast<std::uint8_t>(action), arg, a, b);
   }
 };
 
@@ -92,6 +103,8 @@ class int_set_theory final : public core::support_algebra {
   ///@}
 
   core::code apply_local(core::code term, core::code value) override;
+  core::code term_sum(core::code a, core::code b) override;
+  core::code term_closure(core::code t) override;
 
   core::code join(core::code a, core::code b) override;
   core::code meet(core::code a, core::code b) override;

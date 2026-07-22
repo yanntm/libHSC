@@ -44,7 +44,25 @@ Run one directly to see its output:
   | 10 | 59 049 | 1 024 | 11 | 0.079 |
   | 12 | 531 441 | 4 096 | 13 | 0.835 |
 
-  `2^n − 1` iterations, because naive iteration rediscovers the whole set at
-  every step. **This example exists to be beaten**: it is the baseline
-  saturation (M5) has to destroy, and the numbers above are the record of
-  what it has to beat.
+  Naive iteration is kept and run side by side with saturation, because the
+  comparison *is* the result:
+
+  | n | states | naive rounds | naive s | saturated s | speedup |
+  |---|---|---|---|---|---|
+  | 10 | 59 049 | 1 024 | 0.071 | 0.0001 | 851× |
+  | 12 | 531 441 | 4 096 | 0.755 | 0.0001 | 7 144× |
+  | 14 | 4 782 969 | 16 384 | 8.306 | 0.0002 | 45 603× |
+  | 24 | 282 429 536 481 | — | — | 0.000 | — |
+
+  Naive iteration needs `2^n − 1` rounds and rebuilds a fresh object in
+  each, so every round misses the memo. Saturation puts the closures
+  *inside* the operator term, so the memo keys on saturated nodes: one
+  application, and a node is saturated once (§6.5).
+
+  **A balanced shape is not free here.** At n=16 the spine finishes in
+  0.000 s and the balanced tree takes 0.025 s. Hanoi's events reach a
+  *suffix* of the frontier, which is exactly what a spine makes cheap: they
+  land in F and get pushed down. A balanced tree cuts across every event, so
+  they land in G at every level and get chained instead. Hierarchy pays when
+  the shape matches the model's locality, and Hanoi's locality is a spine's.
+  The philosophers example is the other way round.

@@ -80,7 +80,9 @@ struct result {
   double count = 0.0;
 };
 
-result solve(int n, bool balanced) {
+enum class strategy { naive, saturated };
+
+result solve(int n, bool balanced, strategy how) {
   core::manager mgr;
   auto [index, theory] = mgr.import<leaves::int_set_theory>();
   const core::shape_code leaf = mgr.shapes().leaf(index);
@@ -96,8 +98,8 @@ result solve(int n, bool balanced) {
     return static_cast<std::size_t>(n - 1 - k);
   };
 
-  // Every event, summed into one term.
-  core::code all_moves = core::op_table::id;
+  // Every event, as its own term.
+  std::vector<core::code> events;
   std::vector<core::code> by_leaf(static_cast<std::size_t>(n));
   for (int k = 0; k < n; ++k) {
     for (int a = 0; a < poles; ++a) {
@@ -113,8 +115,7 @@ result solve(int n, bool balanced) {
           by_leaf[leaf_of_ring(j)] = theory.keep(theory.singleton(other));
         }
 
-        const core::code move = core::product(ops, mgr.shapes(), sort, by_leaf);
-        all_moves = ops.sum(all_moves, move);
+        events.push_back(core::product(ops, mgr.shapes(), sort, by_leaf));
       }
     }
   }
@@ -126,12 +127,21 @@ result solve(int n, bool balanced) {
 
   util::stopwatch sw;
   std::size_t iterations = 0;
-  for (;;) {
-    const core::code grown =
-        diagrams.join(reachable, diagrams.apply_local(all_moves, reachable));
-    ++iterations;
-    if (grown == reachable) break;  // equality is an integer comparison
-    reachable = grown;
+  if (how == strategy::saturated) {
+    // One term, one application. Every closure sits inside it, so the memo
+    // keys on saturated nodes rather than on rounds (§6.5).
+    const core::code closure = core::saturate(mgr, sort, events);
+    reachable = diagrams.apply_local(closure, reachable);
+    iterations = 1;
+  } else {
+    const core::code all_moves = ops.sum(events);
+    for (;;) {
+      const core::code grown =
+          diagrams.join(reachable, diagrams.apply_local(all_moves, reachable));
+      ++iterations;
+      if (grown == reachable) break;  // equality is an integer comparison
+      reachable = grown;
+    }
   }
 
   result r;
@@ -147,35 +157,47 @@ result solve(int n, bool balanced) {
 }  // namespace
 
 int main() {
-  std::printf("towers of hanoi: reachability by naive iteration\n\n");
-  std::printf("%4s %14s %8s %10s %8s %10s %8s\n", "n", "states", "iters",
-              "shape", "nodes", "op terms", "sec");
-
   bool all_ok = true;
-  for (int n = 3; n <= 12; ++n) {
-    const double expected = std::pow(3.0, n);
+  const auto check = [&all_ok](const result& r, int n) {
+    const bool ok = std::fabs(r.count - std::pow(3.0, n)) < 0.5;
+    all_ok = all_ok && ok;
+    return ok;
+  };
 
+  std::printf("towers of hanoi: naive iteration against saturation\n\n");
+  std::printf("%4s %16s %10s %10s %10s %9s\n", "n", "states", "rounds",
+              "naive s", "sat s", "speedup");
+
+  for (int n = 3; n <= 14; ++n) {
+    const result naive = solve(n, false, strategy::naive);
+    const result sat = solve(n, false, strategy::saturated);
+    const bool ok = check(naive, n) && check(sat, n);
+    const double speedup =
+        sat.seconds > 0.0 ? naive.seconds / sat.seconds : 0.0;
+    std::printf("%4d %16.0f %10zu %10.3f %10.4f %8.0fx%s\n", n, sat.count,
+                naive.iterations, naive.seconds, sat.seconds, speedup,
+                ok ? "" : "  MISMATCH");
+  }
+
+  std::printf("\nsaturation alone, past where naive iteration can follow:\n\n");
+  std::printf("%4s %16s %10s %8s %10s %9s\n", "n", "states", "shape", "nodes",
+              "op terms", "sec");
+  for (int n = 16; n <= 24; n += 4) {
     for (const bool balanced : {false, true}) {
-      // The balanced shape needs a power of two; skip the sizes it cannot take.
       if (balanced && (n & (n - 1)) != 0) continue;
-
-      const result r = solve(n, balanced);
-      const bool ok = std::fabs(r.count - expected) < 0.5;
-      all_ok = all_ok && ok;
-
-      std::printf("%4d %14.0f %8zu %10s %8zu %10zu %8.3f%s\n", n, r.count,
-                  r.iterations, balanced ? "balanced" : "spine", r.nodes,
-                  r.op_terms, r.seconds, ok ? "" : "  MISMATCH");
+      const result r = solve(n, balanced, strategy::saturated);
+      const bool ok = check(r, n);
+      std::printf("%4d %16.0f %10s %8zu %10zu %9.3f%s\n", n, r.count,
+                  balanced ? "balanced" : "spine", r.nodes, r.op_terms,
+                  r.seconds, ok ? "" : "  MISMATCH");
     }
   }
 
   std::printf(
-      "\nEvery Hanoi configuration is reachable, so the answer is the full\n"
-      "cube 3^n — which canonization stores in n nodes on a spine and\n"
-      "log2(n) on a balanced shape. The cost is entirely in the %s column:\n"
-      "2^n - 1 iterations, because naive iteration rediscovers the whole set\n"
-      "at every step. That number is what saturation is for.\n",
-      "iters");
+      "\nNaive iteration needs 2^n - 1 rounds and rebuilds a fresh object in\n"
+      "each, so every round misses the memo. Saturation puts the closures\n"
+      "inside the operator term, so the memo keys on saturated nodes: one\n"
+      "application, and a node is saturated once.\n");
 
   if (!all_ok) {
     std::printf("\nFAILED: a state count disagreed with 3^n\n");

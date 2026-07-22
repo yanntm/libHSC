@@ -66,16 +66,37 @@ std::span<const std::int32_t> int_set_theory::elements(core::code c) const {
 
 core::code int_set_theory::keep(core::code set) {
   if (set == core::none) return core::none;  // a guard nothing satisfies
-  return terms_.get(int_term{set, int_action::keep, 0});
+  return terms_.get(int_term{int_shape::primitive, int_action::keep, 0, set, 0});
 }
 
 core::code int_set_theory::assign(core::code set, std::int32_t value) {
-  return terms_.get(int_term{set, int_action::assign, value});
+  return terms_.get(
+      int_term{int_shape::primitive, int_action::assign, value, set, 0});
 }
 
 core::code int_set_theory::shift(core::code set, std::int32_t delta) {
   if (delta == 0) return set == core::none ? core::code{0} : keep(set);
-  return terms_.get(int_term{set, int_action::shift, delta});
+  return terms_.get(
+      int_term{int_shape::primitive, int_action::shift, delta, set, 0});
+}
+
+core::code int_set_theory::term_sum(core::code a, core::code b) {
+  if (a == b) return a;
+  if (a > b) std::swap(a, b);  // sum is commutative: one code for both orders
+  return terms_.get(int_term{int_shape::sum, int_action::keep, 0, a, b});
+}
+
+core::code int_set_theory::term_closure(core::code t) {
+  if (t == 0) return 0;  // id* = id
+  const int_term& inner = terms_[t];
+  if (inner.shape == int_shape::closure) return t;  // idempotent
+  if (inner.shape == int_shape::primitive &&
+      inner.action == int_action::keep) {
+    // A pure guard only removes values, so under union it adds nothing:
+    // (g + id)* = id. Discipline 5 -- this is a cheaper bill, same meaning.
+    return 0;
+  }
+  return terms_.get(int_term{int_shape::closure, int_action::keep, 0, t, 0});
 }
 
 core::code int_set_theory::apply_local(core::code term, core::code value) {
@@ -83,7 +104,21 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
   if (value == core::none) return core::none;
 
   const int_term& t = terms_[term];
-  const core::code kept = t.guard == core::none ? value : meet(value, t.guard);
+  if (t.shape == int_shape::sum) {
+    return join(apply_local(t.a, value), apply_local(t.b, value));
+  }
+  if (t.shape == int_shape::closure) {
+    // Naive iteration. A theory is free to fuse a closure instead; this one
+    // does not try, which is what makes it the honest oracle (§2.5).
+    core::code x = value;
+    for (;;) {
+      const core::code y = join(x, apply_local(t.a, x));
+      if (y == x) return x;
+      x = y;
+    }
+  }
+
+  const core::code kept = t.a == core::none ? value : meet(value, t.a);
   if (kept == core::none) return core::none;  // the guard refused: deadlock
 
   switch (t.action) {

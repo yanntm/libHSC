@@ -39,6 +39,15 @@ nothing about any particular leaf theory.
   is a theory term, read by the theory that owns the sort. A term is
   interpreted by whichever algebra it is handed to, exactly like a value.
 
+  `saturate()` is the static rewrite of §6: partition the events by where
+  they reach relative to a cut, close F below and L on the edge recursively
+  (§6.4 — hierarchy is automatic), leave G to be chained. **The split is
+  syntactic here**: a summand `node(h,t)` is F if `h == id`, L if
+  `t == id`, G otherwise. libDDD needs a per-variable partition cache over
+  `skip_variable` for this; libsdd a `dynamic_cast` chain. The evaluation
+  schedule is libsdd's `_saturation_fixpoint::operator()` verbatim — F, then
+  L, then chained G, to stability.
+
 * `manager.hh` — owner of the shape table, the operation terms, the imported
   theories and the diagrams. No singletons: everything reaches its users as
   an argument.
@@ -49,4 +58,12 @@ See `algorithm.md` for the algorithms, which are written before the code.
 
 `query;case` and `split_equiv` as the diagram theory's export (Cor. 3.6's
 other half) — needed for cross-level *arithmetic* (`x := y + z`, `tab[i]`)
-and nothing before it. `∗` and the F/L/G saturation schedule — M5.
+and nothing before it.
+
+Two accelerators the references have and we do not, both deliberate: §6.3's
+fused re-saturation in a crossing reply (libDDD's `recFireSat` and the
+`l&f` nice-form test — found empirically in `demo/hanoi/hanoiHom.cpp` v6,
+"the test resaturates before returning"), and libDDD's DFS/BFS knob (an
+inner fixpoint per `g` instead of one application). Both are convergence
+heuristics that profile differently per workload; neither changes the
+answer. They arrive when there is a workload to choose between them.
