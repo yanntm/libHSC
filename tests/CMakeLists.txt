@@ -11,6 +11,7 @@ add_executable(hsc_tests
   test_cache.cc
   test_stats.cc
   test_timing.cc
+  test_operations.cc
 )
 target_link_libraries(hsc_tests PRIVATE hsc::hsc doctest::doctest)
 target_compile_options(hsc_tests PRIVATE
