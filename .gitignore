@@ -1,0 +1,9 @@
+# Fetched dependencies (never vendored: see cmake/hsc_deps.cmake)
+/deps/
+
+# Build trees
+/build/
+/build-*/
+
+# Diagnostic logs (kept in-folder, never committed)
+*.log
