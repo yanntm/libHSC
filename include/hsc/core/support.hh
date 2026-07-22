@@ -42,6 +42,21 @@ class support_algebra {
   virtual code minus(code a, code b) = 0;  ///< a ∖ b, relative
   ///@}
 
+  /// \brief Apply a local term to a code (Def 2.3).
+  ///
+  /// The term is handed over **whole** — guards, assigns, composition, sum,
+  /// fused as the implementor sees fit. Splitting a code, acting per piece
+  /// and re-joining is what Def 2.3 forbids doing to a theory from outside.
+  ///
+  /// Term code `0` is `id`: free, never represented, and callers are
+  /// expected to short-circuit it rather than dispatch on it.
+  ///
+  /// Which codes are legal terms is the implementor's business: a leaf
+  /// theory interprets its own term language, and the diagram engine
+  /// interprets operation terms — that is Corollary 3.6, and it is why this
+  /// method is on this interface rather than on a separate one.
+  virtual code apply_local(code term, code value) = 0;
+
   /// \brief How many elements \p c denotes.
   ///
   /// A double because state spaces are exponential and this number is for

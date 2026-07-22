@@ -67,14 +67,15 @@ struct node {
 /// `mem::cache` wants. Join and meet normalise their operands, so `a op b`
 /// and `b op a` are one entry.
 struct binary_op {
-  enum class kind : std::uint8_t { join, meet, minus };
+  enum class kind : std::uint8_t { join, meet, minus, apply };
 
   kind op;
   code a;
   code b;
 
   binary_op(kind k, code x, code y) : op(k), a(x), b(y) {
-    if (op != kind::minus && a > b) std::swap(a, b);  // commutative
+    // join and meet are commutative: one entry serves both orders.
+    if ((op == kind::join || op == kind::meet) && a > b) std::swap(a, b);
   }
 
   friend bool operator==(const binary_op&, const binary_op&) = default;
@@ -109,6 +110,9 @@ class diagram_engine final : public support_algebra {
   code join(code a, code b) override;
   code meet(code a, code b) override;
   code minus(code a, code b) override;
+  /// Apply an operation term (see `operation.hh`) to a diagram. This is the
+  /// diagram theory answering Def 2.3 for itself — Corollary 3.6.
+  code apply_local(code term, code value) override;
   [[nodiscard]] double cardinal(code c) const override;
   void print(std::ostream& os, code c) const override;
   ///@}
@@ -153,6 +157,7 @@ class diagram_engine final : public support_algebra {
   code do_join(code a, code b);
   code do_meet(code a, code b);
   code do_minus(code a, code b);
+  code do_apply(code term, code value);
 
   void collect_nodes(code c, std::unordered_set<code>& seen) const;
 

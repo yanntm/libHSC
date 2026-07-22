@@ -14,6 +14,13 @@ not the domain, is what the calculus sees: `core/support.hh` is that window.
   The empty set is `none`. It is never interned, because absence is not a
   citizen.
 
+  Local terms (Def 2.3) are a guard followed by an action — `keep`,
+  `assign`, `shift` — handed over whole and fused by the theory rather than
+  split from outside. Small and closed on purpose: it covers a Petri
+  transition (`m >= w` then `m -= w`) and a Hanoi move (`pos == a` then
+  `pos := b`), which is the whole non-crossing fragment. Only pushforwards
+  appear; Def 2.2 exports no preimage and none is wanted.
+
 ## Pending
 
 The FDD / bounded-integer theory backed by the legacy flat engine's storage

@@ -15,6 +15,7 @@
 #include <unordered_set>
 
 #include "hsc/core/manager.hh"
+#include "hsc/core/operation.hh"
 
 namespace hsc::core {
 
@@ -181,6 +182,8 @@ code binary_op::operator()(diagram_engine& engine) const {
       return engine.do_meet(a, b);
     case kind::minus:
       return engine.do_minus(a, b);
+    case kind::apply:
+      return engine.do_apply(a, b);
   }
   return none;
 }
@@ -202,6 +205,58 @@ code diagram_engine::minus(code a, code b) {
   if (a == none || b == none) return a;
   if (a == b) return none;
   return ops_(binary_op(binary_op::kind::minus, a, b));
+}
+
+code diagram_engine::apply_local(code term, code value) {
+  if (term == op_table::id) return value;  // id is free
+  if (value == none) return none;
+  return ops_(binary_op(binary_op::kind::apply, term, value));
+}
+
+/// \brief Evaluate one operation term against one diagram.
+///
+/// The whole local fragment of §4.1. `node(h,t)` maps every arc through the
+/// head and tail algebras and re-canonicalises; which algebra interprets `h`
+/// is settled by the shape, so a leaf theory and a nested diagram are the
+/// same case (Cor. 3.6).
+code diagram_engine::do_apply(code term, code d) {
+  const op_term& t = owner_.operations()[term];
+  switch (t.kind) {
+    case op_kind::sum:
+      return join(apply_local(t.a, d), apply_local(t.b, d));
+    case op_kind::compose:
+      return apply_local(t.a, apply_local(t.b, d));
+    case op_kind::node:
+      break;
+  }
+
+  const node& n = nodes_[d];
+  assert(n.arity != 0 && "operation term reaches past its sort");
+  const shape_code sort = n.sort;
+  support_algebra& head = head_algebra(sort);
+  support_algebra& tail = tail_algebra(sort);
+
+  if (t.a == op_table::id) {
+    // Skip on the head: the primes are untouched, so they are still pairwise
+    // disjoint and only the regroup by sub is owed. The sieve never runs.
+    accumulator acc(head);
+    for (const arc& x : n.arcs()) {
+      acc.add(tail.apply_local(t.b, x.sub), x.prime);
+    }
+    return finish(sort, acc);
+  }
+
+  // The head acts, so primes may now overlap or collide: full construction.
+  std::vector<arc> bag;
+  bag.reserve(n.arity);
+  for (const arc& x : n.arcs()) {
+    const code prime = head.apply_local(t.a, x.prime);
+    if (prime == none) continue;
+    const code sub = tail.apply_local(t.b, x.sub);
+    if (sub == none) continue;
+    bag.push_back({prime, sub});
+  }
+  return canonize(sort, bag);
 }
 
 code diagram_engine::do_join(code a, code b) {

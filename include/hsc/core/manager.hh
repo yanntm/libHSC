@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "hsc/core/diagram.hh"
+#include "hsc/core/operation.hh"
 #include "hsc/core/shape.hh"
 #include "hsc/core/support.hh"
 
@@ -53,8 +54,15 @@ class manager {
 
   [[nodiscard]] diagram_engine& diagrams() noexcept { return *diagrams_; }
 
+  /// The interned operation terms.
+  [[nodiscard]] op_table& operations() noexcept { return operations_; }
+  [[nodiscard]] const op_table& operations() const noexcept {
+    return operations_;
+  }
+
  private:
   shape_table shapes_;
+  op_table operations_;
   std::vector<std::unique_ptr<support_algebra>> theories_;
   std::unique_ptr<diagram_engine> diagrams_;
 };

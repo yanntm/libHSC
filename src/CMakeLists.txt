@@ -6,4 +6,5 @@ target_sources(hsc PRIVATE
   timing.cc
   int_set.cc
   diagram.cc
+  operation.cc
 )

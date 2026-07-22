@@ -64,6 +64,46 @@ std::span<const std::int32_t> int_set_theory::elements(core::code c) const {
   return table_[c].elements();
 }
 
+core::code int_set_theory::keep(core::code set) {
+  if (set == core::none) return core::none;  // a guard nothing satisfies
+  return terms_.get(int_term{set, int_action::keep, 0});
+}
+
+core::code int_set_theory::assign(core::code set, std::int32_t value) {
+  return terms_.get(int_term{set, int_action::assign, value});
+}
+
+core::code int_set_theory::shift(core::code set, std::int32_t delta) {
+  if (delta == 0) return set == core::none ? core::code{0} : keep(set);
+  return terms_.get(int_term{set, int_action::shift, delta});
+}
+
+core::code int_set_theory::apply_local(core::code term, core::code value) {
+  if (term == 0) return value;        // id is free
+  if (value == core::none) return core::none;
+
+  const int_term& t = terms_[term];
+  const core::code kept = t.guard == core::none ? value : meet(value, t.guard);
+  if (kept == core::none) return core::none;  // the guard refused: deadlock
+
+  switch (t.action) {
+    case int_action::keep:
+      return kept;
+    case int_action::assign:
+      return singleton(t.arg);
+    case int_action::shift: {
+      // The pushforward of x -> x + delta. Order is preserved, so the run
+      // stays sorted and no re-sorting is owed.
+      const auto from = elements(kept);
+      std::vector<std::int32_t> out;
+      out.reserve(from.size());
+      for (const std::int32_t v : from) out.push_back(v + t.arg);
+      return of_sorted(out);
+    }
+  }
+  return core::none;
+}
+
 core::code int_set_theory::join(core::code a, core::code b) {
   if (a == b) return a;
   const auto x = elements(a);

@@ -25,12 +25,28 @@ nothing about any particular leaf theory.
   made structural rather than remembered: there is no leaf case and node
   case, and `⟨Diag(V)⟩` is a legal import.
 
-* `manager.hh` — owner of the shape table, the imported theories and the
-  diagrams. No singletons: everything reaches its users as an argument.
+* `operation.hh` + `src/operation.cc` — operation terms (§4.1), the
+  fragment that needs no query: `id | node(H_h,H_t) | ∘ | +`. The term
+  **mirrors the shape tree** rather than naming an absolute variable, which
+  buys two things libDDD structurally cannot have: skip is literally
+  `term == id` (discipline 3, no oracle, no support set), and descending
+  into a subtree re-roots the term so isomorphic positions share codes
+  (§2.6, gap D1). `product()` assembles an event from one maximal local
+  term per leaf — which is exactly what a Petri transition or a Hanoi move
+  is.
+
+  The leaf case is deliberately *not* in this table: at a leaf sort the term
+  is a theory term, read by the theory that owns the sort. A term is
+  interpreted by whichever algebra it is handed to, exactly like a value.
+
+* `manager.hh` — owner of the shape table, the operation terms, the imported
+  theories and the diagrams. No singletons: everything reaches its users as
+  an argument.
 
 See `algorithm.md` for the algorithms, which are written before the code.
 
 ## Pending
 
-Operations (`id`, `local`, `query;case`, `∘`, `+`, `∗`) — M4. `split_equiv`
-as the diagram theory's export (Cor. 3.6's *other* half) — M4.
+`query;case` and `split_equiv` as the diagram theory's export (Cor. 3.6's
+other half) — needed for cross-level *arithmetic* (`x := y + z`, `tab[i]`)
+and nothing before it. `∗` and the F/L/G saturation schedule — M5.
