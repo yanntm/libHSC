@@ -230,3 +230,82 @@ at M6), baseline — never wrapping or linking. The house convention
 (spec before code, report after, calculus draft revised when
 implementation teaches something) applies per milestone and is stated
 once, there.
+
+## 8. Inspirations from libsdd
+
+`~/git/libsdd` (Hamez) is the other reboot of libDDD: natively
+hierarchical, BSD-licensed, better than libDDD on P/T nets, much less
+feature-rich, and a third data point between legacy libDDD and the hsc
+target. What it does well, and what libHSC takes from it:
+
+* **Bounded LRU caches, no wipe** (`sdd/mem/cache.hh`). Fixed capacity
+  decided at construction, intrusive no-rehash hash table, pool
+  allocator for entries, evict-one-LRU on insert at capacity,
+  compile-time filter chain (the `should_insert` idea, generalized),
+  per-cache statistics struct. Because entries hold refcounted operands,
+  retention is continuous and there is no GC event to survive: the
+  wipe-at-GC problem is *dissolved*, not solved. Direct feed for M7 —
+  with one fix: evict-one at capacity thrashes when the working set
+  exceeds capacity; batch eviction (evict K) should be a policy knob.
+
+* **Eager refcounting with a deletion handler** (`sdd/mem/ptr.hh`,
+  `unique_table::erase`). No mark & sweep at all: last deref erases from
+  the unique table immediately, via an indirected deletion handler owned
+  by the manager. Advantages: no stop-the-world, no id-recycling poison,
+  memory bounded by live refs + cache capacity. Cost (the reservation
+  stands): no resurrection — a dead node re-requested must be rebuilt,
+  where libDDD's dead-until-GC nodes get resurrected by unicity hits,
+  which DD workloads do constantly. For M7 this becomes a **policy
+  axis**, not a commitment: RC as the liveness signal + a zero-count
+  mortuary reclaimed lazily under pressure (the CUDD dead-list scheme)
+  gives resurrection *and* bounded memory *and* no stop-the-world, and
+  composes with generation tags for attributable invalidation.
+
+* **Contexts, not singletons** (`sdd/dd/context.hh`,
+  `sdd/hom/context.hh`, `manager.hh`). All state — unique tables,
+  caches — is owned by a manager object; caches live in explicit
+  context objects threaded through evaluation, `shared_ptr`-copyable,
+  creatable "at different points of the evaluation" (e.g. a private
+  cache for a nested fixpoint). Kills the singleton-in-hot-path problem
+  and gives certificate policies a natural attachment point. Adopt at
+  M1.
+
+* **Operation-as-key cache entries** (`sdd/mem/cache_entry.hh`). The
+  operation object, holding its refcounted operands, *is* the key;
+  intrusive hook and LRU iterator inline in the entry; one allocation
+  per entry from the pool. Adopt.
+
+* **The unique-table allocation cache** (`unique_table::allocate`). The
+  table keeps the largest recently-freed block to serve the next
+  probe-object allocation — the clean, table-owned version of legacy
+  `create_unique_GDDD`'s static scratch buffer. Adopt at M1 (heterogeneous
+  lookup removes the probe *lookup*, this removes the insert-path
+  allocation churn).
+
+* **Statistics as structs everywhere** (`cache_statistics`,
+  `unique_table_statistics`). Effectively half of the §12.5 invoice,
+  already shaped. Adopt.
+
+* **`rewrite()` as an explicit static pass** (`sdd/hom/rewrite.hh`).
+  Saturation is obtained by a one-shot rewriting of `sum`/`fixpoint`
+  into dedicated `saturation_*` homs, partitioning F/G/L per level of a
+  *fixed* order — the strongest skip-oracle answered once, statically,
+  where libDDD re-partitions dynamically per application with caches.
+  Discipline 5 says both are right: libHSC wants the static pass as the
+  fast path when supports are static (declared regime), falling back to
+  dynamic partition/currying exactly where operations mutate in flight.
+
+What not to take, equally instructive:
+
+* **The configuration template.** `C` fixes the leaf value type
+  (`C::Values`) per library instantiation: one leaf theory per program,
+  no mixed sorts in one shape, everything templated on `C` — the
+  "not very dynamic" objection, structural. libHSC's line: concepts at
+  the theory boundary, type erasure where sorts mix, monomorphization
+  reserved for the declared fast path (G4).
+* **Hand-rolled `mem::variant`** (~400 lines of pre-C++11 machinery):
+  the closed-AST *idea* is right and validates our operations plan;
+  the implementation is `std::variant`/`visit` today.
+* **Static skip only**: `skip(order)` is the only oracle; no home for
+  currying/equiv-split — the exact expressiveness gap libHSC exists to
+  fill.
