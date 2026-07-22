@@ -3,4 +3,5 @@
 
 target_sources(hsc PRIVATE
   stats.cc
+  timing.cc
 )
