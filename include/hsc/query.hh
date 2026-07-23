@@ -56,4 +56,12 @@ enum class cmp : std::uint8_t { lt, le, eq, ne, ge, gt };
                                         core::code diagram, std::size_t xpos,
                                         cmp op, std::size_t ypos);
 
+/// \brief The subset of \p diagram whose value at frontier position \p pos
+/// lies in the theory set \p set. The separable one-position criterion: a
+/// plain descent to that leaf followed by a meet, no split involved.
+[[nodiscard]] core::code select_in(core::manager& mgr,
+                                   leaves::int_set_theory& theory,
+                                   core::shape_code sort, core::code diagram,
+                                   std::size_t pos, core::code set);
+
 }  // namespace hsc

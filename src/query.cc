@@ -66,6 +66,32 @@ code restrict(core::manager& mgr, leaves::int_set_theory& theory,
   return diagrams.canonize(sort, rects);
 }
 
+/// Restrict \p c so the value at frontier position \p pos lies in \p set —
+/// the same descent as `restrict`, the filter a meet instead of a predicate.
+code restrict_set(core::manager& mgr, leaves::int_set_theory& theory,
+                  shape_code sort, code c, std::size_t pos, code set) {
+  if (c == core::none) return core::none;
+  const core::shape_table& shapes = mgr.shapes();
+  if (shapes.kind(sort) == core::shape_kind::leaf) {
+    return theory.meet(c, set);
+  }
+  core::diagram_engine& diagrams = mgr.diagrams();
+  const std::size_t wh = shapes.width(shapes.head(sort));
+  std::vector<core::arc> rects;
+  for (const core::arc& a : diagrams.arcs(c)) {
+    if (pos < wh) {
+      const code np =
+          restrict_set(mgr, theory, shapes.head(sort), a.prime, pos, set);
+      if (np != core::none) rects.push_back({np, a.sub});
+    } else {
+      const code ns =
+          restrict_set(mgr, theory, shapes.tail(sort), a.sub, pos - wh, set);
+      if (ns != core::none) rects.push_back({a.prime, ns});
+    }
+  }
+  return diagrams.canonize(sort, rects);
+}
+
 code select(core::manager& mgr, leaves::int_set_theory& theory, shape_code sort,
             code c, std::size_t xpos, cmp op, std::size_t ypos) {
   if (c == core::none) return core::none;
@@ -128,6 +154,11 @@ code select_compare(core::manager& mgr, leaves::int_set_theory& theory,
     return eval(op, 0, 0) ? diagram : core::none;
   }
   return select(mgr, theory, sort, diagram, xpos, op, ypos);
+}
+
+code select_in(core::manager& mgr, leaves::int_set_theory& theory,
+               shape_code sort, code diagram, std::size_t pos, code set) {
+  return restrict_set(mgr, theory, sort, diagram, pos, set);
 }
 
 }  // namespace hsc
