@@ -123,11 +123,19 @@ across a cut) add an O(1) boundary term per level — exactly the
 circular-set CUR/NEXT shape — and the ring closes once at the root.
 Two routes to it:
 
-1. **Discovered** — a factoring smart constructor (or sum normal form)
-   on `op_table`: group summands by wrapper side, recurse. Collapses
-   even a flat file's family after enumerating it: O(N) construction
-   once, O(log N) codes retained. Fixes memory and cache locality, not
-   asymptotic time.
+1. **Discovered** — **implemented**: `core::sum_at(mgr, sort, events)`,
+   the head-folded sum. It could not be a blind `op_table::sum` normal
+   form: a node over a leaf head holds *theory* terms, whose sum is the
+   theory's `term_sum`, and op terms do not carry their sort — so the
+   fold is a sort-aware recursion mirroring the saturation split (one-
+   sided wrappers fold per side; the mixed pair and crossing terms stay
+   flat summands). The saturation partition now flattens `sum` summands,
+   so a folded system schedules identically to its flat list. Wired
+   into the naive reach and the `alt` combinator; validated by the
+   naive-vs-saturate differentials (philo, mutex, and a take1-only
+   probe at N=64: both engines 2^64 exactly), the full doctest suite,
+   and the divine sweep. As predicted it changes structure, not time:
+   the wrapper chains are still built before they fold.
 2. **Declared** — the binder already knows the family is one template
    conjugated over i; the translator builds `R(d)` directly by recursion
    over the interned sort DAG, never enumerating: O(depth) time and
