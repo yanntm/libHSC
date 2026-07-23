@@ -115,7 +115,7 @@ discharged by canonicity rather than implemented: two codes denote the same
 class iff they are the same code, and the empty class is the adjoined `0`,
 which is an absence rather than a value. A theory is never asked either
 question. **Complement** is absent because no construction below forms one;
-relative difference is the only negation the calculus can express, and §4.6
+relative difference is the only negation the calculus can express, and §4.7
 shows it is enough. **Preimage** is absent by Definition 2.3.
 
 **Definition 2.5 (currification).** A theory's codes are relative to a
@@ -199,7 +199,7 @@ already pairwise disjoint.
 
 **Proposition 3.7.** On a pre-disjoint bag, `canon` reduces to grouping by
 sub: no carving occurs. Meet, relative difference, and the action of a term
-whose head component is a **selector** (§4.6) all produce pre-disjoint bags.
+whose head component is a **selector** (§4.7) all produce pre-disjoint bags.
 Union does not.
 
 *Proof sketch.* For meet, the heads are `P_i ∩ Q_j` for two partitions, and
@@ -210,7 +210,7 @@ are `s·P_i ⊆ P_i`, and subsets of disjoint sets are disjoint. ∎
 This is a statement about **cost, not meaning** — both paths compute the same
 normal form. It belongs in the calculus anyway, because it identifies which
 operations can be given a cheaper universal property, and because the
-criterion turns out to be exactly *selector-hood*, which §4.6 defines for
+criterion turns out to be exactly *selector-hood*, which §4.7 defines for
 independent reasons.
 
 **Theorem 3.8 (internalisation).** For any shape whose head-position subtrees
@@ -288,16 +288,43 @@ structurally identical events at different positions are then different
 objects, share no codes, and share no computation. The obligation this places
 on any presentation of the calculus: **no term may name a position.**
 
-**4.5 Filters and updates are not generators.** They are primitive *inside* a
+**Proposition 4.5 (the injections are additive).** The embeddings
+`h ↦ h ⊗ id` and `t ↦ id ⊗ t` of `𝒯(V_h)` and `𝒯(V_t)` into
+`𝒯((V_h,V_t))` preserve sums:
+
+```
+(h ⊗ id) + (h' ⊗ id)  =  (h + h') ⊗ id
+(id ⊗ t) + (id ⊗ t')  =  id ⊗ (t + t')
+```
+
+*Proof.* Apply both sides of the first to `X = Σ_i P_i ⊗ S_i`. The left is
+`canon{(h·P_i, S_i)}_i ∪ canon{(h'·P_i, S_i)}_i`; arcs with equal sections
+merge by joining their heads, and the head algebra's sum is pointwise join,
+so the union is `canon{((h+h')·P_i, S_i)}_i` — the right side. Dually for
+sections, where arcs with equal heads merge. ∎
+
+The mixed pair does **not** fold: `(h ⊗ id) + (id ⊗ t)` moves one side *or*
+the other where `h ⊗ t` moves both, and they differ on any word both sides
+can move. Grouping the one-sided summands per side and folding, recursively,
+is therefore a **head-folded normal form** for sums: a sum of one-sided
+terms collapses into a chain that mirrors the shape, O(depth) summands at
+every level. Its point is Theorem 4.4's other half. Currification makes the
+n conjugate instances of one event template *share their term*; what a flat
+enumeration still holds apart is n wrapper chains saying *where*, and
+Proposition 4.5 folds the chains into the shape. The enumerated family and
+the folded chain become one code — the regularity of a symmetric system made
+visible to hashing, not only to the eye. §8 measures both halves.
+
+**4.6 Filters and updates are not generators.** They are primitive *inside* a
 leaf term, and derived across a cut: §6 shows how far products and sums get,
 and §7 takes over exactly where they stop.
 
-**Definition 4.6 (the two faces, and selectors).** A support element `e`
+**Definition 4.7 (the two faces, and selectors).** A support element `e`
 types two ways: as a *point* ("these words") and as a *sub-identity* ("keep
 these words"). One code, two typings; the second carries `∩` to `∘` and `∪`
 to `+`. A term is a **selector** if `t·A ⊆ A` for all `A`.
 
-**Theorem 4.7 (the guard algebra).** The sub-identity interval `[0, id_V]` is
+**Theorem 4.8 (the guard algebra).** The sub-identity interval `[0, id_V]` is
 a unital Boolean algebra even over non-unital supports: its top is `id`,
 which is free, and complement is computed on data as a relative difference,
 `(¬h)(w) = {w}` iff `h(w) = 0`. No top is needed anywhere.
@@ -306,13 +333,13 @@ The morphism algebra therefore strictly outruns the data algebra: a derived
 predicate such as *deadlocked* — the complement of the union of all enabling
 guards — is computable against the data present, with no `⊤` in sight.
 
-**Proposition 4.8.** The operator semiring is zerosumfree
+**Proposition 4.9.** The operator semiring is zerosumfree
 (`h + h' = 0 ⟹ h = h' = 0`, hence monotone fixpoints) but not
 zero-divisor-free (disjoint guards compose to `0` with both nonzero).
 Negation, banished from the semiring, survives exactly on the idempotent
 interval, where the free unit gives it something to be relative to.
 
-**4.9 Deadlock is exact.** A class pair contributing nothing contributes the
+**4.10 Deadlock is exact.** A class pair contributing nothing contributes the
 empty sum, a value of the same construction that produces every other. No run
 is ever an under-approximation on account of a junked class.
 
@@ -367,6 +394,10 @@ account than treating one arrangement as canonical.
 The recursion bottoms out where a theory closes its own local term
 (Definition 2.2). No annotation, no user-supplied locality, no declared
 decomposition — the split is *read off* the product structure of the terms.
+The split is also exactly the grouping Proposition 4.5 folds: `F`'s operand
+`Σ_j f_j` is the folded tail-sum, `L`'s the folded head-sum. A sum kept in
+head-folded normal form arrives at Theorem 5.2 already partitioned, at every
+level at once.
 
 **Why the saturated form is cheaper.** Both sides of Theorem 5.2 denote the
 same operator, so the difference is entirely in evaluation. Under
@@ -460,9 +491,15 @@ because the reply is a morphism and morphisms compose. Whether the event
 factors as `l ∘ f` survives only as a **cost regime**, never as a case
 distinction in the semantics.
 
-This section is the part of the calculus that remains to be built, and §6 is
-the reason that is tolerable: the boundary sits far enough out that a
-substantial class of models never reaches it.
+This section is built: the bracket compiles crossing guards and updates,
+`split_equiv` is exported by the working leaf theory and by diagrams, and
+every criterion outside Definition 6.1 — two-position comparisons,
+arithmetic across a cut, array access under an unresolved index, quantified
+disjunctions spanning many positions — takes this path, in events and in
+queries alike. What §6 bought remains true in the built system: the
+separable fragment never enters the bracket, and the two regimes meet only
+as a cost boundary. Open 1 retains the parts still unsettled — residual
+normalisation, and the schedule interaction when the reply does not factor.
 
 ---
 
@@ -484,6 +521,22 @@ does not grow with `n`; a spine pays one level per component. For a system
 whose events reach a *suffix* of the frontier, the spine makes exactly those
 events skippable in the sense of Theorem 4.3 while a balanced shape cuts
 across every one of them, sending each into `G` at every level.
+
+Both regimes are measured, not conjectured. An `n`-philosopher ring at a
+balanced shape adds four nodes to the reachable set's representation per
+doubling of `n` (32 nodes at `n = 256`, 56 at `n = 16384`); the spine's
+representation is two orders larger already at `n = 256`. The same
+experiment measures the operation side and confirms both halves of
+Proposition 4.5's reading: the shared residuals of the `n` conjugate events
+are a constant number of codes independent of `n` (Theorem 4.4 at work),
+while the flat enumeration's wrapper chains contribute exactly `2n − 1`
+codes per event template — sites, not operations. The remaining road from
+`Θ(n)` construction to `O(log n)` is therefore *declaration*: a family
+declared as one template over a symmetric index set can have its folded
+chain built by recursion over the interned shape — the level recurrence
+`R_d = (R_{d−1} ⊗ id) + (id ⊗ R_{d−1})` plus a bounded seam term per level,
+the ring closing once at the root — with no site ever enumerated. What the
+declaration must certify, and what the schedule must consume, is Open 6.
 
 Neither is a defect. Both are the same object under different presentations,
 and the presentations differ in cost by margins that grow with `n` in both
@@ -541,3 +594,12 @@ matters, though the spine may be long.
 5. **Isomorphism between shapes.** §8 asserts a computed isomorphism between
    shapes over a common frontier. Its cost, and whether re-shaping a
    representation in place is ever cheaper than rebuilding it, is open.
+6. **Regular families without enumeration.** §8's level recurrence builds a
+   symmetric family's folded term in `O(depth)`; what remains open is the
+   declaration that licenses it — a uniformity certificate over the index
+   set (scalar and circular sets are the known instances), its checkable
+   syntactic criterion at a surface, the seam terms' general form, and a
+   schedule (Theorem 5.2 instance) whose evaluation keys on the shared
+   block–operation pairs so the closure itself is computed `O(depth)`
+   times, not `O(n)`. Counting at that scale also leaves `double`
+   territory: the cardinal wants a log-form.
