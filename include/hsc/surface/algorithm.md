@@ -33,6 +33,7 @@ well-ordered, and the translator errors (with a line) if it is not.
 (init  (NAME VAL)*)                ; initial word; unlisted leaves take LO
 (event NAME (when ATOM*) (do ACT*))
 (reach NAME [saturate|naive])      ; least fixpoint of (Σ events) from init
+(select NAME SOURCE QATOM+)        ; subset of SOURCE satisfying every QATOM
 (count NAME) (nodes NAME) (print NAME)
 (expect NAME N)                    ; assert cardinal == N; nonzero exit on miss
 (bill)                             ; meters: nodes, terms, caches, time
@@ -45,6 +46,7 @@ SORT ::= unit | NAME
        | (spine SORT+)             ; sugar: (pair a (pair b (… unit)))
        | (balanced SORT+)          ; sugar: split in half, left-biased
 ATOM ::= (CMP NAME K) | (in NAME K+)     ; CMP ∈ == != < <= > >=
+QATOM ::= ATOM | (CMP NAME NAME)         ; two leaves: the §7 crossing case
 ACT  ::= (:= NAME K) | (+= NAME K) | (-= NAME K)
 ```
 
@@ -93,6 +95,23 @@ term either; the generator expands it into several `event`s.
 iterates `apply_local` to a fixed point. Both denote the same diagram
 (Prop 5.3), so `naive` is the differential oracle for `saturate`. `expect`
 turns a file into a self-checking oracle.
+
+### select
+
+`(select NAME SOURCE QATOM+)` filters the stored result `SOURCE` by a
+conjunction of query atoms, applied left to right, and stores the subset under
+`NAME`. A `QATOM` with a constant right-hand side (or `in`) is separable: a
+descent to that frontier position and a meet with the atom's set
+(`select_in`). A right-hand side naming a second leaf is the crossing
+comparison `x ⋈ y` (⋈ any of the six comparators): resolved by the §7 case
+(`select_compare`, `hsc/query.hh`) — at the cut separating the two positions,
+`split_equiv` the head coordinate and curry the residual per class onto the
+tail. The casing is honest: no rewriting by domain knowledge (a one-safe
+`a <= b` is *not* turned into `a==0 ∨ b==1`); each head value gets its class,
+each class its restricted tail. Two limits, refused with a message: the head
+side of the cut must be a leaf (a coordinate deep in the head awaits
+`split_equiv` on diagrams), and events still take plain `ATOM`s only —
+crossing *updates* (`x := y + z`) are the next §7 step.
 
 ### Queries
 

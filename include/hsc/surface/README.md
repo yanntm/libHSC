@@ -34,10 +34,15 @@ The separable Presburger fragment (§6) — "everything that does not need
 constant assign or a constant shift on one leaf. This is enough for Hanoi,
 philosophers, and 1-safe Petri / NUPN nets.
 
+In `select` queries over a stored result, an atom relating two leaves
+(`(< a c)`, any comparator) is in scope: it is the first §7 case, resolved by
+`split_equiv` at the cut separating the two positions (`hsc/query.hh`).
+
 Refused, with a pointer to §7 (parsed and understood, then declined — a staged
 feature, not a syntax error):
 
-* an atom relating two leaves (`(< a (+ b c))`),
+* an *event* atom relating two leaves, or arithmetic on the right-hand side
+  (`(< a (+ b c))`),
 * an action whose value reads another leaf (`(:= x (+ y z))`),
 * arrays and `a[i]` dereference — that is the SMT *array* theory, not
   Presburger, and it is what forces `split_equiv`.

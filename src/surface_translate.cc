@@ -17,6 +17,7 @@
 #include <ostream>
 #include <span>
 #include <sstream>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -24,6 +25,7 @@
 #include "hsc/core/manager.hh"
 #include "hsc/core/operation.hh"
 #include "hsc/leaves/int_set.hh"
+#include "hsc/query.hh"
 #include "hsc/util/errors.hh"
 #include "hsc/util/timing.hh"
 
@@ -127,6 +129,7 @@ class translator {
     else if (kw == "states") do_states(form);
     else if (kw == "one-safe") do_one_safe(form);
     else if (kw == "deadlock") do_deadlock(form);
+    else if (kw == "select") do_select(form);
     else if (kw == "count") do_count(form);
     else if (kw == "nodes") do_nodes(form);
     else if (kw == "print") do_print(form);
@@ -500,6 +503,54 @@ class translator {
     const code dead = enabled == core::none ? r : diagrams.minus(r, enabled);
     out_ << "FORMULA ReachabilityDeadlock "
          << (dead == core::none ? "FALSE" : "TRUE") << TECHNIQUES;
+  }
+
+  /// The comparator of a query atom, by its surface spelling.
+  static std::optional<cmp> comparator(const std::string& op) {
+    if (op == "<") return cmp::lt;
+    if (op == "<=") return cmp::le;
+    if (op == "==") return cmp::eq;
+    if (op == "!=") return cmp::ne;
+    if (op == ">=") return cmp::ge;
+    if (op == ">") return cmp::gt;
+    return std::nullopt;
+  }
+
+  /// One query atom applied to \p src. A right-hand side naming a second leaf
+  /// is the crossing comparison, resolved by the §7 case (`select_compare`);
+  /// a constant right-hand side (or `in`) is separable, a per-position meet.
+  code apply_atom(const datum& atom, code src) {
+    if (!atom.is_list() || atom.items().size() < 3) {
+      fail(atom, "a query atom is (cmp leaf constant-or-leaf) or (in leaf K+)");
+    }
+    const leaf_decl& x = require_leaf(atom.items()[1]);
+    const datum& rhs = atom.items()[2];
+    if (atom.items().size() == 3 && rhs.is_atom() &&
+        leaves_.contains(rhs.text())) {
+      const std::optional<cmp> op = comparator(atom.head());
+      if (!op) fail(atom, "unknown comparison '" + atom.head() + "'");
+      const leaf_decl& y = leaves_.at(rhs.text());
+      try {
+        return hsc::select_compare(mgr_, *theory_, top_, src, x.index, *op,
+                                   y.index);
+      } catch (const std::logic_error& e) {
+        fail(atom, e.what());
+      }
+    }
+    return hsc::select_in(mgr_, *theory_, top_, src, x.index,
+                          atom_set(atom, x));
+  }
+
+  /// `(select NAME SOURCE ATOM+)`: filter a stored result by a conjunction of
+  /// query atoms and store the subset under NAME.
+  void do_select(const datum& form) {
+    const std::string& name = sym(arg(form, 1, "result name"));
+    code cur = named(arg(form, 2, "source result"));
+    if (form.items().size() < 4) fail(form, "select needs at least one atom");
+    for (std::size_t i = 3; i < form.items().size(); ++i) {
+      cur = apply_atom(form.items()[i], cur);
+    }
+    results_[name] = cur;
   }
 
   void do_count(const datum& form) {
