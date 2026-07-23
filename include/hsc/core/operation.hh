@@ -44,6 +44,9 @@ enum class op_kind : std::uint8_t {
   compose,   ///< 2 operands: `after ∘ before`
   fixpoint,  ///< 1 operand: `(h + id)*` by naive iteration
   saturate,  ///< F, L, then the G operands: the schedule of §6.2
+  expr,      ///< a §7 case bracket: a guard `bexpr`, then (lhs, rhs)
+             ///< `iexpr` pairs — opaque to core, evaluated by the case
+             ///< engine registered with the manager
 };
 
 /// An operation term: a kind and its operands, in one allocation.
@@ -129,6 +132,20 @@ class op_table {
     return make(op_kind::saturate, scratch_);
   }
 
+  /// \brief A §7 case bracket: `when guard do lhs := rhs, …`.
+  ///
+  /// \p guard is a `lia::bexpr` code, \p assigns interleaved
+  /// (lhs, rhs) `lia::iexpr` codes; every position in them is relative to
+  /// the sort the term is applied at. Core stores and hashes the term but
+  /// never reads the expressions — evaluation is the registered case
+  /// engine's (Def 2.6: the calculus carries the interchange theory's
+  /// codes, the theories at the ends interpret them).
+  code expr_event(code guard, std::span<const code> assigns) {
+    scratch_.assign({guard});
+    scratch_.insert(scratch_.end(), assigns.begin(), assigns.end());
+    return make(op_kind::expr, scratch_);
+  }
+
   [[nodiscard]] const op_term& operator[](code c) const { return table_[c]; }
   [[nodiscard]] std::size_t size() const noexcept { return table_.size(); }
   [[nodiscard]] const mem::intern_statistics& stats() const {
@@ -152,6 +169,18 @@ code product(op_table& ops, const shape_table& shapes, shape_code sort,
              std::span<const code> by_leaf);
 
 class manager;
+
+/// \brief The evaluator of `op_kind::expr` terms, registered with the
+/// manager by the layer that owns the §7 case bracket (`hsc/event.hh`).
+///
+/// Core dispatches here from term application; the separation keeps the
+/// calculus free of any leaf theory or expression language.
+class case_evaluator {
+ public:
+  virtual ~case_evaluator() = default;
+  /// Apply the expr term \p term to \p diagram (nonzero, composite sort).
+  virtual code apply(code term, code diagram) = 0;
+};
 
 /// \brief Rewrite a set of events into the saturated closure at \p sort.
 ///

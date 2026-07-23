@@ -60,11 +60,18 @@ class manager {
     return operations_;
   }
 
+  /// \brief The §7 case engine evaluating `op_kind::expr` terms. Registered
+  /// by its owner (it outlives nothing here — the caller keeps it alive);
+  /// applying an expr term with none registered is a logic error.
+  void set_cases(case_evaluator* cases) noexcept { cases_ = cases; }
+  [[nodiscard]] case_evaluator* cases() const noexcept { return cases_; }
+
  private:
   shape_table shapes_;
   op_table operations_;
   std::vector<std::unique_ptr<support_algebra>> theories_;
   std::unique_ptr<diagram_engine> diagrams_;
+  case_evaluator* cases_ = nullptr;
 };
 
 }  // namespace hsc::core

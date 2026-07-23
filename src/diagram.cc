@@ -274,6 +274,11 @@ code diagram_engine::do_apply(code term, code d) {
       return current;
     }
 
+    case op_kind::expr:
+      // A §7 case bracket: opaque to core, the registered engine's job.
+      assert(owner_.cases() != nullptr && "expr term with no case engine");
+      return owner_.cases()->apply(term, d);
+
     case op_kind::node:
       break;
   }
