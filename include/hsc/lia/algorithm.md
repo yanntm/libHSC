@@ -76,6 +76,13 @@ which cut a criterion crosses. `first_subexpr` peels the innermost nested
 expression (an `ARRAY` index) so indirection resolves innermost-first:
 `tab[tab[x]]` curries `x`, then the inner access, then the outer.
 
+By convention the array id **is the frontier position of cell 0**, so
+`id + index` addresses a cell as a position. `array_refs` reports every
+array mention (a resolved `CELL` carries its index, an unresolved `ARRAY`
+carries -1); `shift_positions` re-roots an expression across a cut by
+shifting scalar positions and array ids together, so cells move with their
+array.
+
 ## 5. What is deliberately absent
 
 Reindexing under shape restructuring is done by `subst` of variables for

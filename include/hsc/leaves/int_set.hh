@@ -46,6 +46,8 @@ enum class int_action : std::uint8_t {
   keep,    ///< nothing: the term is a pure guard
   assign,  ///< x := arg
   shift,   ///< x := x + arg
+  xform,   ///< x := e(x): `b` is a `lia::iexpr` over the coordinate;
+           ///< `arg` a modulo wrapping the result into [0, arg) (0: none)
 };
 
 /// How a term is built.
@@ -130,6 +132,13 @@ class int_set_theory final : public core::support_algebra {
   core::code keep_if(lia::bexpr g);
   core::code assign_if(lia::bexpr g, std::int32_t value);
   core::code shift_if(lia::bexpr g, std::int32_t delta);
+  /// `x := rhs(x)` guarded by \p g — \p rhs a `lia::iexpr` over the
+  /// coordinate (position 0), evaluated per element; ⊥ drops the element
+  /// (abort is the algebra's 0). \p modulo wraps the result into
+  /// [0, modulo) (DVE byte semantics); 0 means no wrap, and a result
+  /// outside int32 is loud. Folds to the assign/shift/keep forms when the
+  /// expression is one of them.
+  core::code apply_if(lia::bexpr g, lia::iexpr rhs, std::int32_t modulo = 0);
   ///@}
 
   /// The elements of \p set on which \p g evaluates to true (⊥ excludes).

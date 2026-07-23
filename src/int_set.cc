@@ -107,6 +107,41 @@ core::code int_set_theory::shift_if(lia::bexpr g, std::int32_t delta) {
                              int_guard::symbolic, delta, g, 0});
 }
 
+core::code int_set_theory::apply_if(lia::bexpr g, lia::iexpr rhs,
+                                    std::int32_t modulo) {
+  // Fold to the cheaper forms when the expression is one of them.
+  const bool is_node = (rhs & 1u) == 0;
+  if (lia::expr_factory::is_const(rhs) ||
+      (is_node && exprs_.kind(rhs) == lia::ikind::constant)) {
+    std::int32_t v = exprs_.value(rhs);
+    if (modulo != 0) v = static_cast<std::int32_t>(
+        ((static_cast<std::int64_t>(v) % modulo) + modulo) % modulo);
+    return assign_if(g, v);
+  }
+  if (rhs == lia::iundef) return keep_if(lia::bfalse);  // abort: the 0 term
+  const lia::iexpr x = exprs_.variable(0);
+  if (modulo == 0) {
+    if (rhs == x) return keep_if(g);
+    if (is_node && exprs_.kind(rhs) == lia::ikind::plus) {
+      const auto& n = exprs_.node(rhs);
+      if (n.count == 2) {  // x + k, operands sorted by code
+        const lia::iexpr a = n.operands()[0];
+        const lia::iexpr b = n.operands()[1];
+        if (a == x && lia::expr_factory::is_const(b)) {
+          return shift_if(g, exprs_.value(b));
+        }
+        if (b == x && lia::expr_factory::is_const(a)) {
+          return shift_if(g, exprs_.value(a));
+        }
+      }
+    }
+  }
+  const int_guard gk = g == lia::btrue ? int_guard::none : int_guard::symbolic;
+  return terms_.get(int_term{int_shape::primitive, int_action::xform, gk,
+                             modulo, gk == int_guard::none ? core::none : g,
+                             rhs});
+}
+
 core::code int_set_theory::filter(core::code set, lia::bexpr g) {
   if (set == core::none || g == lia::bfalse) return core::none;
   if (g == lia::btrue) return set;
@@ -191,6 +226,26 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
         out.push_back(nv);
       }
       return of_sorted(out);
+    }
+    case int_action::xform: {
+      // x := e(x) per element. ⊥ drops the element (abort is the algebra's
+      // 0); a modulo wraps into [0, arg) (DVE byte semantics); otherwise a
+      // result outside int32 is loud, like shift.
+      std::vector<std::int32_t> out;
+      for (const std::int32_t v : elements(kept)) {
+        const std::int32_t env[] = {v};
+        bool undef = false;
+        std::int64_t r = exprs_.eval_int(t.b, env, undef);
+        if (undef) continue;
+        if (t.arg != 0) {
+          r = ((r % t.arg) + t.arg) % t.arg;
+        } else if (r < INT32_MIN || r > INT32_MAX) {
+          throw overflow_error("int32 overflow transforming " +
+                               std::to_string(v));
+        }
+        out.push_back(static_cast<std::int32_t>(r));
+      }
+      return of(out);
     }
   }
   return core::none;
