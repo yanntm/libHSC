@@ -31,7 +31,7 @@ well-ordered, and the translator errors (with a line) if it is not.
 (leaf  NAME [LO HI])               ; a leaf ⟨A⟩ over Int; bound opt-in
 (shape SORT)                       ; the top sort; every leaf used exactly once
 (init  (NAME VAL)*)                ; initial word; unlisted leaves take LO
-(event NAME (when ATOM*) (do ACT*))
+(event NAME (when ATOM*) (do ACT*)+)   ; several (do …): sequential steps
 (reach NAME [saturate|naive])      ; least fixpoint of (Σ events) from init
 (select NAME SOURCE QATOM+)        ; subset of SOURCE satisfying every QATOM
 (count NAME) (nodes NAME) (print NAME)
@@ -81,9 +81,16 @@ over the coordinate, evaluated on the values present; nothing precomputed):
 * a guard that **folds to `false`** (contradictory constants) drops the whole
   event; a guard that merely never holds in practice is an honest
   never-firing term.
-* **action** (≤ 1 per leaf): `:=K` ⇒ `assign_if(guard,K)`; `+=K` ⇒
-  `shift_if(guard,K)`; `-=K` ⇒ `shift_if(guard,-K)`. No action but a guard ⇒
-  `keep_if(guard)`. No action and no guard ⇒ `id`.
+* **action** (≤ 1 per leaf *per do-clause*): `:=K` ⇒ `assign_if(guard,K)`;
+  `+=K` ⇒ `shift_if(guard,K)`; `-=K` ⇒ `shift_if(guard,-K)`. No action but a
+  guard ⇒ `keep_if(guard)`. No action and no guard ⇒ `id`.
+* **several `(do …)` clauses** are atomic sequential steps: the guards and
+  the first clause fuse into one product, each later clause becomes its own
+  unguarded action product, and the event is their `op_table::compose` in
+  order. Sequential composition is the preferred encoding of dependent
+  updates — a substituted simultaneous assign entangles supports and hurts
+  saturation; a true synchronous multi-assign (a swap, SMV semantics) is
+  what a single `do` clause is for.
 
 ### Separability check (the §6/§7 line)
 

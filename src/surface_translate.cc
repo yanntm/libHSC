@@ -322,9 +322,32 @@ class translator {
     else fail(act, "unknown action '" + op + "'");
   }
 
+  /// One unguarded action product from a `do` clause — a later factor of a
+  /// composed event.
+  code action_product(const datum& clause) {
+    std::unordered_map<std::string, leaf_effect> acts;
+    for (std::size_t a = 1; a < clause.items().size(); ++a) {
+      take_action(clause.items()[a], acts);
+    }
+    std::vector<code> by_leaf(order_.size(), core::op_table::id);
+    for (const auto& [name, e] : acts) {
+      const std::size_t idx = leaves_.at(name).index;
+      by_leaf[idx] = e.action == leaf_effect::act::assign
+                         ? theory_->assign(core::none, e.arg)
+                         : theory_->shift(core::none, e.arg);
+    }
+    return core::product(mgr_.operations(), mgr_.shapes(), top_, by_leaf);
+  }
+
   void do_event(const datum& form) {
     if (top_ == core::none) fail(form, "event before shape");
+    // The guard atoms and the *first* do-clause fuse into one product;
+    // every further do-clause is a separate product composed after it —
+    // atomic sequential steps, the form saturation prefers over a
+    // substituted simultaneous assign.
     std::unordered_map<std::string, leaf_effect> eff;
+    std::vector<const datum*> later;
+    bool first_do = true;
     for (std::size_t i = 2; i < form.items().size(); ++i) {
       const datum& clause = form.items()[i];
       const std::string& kw = clause.head();
@@ -333,8 +356,13 @@ class translator {
           take_atom(clause.items()[a], eff);
         }
       } else if (kw == "do") {
-        for (std::size_t a = 1; a < clause.items().size(); ++a) {
-          take_action(clause.items()[a], eff);
+        if (first_do) {
+          for (std::size_t a = 1; a < clause.items().size(); ++a) {
+            take_action(clause.items()[a], eff);
+          }
+          first_do = false;
+        } else {
+          later.push_back(&clause);
         }
       } else {
         fail(clause, "an event clause is (when …) or (do …)");
@@ -364,8 +392,11 @@ class translator {
           break;
       }
     }
-    events_.push_back(
-        core::product(mgr_.operations(), mgr_.shapes(), top_, by_leaf));
+    code ev = core::product(mgr_.operations(), mgr_.shapes(), top_, by_leaf);
+    for (const datum* clause : later) {
+      ev = mgr_.operations().compose(action_product(*clause), ev);
+    }
+    events_.push_back(ev);
     guards_.push_back(std::move(guards));
   }
 
