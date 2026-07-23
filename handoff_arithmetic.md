@@ -49,20 +49,25 @@ it never invalidates an expression.
 
 ## Engineering queue (next action first)
 
-1. **`split_equiv` on diagrams** — the node instance of the bracket, one level
-   in; merge pieces by common residual key. Unblocks the deep-head case
-   (`select_compare` throws on it today) and hence balanced / Louvain shapes.
-2. **The LIA interchange theory** — expressions over positions, substitution of
+1. **The LIA interchange theory** — expressions over positions, substitution of
    a coordinate by a value (currying), a residual normal form, interning. Turns
    the query recursion cacheable and admits `(< a (+ b c))`.
-3. **Crossing updates** — `x := y + z` through the same bracket; surface
+2. **Crossing updates** — `x := y + z` through the same bracket; surface
    actions whose value reads another leaf.
+3. **`tab[i]`** — indirection through the same machinery; `tab[tab[x]]` is the
+   remaining half of the R4 gate.
 
-Done and validated: `split_equiv` on the `int_set` leaf; the case bracket for
-two-place comparison, all six comparators (`select_compare`, doctests vs
-brute force); surface `(select NAME SOURCE atom+)` — separable atoms,
-crossing comparisons, conjunction — exercised by `examples/models/ring4.hsc`
-(multi-token ring, stars-and-bars oracle, ctest `surface_ring4`).
+Done and validated: `split_equiv` on the `int_set` leaf *and on diagrams* (a
+coordinate resolves at any depth, any shape); the case bracket for two-place
+comparison, all six comparators (`select_compare`, doctests vs brute force on
+spine and balanced shapes); surface `(select NAME SOURCE atom+)` — separable
+atoms, crossing comparisons, conjunction. Exercised by
+`examples/models/ring4.hsc` and `ring4b.hsc` (multi-token ring, spine vs
+balanced, stars-and-bars oracle, ctests). End-to-end on Angiogenesis-PT-05
+(42 734 935 states, tokens to 5): flat vs `--decompose` Louvain shapes give
+identical exact counts on four cross-unit selects; reach matches the MCC
+oracle. The `x < y`-across-a-cut half of gate R4 is met, including the
+decomposed-net stress.
 
 **Gate (roadmap R4):** `x < y` across a cut resolving at the surface, and
 `tab[tab[x]]`, each agreeing with a brute-force oracle over a tiny carrier.
