@@ -52,7 +52,70 @@ directly, not a smaller state space. The GAL references live in
 2. **Suffix-naming of families** (`move_2_0_1`) is user-visible in traces
    and witnesses. Fine for now; worth a thought when witnesses cite events.
 
-## M3 — layout experiment: not started
+## M3 — layout experiment: run, and it diagnoses the road to 2^n
 
-Next in queue: philosophers at spine / balanced / grain-blocked shapes,
-nodes-peak-time per layout.
+Files: `samples/param/layout/philo_{spine,balanced,blocked}.hsc` — the
+identical N=256 model at three shapes (blocked: 16 blocks of 16).
+
+| layout | R nodes | total nodes | op terms |
+|---|---|---|---|
+| spine | 2548 | 7124 | 3579 |
+| balanced | 32 | 185 | 1555 |
+| blocked 16×16 | 216 | 785 | 1035 |
+
+All three report count ≈ 9.785e97 — agreeing only to ~15 significant
+digits, because `cardinal` is a double: at this scale the printed counts
+differ in the low digits across layouts. **Finding: exact (or log-form)
+cardinality is needed before any cross-check beyond ~1e15 states.**
+
+Scaling the balanced variant (same file, N raised):
+
+| N | R nodes | op terms | wall time |
+|---|---|---|---|
+| 256 | 32 | 1555 | ~0 |
+| 512 | 36 | 3093 | 0.06 s |
+| 1024 | 40 | 6167 | 0.06 s |
+| 4096 | 48 | 24603 | 0.30 s |
+| 16384 | 56 | 98335 | 3.56 s (expander alone: 0.23 s) |
+
+### Diagnosis: why this is not O(n) for 2^n philosophers
+
+- **The diagram side already is O(n).** R nodes grow by exactly +4 per
+  doubling of N: the substrate's interning collapses identical balanced
+  sub-blocks, as designed. Extrapolated, the reachable set of 2^100
+  philosophers is a few hundred nodes.
+- **The operation side is Θ(N) by construction, twice over.** (1) The
+  expander unrolls: 3 templates become 3N flat events — a 2^100-instance
+  expansion is text, impossible. (2) The compiled terms do not share
+  across instances: op terms sit at 6 per philosopher exactly (98304 + ε
+  at N=16384), because every term addresses *absolute* frontier
+  positions — `take1_17` and `take1_18` are distinct interned codes
+  differing only by a translation, and interning cannot see conjugacy.
+  Note the seed of the fix already exists: `read_when` shifts a
+  single-leaf guard to position 0 before interning, which is why the
+  guard *bexprs* are shared; the products and case brackets above them
+  are not.
+- **Wall time is superlinear on top** (×4 N → ×12 time net of the
+  expander), pointing at a per-event cost that grows with the frontier
+  (position vectors / shape descent per term). Worth a profile before
+  naming the exponent; irrelevant to the asymptotic goal, which the
+  previous point caps at Θ(N) regardless.
+
+### What O(n) for 2^n needs (the SDD construction, in our terms)
+
+The sort side is ready: `shape_table::pair` interns, so the balanced sort
+over 2^n leaves is n nodes — a DAG, already. Missing, in order:
+
+1. **Translation-invariant event terms**: terms addressed relative to a
+   subtree root, so one code serves every block at its level.
+2. **A repetition/induction combinator over the sort DAG**: the events of
+   a block of 2^(k+1) defined from the events of its two half-blocks plus
+   an O(1) seam term (fork shared across the cut), 3 templates × n levels
+   = O(n) codes; the ring-closing seam once at the top.
+3. **Log-form cardinality** (the double is exhausted at 1e15).
+
+Then saturation's existing caches close the loop: identical sub-block ×
+identical (now shared) operation = one computation. This is the
+orbit/symmetry thread of the spec's §3, promoted from "paper-sized,
+later" to *measured and motivated*: the substrate is provably ready, the
+term algebra is the gap.
