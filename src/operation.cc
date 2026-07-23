@@ -81,6 +81,67 @@ code product(op_table& ops, const shape_table& shapes, shape_code sort,
 
 // --- the saturation rewrite (§6) ------------------------------------------
 
+namespace {
+
+/// Inline the operands of every `sum` in \p e into \p out — the summand
+/// list a folded (or named) sum denotes. Only meaningful at a composite
+/// sort, where codes are op-table terms.
+void flatten_into(const op_table& ops, code e, std::vector<code>& out) {
+  if (e != op_table::id && ops[e].kind == op_kind::sum) {
+    for (const code c : ops[e].operands()) flatten_into(ops, c, out);
+    return;
+  }
+  out.push_back(e);
+}
+
+}  // namespace
+
+code sum_at(manager& mgr, shape_code sort, std::span<const code> events) {
+  const shape_table& shapes = mgr.shapes();
+  op_table& ops = mgr.operations();
+
+  // A leaf sort: the codes are theory terms and the theory owns their sum.
+  if (shapes.kind(sort) != shape_kind::pair) {
+    if (events.empty()) return op_table::id;
+    support_algebra& algebra = mgr.algebra(sort);
+    code fused = events.front();
+    for (const code e : events.subspan(1)) fused = algebra.term_sum(fused, e);
+    return fused;
+  }
+
+  std::vector<code> flat;
+  for (const code e : events) flatten_into(ops, e, flat);
+
+  // The same split as the saturation rewrite, producing a sum instead of
+  // a schedule: one-sided wrappers fold per side, recursively.
+  std::vector<code> below, edge, rest;
+  for (const code e : flat) {
+    if (e == op_table::id) {
+      rest.push_back(e);
+      continue;
+    }
+    const op_term& t = ops[e];
+    if (t.kind == op_kind::node) {
+      if (t.operand(0) == op_table::id) {
+        below.push_back(t.operand(1));
+        continue;
+      }
+      if (t.operand(1) == op_table::id) {
+        edge.push_back(t.operand(0));
+        continue;
+      }
+    }
+    rest.push_back(e);
+  }
+  if (!below.empty())
+    rest.push_back(
+        ops.node(op_table::id, sum_at(mgr, shapes.tail(sort), below)));
+  if (!edge.empty())
+    rest.push_back(
+        ops.node(sum_at(mgr, shapes.head(sort), edge), op_table::id));
+  return ops.sum(rest);
+}
+
 code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
   if (events.empty()) return op_table::id;
 
@@ -96,12 +157,17 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
     return algebra.term_closure(fused);
   }
 
+  // A folded (or named) sum stands for its summands: flatten before the
+  // split, so a `sum_at` system schedules identically to its flat list.
+  std::vector<code> flat;
+  for (const code e : events) flatten_into(ops, e, flat);
+
   // Definition 6.1: split by where each summand reaches relative to this cut.
   // Our terms mirror the shape, so this is inspection, not an oracle.
   std::vector<code> below;   // F: tail only  — the tail terms themselves
   std::vector<code> edge;    // L: head only  — the head terms themselves
   std::vector<code> across;  // G: both       — kept whole, chained here
-  for (const code e : events) {
+  for (const code e : flat) {
     if (e == op_table::id) continue;  // id is in every closure already
     const op_term& t = ops[e];
     if (t.kind == op_kind::node) {
@@ -133,7 +199,7 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
   if (f_part == op_table::id && l_part == op_table::id) {
     // Nothing reaches past this cut on its own: there is no schedule to
     // exploit, so say so plainly rather than build a degenerate one.
-    std::vector<code> all(events.begin(), events.end());
+    std::vector<code> all(flat.begin(), flat.end());
     all.push_back(op_table::id);
     return ops.fixpoint(ops.sum(all));
   }

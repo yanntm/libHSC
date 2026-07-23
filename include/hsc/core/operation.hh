@@ -182,6 +182,24 @@ class case_evaluator {
   virtual code apply(code term, code diagram) = 0;
 };
 
+/// \brief The sum of \p events at \p sort, in head-folded normal form.
+///
+/// Distributivity of sum over the head and tail applications gives two
+/// sound folds:
+///
+///     node(A, id) ⊕ node(B, id) = node(A ⊕ B, id)
+///     node(id, A) ⊕ node(id, B) = node(id, A ⊕ B)
+///
+/// Applied recursively per side, a family's site enumeration — one
+/// wrapper chain per instance around one shared term — collapses into a
+/// chain that mirrors the shape: O(depth) summands at every level where
+/// the flat list held one per site. The mixed pair `node(A,id) ⊕
+/// node(id,B)` does not fold; it, and every crossing term, stays a flat
+/// summand. Sort-aware because a node over a leaf head holds *theory*
+/// terms, whose sum is the theory's (`term_sum`), not the op table's.
+/// Nested sums are flattened on entry, so the result is canonical.
+code sum_at(manager& mgr, shape_code sort, std::span<const code> events);
+
 /// \brief Rewrite a set of events into the saturated closure at \p sort.
 ///
 /// The static pass of §6: partition the events by where they reach relative
