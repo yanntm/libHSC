@@ -173,13 +173,14 @@ class translator final : public name_scope {
     const std::string& kw = form.head();
     if (kw == "leaf") do_leaf(form);
     else if (kw == "array") do_array(form);
+    else if (kw == "alt") do_combinator(form, /*is_alt=*/true);
+    else if (kw == "seq") do_combinator(form, /*is_alt=*/false);
     else if (kw == "shape") do_shape(form);
     else if (kw == "init") do_init(form);
     else if (kw == "event") do_event(form);
     else if (kw == "reach") do_reach(form);
     else if (kw == "states") do_states(form);
-    else if (kw == "one-safe") do_one_safe(form);
-    else if (kw == "deadlock") do_deadlock(form);
+    else if (kw == "max-value") do_max_value(form);
     else if (kw == "select") do_select(form);
     else if (kw == "count") do_count(form);
     else if (kw == "nodes") do_nodes(form);
@@ -396,8 +397,15 @@ class translator final : public name_scope {
     return core::product(mgr_.operations(), mgr_.shapes(), top_, by_leaf);
   }
 
+  /// A dead event still names a term — the zero term, which never fires:
+  /// absent from an alt, fatal to a seq.
+  void dead_event(const datum& form, const std::string& name) {
+    define_event(form, name, cases_->make_event(top_, lia::bfalse, {}));
+  }
+
   void do_event(const datum& form) {
     if (top_ == core::none) fail(form, "event before shape");
+    const std::string& name = sym(arg(form, 1, "event name"));
     lia::expr_factory& ex = theory_->exprs();
 
     // Read the guard atoms — separable single-position atoms fuse per
@@ -413,7 +421,7 @@ class translator final : public name_scope {
       if (kw == "when") {
         for (std::size_t a = 1; a < clause.items().size(); ++a) {
           const lia::bexpr b = reader_->read_bool(clause.items()[a]);
-          if (b == lia::bfalse || b == lia::bundef) return;  // dead event
+          if (b == lia::bfalse || b == lia::bundef) { dead_event(form, name); return; }
           if (b == lia::btrue) continue;
           const auto supp = ex.support_bool(b);
           if (ex.array_positions_bool(b).empty() && supp.size() == 1) {
@@ -438,7 +446,7 @@ class translator final : public name_scope {
       }
     }
     for (const auto& [pos, e] : eff) {
-      if (e.guard == lia::bfalse) return;  // contradictory constants: dead
+      if (e.guard == lia::bfalse) { dead_event(form, name); return; }
     }
 
     // Compile each do clause. It is separable when every assignment writes
@@ -454,7 +462,7 @@ class translator final : public name_scope {
       compiled_clause cc;
       bool crossing = false;
       for (const parsed_assign& a : acts) {
-        if (a.lhs == lia::iundef || a.rhs == lia::iundef) return;  // dead
+        if (a.lhs == lia::iundef || a.rhs == lia::iundef) { dead_event(form, name); return; }
         if (!is_node_kind(a.lhs, lia::ikind::var)) {
           crossing = true;
           continue;
@@ -512,19 +520,77 @@ class translator final : public name_scope {
 
     code ev = core::op_table::id;
     for (const code p : parts) ev = mgr_.operations().compose(p, ev);
-    if (ev == core::op_table::id) return;  // nothing to do: not an event
+    define_event(form, name, ev);
+    if (ev == core::op_table::id) return;  // a no-op: skip in a seq,
+                                           // nothing for the default ALT
     events_.push_back(ev);
+  }
 
-    // What deadlock re-filters by: the separable guard at each position,
-    // the crossing filters as applied terms.
-    event_guards g;
-    for (const auto& [pos, e] : eff) {
-      if (e.has_guard) g.local.emplace_back(pos, e.guard);
+  // --- the event algebra: named terms, alt = sum, seq = compose ------------
+
+  void define_event(const datum& at, const std::string& name, code term) {
+    if (!named_events_.emplace(name, term).second) {
+      fail(at, "event term '" + name + "' redefined");
     }
-    for (const lia::bexpr b : filters) {
-      g.cross.push_back(cases_->make_event(top_, b, {}));
+  }
+
+  /// An event term: a declared name, or an inline (alt …) / (seq …).
+  code read_evterm(const datum& d) {
+    if (d.is_atom()) {
+      const auto it = named_events_.find(d.text());
+      if (it == named_events_.end()) {
+        fail(d, "no event term named '" + d.text() + "'");
+      }
+      return it->second;
     }
-    guards_.push_back(std::move(g));
+    if (!d.is_list() || d.items().empty()) fail(d, "not an event term");
+    const std::string& kw = d.head();
+    if (d.items().size() < 2) fail(d, "'" + kw + "' needs event terms");
+    if (kw == "alt") {
+      std::vector<code> ops;
+      for (std::size_t i = 1; i < d.items().size(); ++i) {
+        ops.push_back(read_evterm(d.items()[i]));
+      }
+      return mgr_.operations().sum(ops);
+    }
+    if (kw == "seq") {  // reading order: the first term applies first
+      code ev = core::op_table::id;
+      for (std::size_t i = 1; i < d.items().size(); ++i) {
+        ev = mgr_.operations().compose(read_evterm(d.items()[i]), ev);
+      }
+      return ev;
+    }
+    fail(d, "an event term is a name, (alt …) or (seq …)");
+  }
+
+  void do_combinator(const datum& form, bool is_alt) {
+    const std::string& name = sym(arg(form, 1, "term name"));
+    std::vector<datum> body(form.items().begin() + 2, form.items().end());
+    if (body.empty()) fail(form, "a combinator needs event terms");
+    datum inline_form = datum::list(
+        [&] {
+          std::vector<datum> xs{atom_datum(is_alt ? "alt" : "seq", form)};
+          xs.insert(xs.end(), body.begin(), body.end());
+          return xs;
+        }(),
+        form.line());
+    define_event(form, name, read_evterm(inline_form));
+  }
+
+  static datum atom_datum(const char* text, const datum& at) {
+    return datum::atom(text, at.line());
+  }
+
+  /// The summands the saturation rewrite classifies: an `alt` is seen
+  /// through (its operands, recursively), anything else is one summand.
+  void collect_summands(code term, std::vector<code>& out) {
+    if (term == core::op_table::id) return;
+    const core::op_term& t = mgr_.operations()[term];
+    if (t.kind == core::op_kind::sum) {
+      for (const code op : t.operands()) collect_summands(op, out);
+      return;
+    }
+    out.push_back(term);
   }
 
   // --- commands ------------------------------------------------------------
@@ -536,15 +602,23 @@ class translator final : public name_scope {
     return it->second;
   }
 
-  /// The least fixpoint from the initial word. `naive` iterates, `saturate`
-  /// applies the static closure; both denote the same diagram. Propagates
-  /// `hsc::overflow_error` if a leaf value leaves its representable range.
-  code run_reach(bool naive) {
+  /// The least fixpoint of \p system (default: the ALT of every declared
+  /// event) from the initial word. `naive` iterates, `saturate` applies the
+  /// static closure over the flattened summands; both denote the same
+  /// diagram. Propagates `hsc::overflow_error` if a leaf value leaves its
+  /// representable range.
+  code run_reach(bool naive, std::optional<code> system = std::nullopt) {
+    std::vector<code> summands;
+    if (system) {
+      collect_summands(*system, summands);
+    } else {
+      summands = events_;
+    }
     core::diagram_engine& diagrams = mgr_.diagrams();
     code reachable = initial();
     util::stopwatch sw;
     if (naive) {
-      const code all = mgr_.operations().sum(events_);
+      const code all = mgr_.operations().sum(summands);
       for (;;) {
         const code grown =
             diagrams.join(reachable, diagrams.apply_local(all, reachable));
@@ -552,7 +626,7 @@ class translator final : public name_scope {
         reachable = grown;
       }
     } else {
-      const code closure = core::saturate(mgr_, top_, events_);
+      const code closure = core::saturate(mgr_, top_, summands);
       reachable = diagrams.apply_local(closure, reachable);
     }
     reach_seconds_ += sw.seconds();
@@ -563,12 +637,15 @@ class translator final : public name_scope {
     if (top_ == core::none) fail(form, "reach before shape");
     const std::string& name = sym(arg(form, 1, "result name"));
     bool naive = false;
-    if (form.items().size() > 2) {
-      const std::string& how = sym(form.items()[2]);
-      if (how == "naive") naive = true;
-      else if (how != "saturate") fail(form, "strategy is saturate or naive");
+    std::optional<code> system;
+    for (std::size_t i = 2; i < form.items().size(); ++i) {
+      const datum& d = form.items()[i];
+      if (d.is_atom() && d.text() == "naive") naive = true;
+      else if (d.is_atom() && d.text() == "saturate") continue;
+      else if (!system) system = read_evterm(d);
+      else fail(d, "reach takes one event term at most");
     }
-    results_[name] = run_reach(naive);
+    results_[name] = run_reach(naive, system);
   }
 
   /// The largest value any leaf holds across the diagram \p c, by a
@@ -600,33 +677,14 @@ class translator final : public name_scope {
     return mx;
   }
 
-  /// Per event, what `deadlock` re-filters by: the separable guard at each
-  /// position, and the crossing filters as applied terms.
-  struct event_guards {
-    std::vector<std::pair<std::size_t, lia::bexpr>> local;
-    std::vector<code> cross;
-  };
-
-  /// The states of \p from where an event's guards all hold: successive
-  /// per-position filters, then the crossing filters. No domain cylinder —
-  /// only values the diagram actually holds are consulted.
-  code enabled_in(code from, const event_guards& gs) {
-    code cur = from;
-    for (const auto& [pos, g] : gs.local) {
-      if (cur == core::none) break;
-      cur = hsc::select_where(mgr_, *theory_, top_, cur, pos, g);
-    }
-    for (const code f : gs.cross) {
-      if (cur == core::none) break;
-      cur = mgr_.diagrams().apply_local(f, cur);
-    }
-    return cur;
-  }
-
+  /// `(states [RESULT])`: the cardinal, MCC-format. With a bound result
+  /// (`(reach x SYSTEM)` then `(states x)`) it reads that; without one it
+  /// runs the default system's reach — the MCC StateSpace examination.
   void do_states(const datum& form) {
     if (top_ == core::none) fail(form, "states before shape");
     try {
-      const code r = run_reach(false);
+      const code r = form.items().size() > 1 ? named(form.items()[1])
+                                             : run_reach(false);
       out_ << "STATE_SPACE STATES " << std::fixed << std::setprecision(0)
            << mgr_.diagrams().cardinal(r) << TECHNIQUES;
     } catch (const hsc::overflow_error& e) {
@@ -636,40 +694,13 @@ class translator final : public name_scope {
     }
   }
 
-  void do_one_safe(const datum& form) {
-    if (top_ == core::none) fail(form, "one-safe before shape");
-    code r;
-    try {
-      r = run_reach(false);
-    } catch (const hsc::overflow_error&) {
-      out_ << "FORMULA OneSafe FALSE" << TECHNIQUES;  // unbounded: a place > 1
-      return;
-    }
-    out_ << "FORMULA OneSafe " << (max_leaf_value(r) <= 1 ? "TRUE" : "FALSE")
-         << TECHNIQUES;
-  }
-
-  void do_deadlock(const datum& form) {
-    if (top_ == core::none) fail(form, "deadlock before shape");
-    code r;
-    try {
-      r = run_reach(false);
-    } catch (const hsc::overflow_error& e) {
-      out_ << "DEADLOCK CANNOT_COMPUTE\n";
-      std::cerr << "overflow: " << e.what() << '\n';
-      ++failures_;
-      return;
-    }
-    core::diagram_engine& diagrams = mgr_.diagrams();
-    code enabled = core::none;  // union over events of "guards hold in R"
-    for (const auto& guards : guards_) {
-      const code en = enabled_in(r, guards);
-      if (en == core::none) continue;
-      enabled = enabled == core::none ? en : diagrams.join(enabled, en);
-    }
-    const code dead = enabled == core::none ? r : diagrams.minus(r, enabled);
-    out_ << "FORMULA ReachabilityDeadlock "
-         << (dead == core::none ? "FALSE" : "TRUE") << TECHNIQUES;
+  /// `(max-value NAME)`: the largest value any leaf holds in the bound
+  /// result — a general statistic (MAX_TOKEN_IN_PLACE; 1-safety is
+  /// `max-value <= 1`, judged by whoever asked).
+  void do_max_value(const datum& form) {
+    const code c = named(arg(form, 1, "result name"));
+    out_ << sym(form.items()[1]) << " max-value " << max_leaf_value(c)
+         << '\n';
   }
 
   /// The comparator of a query atom, by its surface spelling.
@@ -773,8 +804,9 @@ class translator final : public name_scope {
   std::unique_ptr<case_engine> cases_;
   std::unique_ptr<expr_reader> reader_;
 
-  std::vector<code> events_;
-  std::vector<event_guards> guards_;  ///< per event, what deadlock refilters
+  std::vector<code> events_;  ///< the default system: every (event …)
+  /// Every named term: events, alts, seqs — one namespace.
+  std::unordered_map<std::string, code> named_events_;
   std::unordered_map<std::string, code> results_;
   double reach_seconds_ = 0.0;
   int failures_ = 0;

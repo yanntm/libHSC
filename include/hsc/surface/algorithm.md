@@ -34,19 +34,24 @@ well-ordered, and the translator errors (with a line) if it is not.
 (shape SORT)                       ; the top sort; every leaf used exactly once
 (init  (NAME VAL)*)                ; initial word; unlisted leaves take LO
 (event NAME (when BEXP*) (do ACT*)+)   ; several (do …): sequential steps
-(reach NAME [saturate|naive])      ; least fixpoint of (Σ events) from init
+(alt NAME EVTERM+)                 ; nondeterministic choice, a named term
+(seq NAME EVTERM+)                 ; sequential composition, a named term
+(reach NAME [saturate|naive] [EVTERM])
+                                   ; least fixpoint of EVTERM from init;
+                                   ; default: the ALT of every (event …)
 (select NAME SOURCE QATOM+)        ; subset of SOURCE satisfying every QATOM
 (count NAME) (nodes NAME) (print NAME)
+(max-value NAME)                   ; largest value any leaf holds in NAME
 (expect NAME N)                    ; assert cardinal == N; nonzero exit on miss
 (bill)                             ; meters: nodes, terms, caches, time
-(states)                           ; MCC StateSpace: STATE_SPACE STATES <n>
-(one-safe)                         ; MCC OneSafe: FORMULA OneSafe TRUE|FALSE
-(deadlock)                         ; MCC ReachabilityDeadlock: FORMULA … TRUE|FALSE
+(states [NAME])                    ; cardinal, MCC format; no arg: default reach
 
 SORT ::= unit | NAME
        | (pair SORT SORT)
        | (spine SORT+)             ; sugar: (pair a (pair b (… unit)))
        | (balanced SORT+)          ; sugar: split in half, left-biased
+EVTERM ::= NAME                          ; a declared event / alt / seq
+       | (alt EVTERM+) | (seq EVTERM+)   ; inline composition
 EXPR ::= INT | NAME | (at NAME EXPR)     ; an array access, any index
        | (OP EXPR EXPR) | (~ EXPR)       ; OP ∈ + - * / % << >> & | ^
 BEXP ::= (CMP EXPR EXPR) | (in EXPR INT+)      ; CMP ∈ == != < <= > >=
@@ -99,13 +104,22 @@ event along the §6/§7 line and composes the pieces in application order:
    updates; a single clause is a true synchronous multi-assign (a swap).
 
 A guard that **folds to `false`** (or ⊥), or a statically out-of-bounds
-access, drops the whole event; a guard that merely never holds in practice
-is an honest never-firing term. A separable event compiles exactly as it
-always did — products decompose into the F/L saturation schedule — and a
+access, makes the event the *zero term* (never fires: nothing in an `alt`,
+death in a `seq`); a guard that merely never holds in practice is an
+honest never-firing term. A separable event compiles exactly as it always
+did — products decompose into the F/L saturation schedule — and a
 crossing piece is an ordinary `G` event: `split_equiv` at the cut, curry
-the residual, cached by its interned term (`hsc/event.hh`). Disjunction
-across leaves is still not a product term; the generator expands it into
-several `event`s (surface `alt` is a planned combinator, not yet a form).
+the residual, cached by its interned term (`hsc/event.hh`).
+
+### The event algebra
+
+Every `event`, `alt` and `seq` declares a *named term*; `alt` is
+`op_table::sum` (nondeterministic choice — commutative, idempotent), `seq`
+is `compose` in reading order. The whole system is itself just a term:
+`reach` takes one, and without an argument uses the ALT of every declared
+`event` — the historical behavior as sugar. Saturation flattens nested
+`alt`s into its summand list, so the schedule sees through the
+composition; queries (`states`, `deadlock`, …) run the default system.
 
 ### reach
 
@@ -136,13 +150,14 @@ engine (`hsc/event.hh`); `select` keeps its own two-leaf path for queries.
 
 ### Queries
 
-`(states)`, `(one-safe)` and `(deadlock)` each run their own reach and print one
-MCC-format answer line. `states` prints the cardinal; on `overflow_error` (a leaf
-value left its representable range) it prints `CANNOT_COMPUTE` loudly rather than
-a wrong count. `one-safe` is `max_leaf_value(R) ≤ 1` — a general per-leaf
-statistic of the reachable diagram, not a bound trick — and an overflow means a
-place grew past 1, i.e. FALSE. `deadlock` is `R ∖ ⋃ enabled_t` nonempty (§4.7):
-per event, `R` filtered through its guard expressions position by position
-(`select_where`), unioned over events, subtracted from `R`. No domain
-cylinder: only values `R` holds are consulted, so a state outside a declared
-domain is judged by the guards like any other.
+Queries compose over bound results: `(reach x SYSTEM)` binds, `count` /
+`nodes` / `max-value` / `select` / `expect` consume. `max-value` is the
+per-leaf maximum of a result (MAX_TOKEN_IN_PLACE; 1-safety is
+`max-value ≤ 1`, judged by whoever asked — the MCC protocol lives in the
+runners, `hsc-mcc`, not here). `(states [NAME])` prints an MCC-format
+cardinal, running the default reach when no result is named; on
+`overflow_error` (a leaf value left its representable range) it prints
+`CANNOT_COMPUTE` loudly rather than a wrong count. The former `one-safe`
+and `deadlock` forms are gone: the first was the Petri front end's
+question in surface clothing, the second assumed every refusal sits in
+`when` — untrue since abort-bearing events (⊥) arrived.
