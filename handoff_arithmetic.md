@@ -49,18 +49,20 @@ it never invalidates an expression.
 
 ## Engineering queue (next action first)
 
-1. **`split_equiv` on the `int_set` leaf** — partition a code by the value of a
-   linear expression `coeff*x + offset`; overflow-checked. *In progress.*
-2. **The LIA interchange theory** — expressions over positions, substitution of a
-   coordinate by a value (currying), a residual normal form, interning.
-3. **The case bracket** at a cut — split the head coordinate, carry residuals
-   into the tail, ground-evaluate; assemble the resulting diagram. Comparison of
-   two places is the first shape (`x < y` = `Σ_v [x=v] ⊗ [y > v]`, the tail
-   restriction a plain meet).
-4. **`split_equiv` on diagrams** — the node instance of the bracket, one level
-   in; merge pieces by common residual key.
-5. **Surface**: accept crossing criteria (`(< x y)`, `(< a (+ b c))`,
-   `x := y + z`), resolve flat names through the shape, compile to the bracket.
+1. **`split_equiv` on diagrams** — the node instance of the bracket, one level
+   in; merge pieces by common residual key. Unblocks the deep-head case
+   (`select_compare` throws on it today) and hence balanced / Louvain shapes.
+2. **The LIA interchange theory** — expressions over positions, substitution of
+   a coordinate by a value (currying), a residual normal form, interning. Turns
+   the query recursion cacheable and admits `(< a (+ b c))`.
+3. **Crossing updates** — `x := y + z` through the same bracket; surface
+   actions whose value reads another leaf.
+
+Done and validated: `split_equiv` on the `int_set` leaf; the case bracket for
+two-place comparison, all six comparators (`select_compare`, doctests vs
+brute force); surface `(select NAME SOURCE atom+)` — separable atoms,
+crossing comparisons, conjunction — exercised by `examples/models/ring4.hsc`
+(multi-token ring, stars-and-bars oracle, ctest `surface_ring4`).
 
 **Gate (roadmap R4):** `x < y` across a cut resolving at the surface, and
 `tab[tab[x]]`, each agreeing with a brute-force oracle over a tiny carrier.
