@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <ostream>
+#include <string>
+
+#include "hsc/util/errors.hh"
 
 namespace hsc::leaves {
 
@@ -127,12 +130,22 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
     case int_action::assign:
       return singleton(t.arg);
     case int_action::shift: {
-      // The pushforward of x -> x + delta. Order is preserved, so the run
-      // stays sorted and no re-sorting is owed.
+      // The pushforward of x -> x + delta. Order is preserved, so the run stays
+      // sorted and no re-sorting is owed. The add is overflow-checked: a value
+      // that leaves the representable range is a loud failure, never a silent
+      // wrap — it is the theory's job to represent classes finitely, and when
+      // it cannot (an unbounded net), it says so here rather than lie.
       const auto from = elements(kept);
       std::vector<std::int32_t> out;
       out.reserve(from.size());
-      for (const std::int32_t v : from) out.push_back(v + t.arg);
+      for (const std::int32_t v : from) {
+        std::int32_t nv;
+        if (__builtin_add_overflow(v, t.arg, &nv)) {
+          throw overflow_error("int32 overflow shifting " + std::to_string(v) +
+                               " by " + std::to_string(t.arg));
+        }
+        out.push_back(nv);
+      }
       return of_sorted(out);
     }
   }
