@@ -36,6 +36,9 @@ well-ordered, and the translator errors (with a line) if it is not.
 (count NAME) (nodes NAME) (print NAME)
 (expect NAME N)                    ; assert cardinal == N; nonzero exit on miss
 (bill)                             ; meters: nodes, terms, caches, time
+(states)                           ; MCC StateSpace: STATE_SPACE STATES <n>
+(one-safe)                         ; MCC OneSafe: FORMULA OneSafe TRUE|FALSE
+(deadlock)                         ; MCC ReachabilityDeadlock: FORMULA … TRUE|FALSE
 
 SORT ::= unit | NAME
        | (pair SORT SORT)
@@ -90,3 +93,14 @@ term either; the generator expands it into several `event`s.
 iterates `apply_local` to a fixed point. Both denote the same diagram
 (Prop 5.3), so `naive` is the differential oracle for `saturate`. `expect`
 turns a file into a self-checking oracle.
+
+### Queries
+
+`(states)`, `(one-safe)` and `(deadlock)` each run their own reach and print one
+MCC-format answer line. `states` prints the cardinal; on `overflow_error` (a leaf
+value left its representable range) it prints `CANNOT_COMPUTE` loudly rather than
+a wrong count. `one-safe` is `max_leaf_value(R) ≤ 1` — a general per-leaf
+statistic of the reachable diagram, not a bound trick — and an overflow means a
+place grew past 1, i.e. FALSE. `deadlock` is `R ∖ ⋃ enabled_t` nonempty (§4.7):
+each event's enabling set is the cylinder of its guard sets (full declared domain
+elsewhere), unioned, subtracted from `R`.

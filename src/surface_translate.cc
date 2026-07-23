@@ -11,16 +11,20 @@
 
 #include <charconv>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
 #include <optional>
 #include <ostream>
 #include <span>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "hsc/core/manager.hh"
 #include "hsc/core/operation.hh"
 #include "hsc/leaves/int_set.hh"
+#include "hsc/util/errors.hh"
 #include "hsc/util/timing.hh"
 
 namespace hsc::surface {
@@ -28,6 +32,10 @@ namespace hsc::surface {
 namespace {
 
 using core::code;
+
+/// The trailing clause every MCC answer line carries (and the newline). Our
+/// verdicts come from saturated decision diagrams.
+constexpr const char* TECHNIQUES = " TECHNIQUES DECISION_DIAGRAMS SATURATION\n";
 
 /// A declared leaf: its bound and its position on the frontier.
 struct leaf_decl {
@@ -116,6 +124,9 @@ class translator {
     else if (kw == "init") do_init(form);
     else if (kw == "event") do_event(form);
     else if (kw == "reach") do_reach(form);
+    else if (kw == "states") do_states(form);
+    else if (kw == "one-safe") do_one_safe(form);
+    else if (kw == "deadlock") do_deadlock(form);
     else if (kw == "count") do_count(form);
     else if (kw == "nodes") do_nodes(form);
     else if (kw == "print") do_print(form);
@@ -188,8 +199,11 @@ class translator {
       if (!decl.placed) fail(form, "leaf '" + name + "' is not in the shape");
     }
     init_.assign(order_.size(), 0);
+    domains_.assign(order_.size(), core::none);
     for (std::size_t i = 0; i < order_.size(); ++i) {
-      init_[i] = leaves_.at(order_[i]).lo;  // default: the domain's low end
+      const leaf_decl& d = leaves_.at(order_[i]);
+      init_[i] = d.lo;  // default: the domain's low end
+      domains_[i] = theory_->interval(d.lo, d.hi);  // an unguarded leaf's set
     }
   }
 
@@ -315,12 +329,15 @@ class translator {
     }
 
     // Assemble the by-leaf terms; a guard that no value satisfies makes the
-    // whole event dead, so it is never built.
+    // whole event dead, so it is never built. The guard sets are kept beside
+    // the event so its enabling set (for deadlock) can be rebuilt.
     std::vector<code> by_leaf(order_.size(), core::op_table::id);
+    std::vector<std::pair<std::size_t, code>> guards;
     for (const auto& [name, e] : eff) {
       if (e.has_guard && e.guard == core::none) return;  // unsatisfiable event
       const std::size_t idx = leaves_.at(name).index;
       const code guard = e.has_guard ? e.guard : core::none;
+      if (e.has_guard) guards.emplace_back(idx, e.guard);
       switch (e.action) {
         case leaf_effect::act::assign:
           by_leaf[idx] = theory_->assign(guard, e.arg);
@@ -335,6 +352,7 @@ class translator {
     }
     events_.push_back(
         core::product(mgr_.operations(), mgr_.shapes(), top_, by_leaf));
+    guards_.push_back(std::move(guards));
   }
 
   // --- commands ------------------------------------------------------------
@@ -346,18 +364,12 @@ class translator {
     return it->second;
   }
 
-  void do_reach(const datum& form) {
-    if (top_ == core::none) fail(form, "reach before shape");
-    const std::string& name = sym(arg(form, 1, "result name"));
-    bool naive = false;
-    if (form.items().size() > 2) {
-      const std::string& how = sym(form.items()[2]);
-      if (how == "naive") naive = true;
-      else if (how != "saturate") fail(form, "strategy is saturate or naive");
-    }
+  /// The least fixpoint from the initial word. `naive` iterates, `saturate`
+  /// applies the static closure; both denote the same diagram. Propagates
+  /// `hsc::overflow_error` if a leaf value leaves its representable range.
+  code run_reach(bool naive) {
     core::diagram_engine& diagrams = mgr_.diagrams();
     code reachable = initial();
-
     util::stopwatch sw;
     if (naive) {
       const code all = mgr_.operations().sum(events_);
@@ -372,7 +384,122 @@ class translator {
       reachable = diagrams.apply_local(closure, reachable);
     }
     reach_seconds_ += sw.seconds();
-    results_[name] = reachable;
+    return reachable;
+  }
+
+  void do_reach(const datum& form) {
+    if (top_ == core::none) fail(form, "reach before shape");
+    const std::string& name = sym(arg(form, 1, "result name"));
+    bool naive = false;
+    if (form.items().size() > 2) {
+      const std::string& how = sym(form.items()[2]);
+      if (how == "naive") naive = true;
+      else if (how != "saturate") fail(form, "strategy is saturate or naive");
+    }
+    results_[name] = run_reach(naive);
+  }
+
+  /// The largest value any leaf holds across the diagram \p c, by a
+  /// sort-directed walk: a leaf's code is a theory set to read, a pair's arcs
+  /// are recursed head then tail. A general statistic (also MAX_TOKEN_IN_PLACE),
+  /// not a query specialised to one-safety.
+  void collect_max(code c, core::shape_code s, std::int32_t& mx,
+                   std::unordered_set<code>& seen) {
+    switch (mgr_.shapes().kind(s)) {
+      case core::shape_kind::unit:
+        return;
+      case core::shape_kind::leaf:
+        for (std::int32_t v : theory_->elements(c)) mx = std::max(mx, v);
+        return;
+      case core::shape_kind::pair:
+        if (c == core::none || !seen.insert(c).second) return;
+        for (const core::arc& a : mgr_.diagrams().arcs(c)) {
+          collect_max(a.prime, mgr_.shapes().head(s), mx, seen);
+          collect_max(a.sub, mgr_.shapes().tail(s), mx, seen);
+        }
+        return;
+    }
+  }
+
+  [[nodiscard]] std::int32_t max_leaf_value(code c) {
+    std::int32_t mx = 0;
+    std::unordered_set<code> seen;
+    collect_max(c, top_, mx, seen);
+    return mx;
+  }
+
+  /// The enabling set of an event: its guard sets at the guarded leaves, the
+  /// full declared domain elsewhere — a cylinder over the shape.
+  code enabling(const std::vector<std::pair<std::size_t, code>>& guards) {
+    std::vector<code> sets = domains_;
+    for (const auto& [i, s] : guards) sets[i] = s;
+    std::size_t next = 0;
+    return build_cylinder(top_, sets, next);
+  }
+
+  code build_cylinder(core::shape_code s, const std::vector<code>& sets,
+                      std::size_t& next) {
+    core::diagram_engine& diagrams = mgr_.diagrams();
+    switch (mgr_.shapes().kind(s)) {
+      case core::shape_kind::unit:
+        return diagrams.one();
+      case core::shape_kind::leaf:
+        return sets[next++];
+      case core::shape_kind::pair: {
+        const code h = build_cylinder(mgr_.shapes().head(s), sets, next);
+        const code t = build_cylinder(mgr_.shapes().tail(s), sets, next);
+        return diagrams.rectangle(s, h, t);
+      }
+    }
+    return core::none;
+  }
+
+  void do_states(const datum& form) {
+    if (top_ == core::none) fail(form, "states before shape");
+    try {
+      const code r = run_reach(false);
+      out_ << "STATE_SPACE STATES " << std::fixed << std::setprecision(0)
+           << mgr_.diagrams().cardinal(r) << TECHNIQUES;
+    } catch (const hsc::overflow_error& e) {
+      out_ << "STATE_SPACE STATES CANNOT_COMPUTE\n";
+      std::cerr << "overflow: " << e.what() << '\n';
+      ++failures_;
+    }
+  }
+
+  void do_one_safe(const datum& form) {
+    if (top_ == core::none) fail(form, "one-safe before shape");
+    code r;
+    try {
+      r = run_reach(false);
+    } catch (const hsc::overflow_error&) {
+      out_ << "FORMULA OneSafe FALSE" << TECHNIQUES;  // unbounded: a place > 1
+      return;
+    }
+    out_ << "FORMULA OneSafe " << (max_leaf_value(r) <= 1 ? "TRUE" : "FALSE")
+         << TECHNIQUES;
+  }
+
+  void do_deadlock(const datum& form) {
+    if (top_ == core::none) fail(form, "deadlock before shape");
+    code r;
+    try {
+      r = run_reach(false);
+    } catch (const hsc::overflow_error& e) {
+      out_ << "DEADLOCK CANNOT_COMPUTE\n";
+      std::cerr << "overflow: " << e.what() << '\n';
+      ++failures_;
+      return;
+    }
+    core::diagram_engine& diagrams = mgr_.diagrams();
+    code enabled = core::none;  // union of every event's enabling set
+    for (const auto& guards : guards_) {
+      const code cyl = enabling(guards);
+      enabled = enabled == core::none ? cyl : diagrams.join(enabled, cyl);
+    }
+    const code dead = enabled == core::none ? r : diagrams.minus(r, enabled);
+    out_ << "FORMULA ReachabilityDeadlock "
+         << (dead == core::none ? "FALSE" : "TRUE") << TECHNIQUES;
   }
 
   void do_count(const datum& form) {
@@ -427,6 +554,8 @@ class translator {
   bool init_set_ = false;
 
   std::vector<code> events_;
+  std::vector<std::vector<std::pair<std::size_t, code>>> guards_;  ///< per event
+  std::vector<code> domains_;  ///< each leaf's declared set, by frontier index
   std::unordered_map<std::string, code> results_;
   double reach_seconds_ = 0.0;
   int failures_ = 0;
