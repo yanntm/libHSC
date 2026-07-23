@@ -43,15 +43,15 @@ refused (the corpus never uses them meaningfully).
   recorded per model by the harness, resolved when the theory grows a
   wrapping shift.
 * **A local transition** `s -> d {guard g; effect a…}` of `P` becomes one
-  `event`: `when` = `(== P_state #s)` plus the compiled guard, `do` =
-  `(:= P_state #d)` plus the compiled effects.
-* **Effects parallelize.** DVE executes an effect list left to right; surface
-  actions are simultaneous, one per leaf. Walking the list with forward
-  substitution (each right-hand side rewritten by the scalar assignments
-  already seen) turns the sequence into equivalent parallel assigns. A read
-  of an array cell after a write to the *same array through a variable
-  index* cannot be rewritten soundly — refused loudly, none in the corpus so
-  far.
+  `event`: `when` = `(== P_state #s)` plus the compiled guard, then one
+  `(do …)` clause per step — the control move first, then each effect in
+  list order.
+* **Effects compose.** DVE executes an effect list left to right; the
+  surface expresses exactly that as repeated `(do …)` clauses, compiled to
+  `op_table::compose` — atomic sequential steps, arrays and all. No forward
+  substitution into a simultaneous assign: a sync assign entangles supports
+  and hurts saturation, so it is reserved for semantics that truly need one
+  (a swap, SMV) — DVE never does.
 * **Guards.** `Proc.state` atoms become `(== Proc_state #s)`. A bare
   arithmetic term in boolean position is `(!= e 0)`; `=>`/`imply` expands to
   `(or (not a) b)`. Guards stay expression trees in the emitted forms —
@@ -59,10 +59,11 @@ refused (the corpus never uses them meaningfully).
   the *surface's* business to accept (§6), case (§7), or refuse them.
 * **Channels** (rendezvous, `system async`): every (send, recv) transition
   pair on a channel fuses into one event — both state atoms and guards
-  conjoined, sender effects, sender move, `recvvar := sendexpr` (value
-  passing), receiver effects, receiver move, parallelized as above. A pair
-  from one process is killed by its own contradictory state atoms. `system
-  sync` (lockstep) is refused.
+  conjoined, then the composed steps in reference order: sender effects,
+  sender move, `recvvar := sendexpr` (the sent value reads the sender's
+  scope, the variable resolves in the receiver's), receiver effects,
+  receiver move. Same-process pairs are skipped. `system sync` (lockstep)
+  is refused.
 * **Transient states.** A state named `trans_*` is DiVinE's transient
   convention (its occupancy is not a real state). Recorded on the model;
   reproducing the semantics is deferred, and the harness marks affected

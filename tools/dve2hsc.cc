@@ -1,9 +1,10 @@
 /// \file dve2hsc.cc
 /// \brief Import a DVE (BEEM) model into the `.hsc` surface.
 ///
-/// T2M: `dve::parse` reads the model. For now the tool stops there and
-/// reports what it saw (`--summary`); the M2M transform to surface forms and
-/// the `.hsc` serialization land next, on the same interface.
+/// T2M (`dve::parse`) then M2M (`dve::to_surface`), then the `.hsc` text
+/// (M2T) to stdout or `-o`. `--summary` stops after the parse and reports
+/// what was seen; `--parse-only` stops silently. Exit: 0 ok, 1 parse error,
+/// 3 transform error (a model the mapping does not cover yet).
 
 #include <cstdio>
 #include <fstream>
@@ -12,21 +13,28 @@
 #include <string>
 
 #include "hsc/dve/ast.hh"
+#include "hsc/dve/to_surface.hh"
 
 int main(int argc, char** argv) {
-  std::string in;
-  bool summary = false;
+  std::string in, out;
+  bool summary = false, parse_only = false;
   for (int i = 1; i < argc; ++i) {
     const std::string a = argv[i];
     if (a == "--summary") summary = true;
+    else if (a == "--parse-only") parse_only = true;
+    else if (a == "-o" && i + 1 < argc) out = argv[++i];
     else if (in.empty()) in = a;
     else {
-      std::fprintf(stderr, "usage: %s <in.dve> [--summary]\n", argv[0]);
+      std::fprintf(stderr,
+                   "usage: %s <in.dve> [-o out.hsc] [--summary|--parse-only]\n",
+                   argv[0]);
       return 2;
     }
   }
   if (in.empty()) {
-    std::fprintf(stderr, "usage: %s <in.dve> [--summary]\n", argv[0]);
+    std::fprintf(stderr,
+                 "usage: %s <in.dve> [-o out.hsc] [--summary|--parse-only]\n",
+                 argv[0]);
     return 2;
   }
 
@@ -52,10 +60,26 @@ int main(int argc, char** argv) {
                 << m.globals.size() << " globals, " << locals << " locals, "
                 << m.channels.size() << " channels, "
                 << (m.async ? "async" : "sync") << '\n';
+      return 0;
+    }
+    if (parse_only) return 0;
+    const hsc::dve::surface_model sm = hsc::dve::to_surface(m);
+    if (out.empty()) {
+      hsc::dve::print_hsc(std::cout, sm);
+    } else {
+      std::ofstream o(out, std::ios::binary);
+      if (!o) {
+        std::cerr << "cannot write " << out << '\n';
+        return 2;
+      }
+      hsc::dve::print_hsc(o, sm);
     }
     return 0;
   } catch (const hsc::dve::parse_error& e) {
     std::cerr << in << ": parse error: " << e.what() << '\n';
     return 1;
+  } catch (const hsc::dve::transform_error& e) {
+    std::cerr << in << ": transform error: " << e.what() << '\n';
+    return 3;
   }
 }
