@@ -1,0 +1,276 @@
+adding.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+adding.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+adding.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+adding.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+adding.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+adding.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+at.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+at.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+at.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+at.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+at.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+at.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+at.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+bakery.1	refused-other	expected a symbol, found a list
+bakery.2	refused-other	expected a symbol, found a list
+bakery.3	refused-other	expected a symbol, found a list
+bakery.4	refused-other	expected a symbol, found a list
+bakery.5	refused-other	expected a symbol, found a list
+bakery.6	refused-other	expected a symbol, found a list
+bakery.7	refused-other	expected a symbol, found a list
+bakery.8	refused-other	expected a symbol, found a list
+blocks.2	refused-other	expected a symbol, found a list
+blocks.3	refused-other	expected a symbol, found a list
+blocks.4	refused-other	expected a symbol, found a list
+bopdp.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+bopdp.2	run-ok	25685
+bopdp.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+bridge.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+bridge.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+bridge.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+brp.1	refused-other	expected a symbol, found a list
+brp2.1	refused-other	expected a symbol, found a list
+brp2.2	refused-other	expected a symbol, found a list
+brp2.3	refused-other	expected a symbol, found a list
+brp2.4	refused-other	expected a symbol, found a list
+brp2.5	refused-other	expected a symbol, found a list
+brp2.6	refused-other	expected a symbol, found a list
+brp.2	refused-other	expected a symbol, found a list
+brp.3	refused-other	expected a symbol, found a list
+brp.4	refused-other	expected a symbol, found a list
+brp.5	refused-other	expected a symbol, found a list
+brp.6	refused-other	expected a symbol, found a list
+cambridge.1	refused-other	expected a symbol, found a list
+cambridge.2	refused-other	expected a symbol, found a list
+cambridge.3	refused-other	expected a symbol, found a list
+cambridge.4	refused-other	expected a symbol, found a list
+cambridge.5	refused-other	expected a symbol, found a list
+cambridge.6	refused-other	expected a symbol, found a list
+cambridge.7	refused-other	expected a symbol, found a list
+collision.1	refused-other	unknown leaf '0'
+collision.2	refused-other	unknown leaf '0'
+collision.3	refused-other	unknown leaf '0'
+collision.4	refused-other	unknown leaf '0'
+collision.5	refused-other	unknown leaf '0'
+collision.6	refused-other	unknown leaf '0'
+cyclic_scheduler.1	run-ok	4606
+cyclic_scheduler.2	run-ok	3302
+cyclic_scheduler.3	run-ok	229374
+cyclic_scheduler.4	run-ok	473414
+driving_phils.1	refused-other	expected a symbol, found a list
+driving_phils.2	refused-other	expected a symbol, found a list
+driving_phils.3	refused-other	expected a symbol, found a list
+driving_phils.4	refused-other	expected a symbol, found a list
+driving_phils.5	refused-other	expected a symbol, found a list
+elevator.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+elevator2.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+elevator2.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+elevator2.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+elevator.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+elevator.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+elevator.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+elevator.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+elevator_planning.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+elevator_planning.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+exit.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+exit.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+exit.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+exit.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+exit.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+extinction.1	refused-other	expected a symbol, found a list
+extinction.2	refused-other	expected a symbol, found a list
+extinction.3	refused-other	expected a symbol, found a list
+extinction.4	refused-other	expected a symbol, found a list
+firewire_link.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+firewire_link.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+firewire_link.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+firewire_link.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+firewire_link.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+firewire_link.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+firewire_link.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+firewire_tree.1	refused-other	unknown leaf '0'
+firewire_tree.2	refused-other	unknown leaf '0'
+firewire_tree.3	refused-other	unknown leaf '0'
+firewire_tree.4	refused-other	unknown leaf '0'
+firewire_tree.5	refused-other	unknown leaf '0'
+fischer.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+fischer.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+fischer.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+fischer.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+fischer.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+fischer.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+fischer.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+frogs.1	refused-other	expected a symbol, found a list
+frogs.2	refused-other	expected a symbol, found a list
+frogs.3	refused-other	expected a symbol, found a list
+frogs.4	refused-other	expected a symbol, found a list
+gear.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+gear.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+hanoi.1	refused-other	expected a symbol, found a list
+hanoi.2	refused-other	expected a symbol, found a list
+hanoi.3	refused-other	expected a symbol, found a list
+hanoi.4	refused-other	expected a symbol, found a list
+iprotocol.1	refused-other	expected a symbol, found a list
+iprotocol.2	refused-other	expected a symbol, found a list
+iprotocol.3	refused-other	expected a symbol, found a list
+iprotocol.4	refused-other	expected a symbol, found a list
+iprotocol.5	refused-other	expected a symbol, found a list
+iprotocol.6	refused-other	expected a symbol, found a list
+iprotocol.7	refused-other	expected a symbol, found a list
+krebs.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+krebs.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+krebs.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+krebs.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lamport.1	refused-other	expected a symbol, found a list
+lamport.2	refused-other	expected a symbol, found a list
+lamport.3	refused-other	expected a symbol, found a list
+lamport.5	refused-other	expected a symbol, found a list
+lamport.6	refused-other	expected a symbol, found a list
+lamport.7	refused-other	expected a symbol, found a list
+lamport.8	refused-other	expected a symbol, found a list
+lamport_nonatomic.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lamport_nonatomic.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lamport_nonatomic.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lamport_nonatomic.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lamport_nonatomic.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lann.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lann.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lann.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lann.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lann.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lann.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lann.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lann.8	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+leader_election.1	refused-other	expected a symbol, found a list
+leader_election.2	refused-other	expected a symbol, found a list
+leader_election.3	refused-other	expected a symbol, found a list
+leader_election.4	refused-other	expected a symbol, found a list
+leader_election.5	refused-other	expected a symbol, found a list
+leader_election.6	refused-other	expected a symbol, found a list
+leader_filters.1	refused-other	expected a symbol, found a list
+leader_filters.2	refused-other	expected a symbol, found a list
+leader_filters.3	refused-other	expected a symbol, found a list
+leader_filters.4	refused-other	expected a symbol, found a list
+leader_filters.5	refused-other	expected a symbol, found a list
+leader_filters.6	refused-other	expected a symbol, found a list
+leader_filters.7	refused-other	expected a symbol, found a list
+lifts.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lifts.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lifts.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lifts.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lifts.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lifts.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lifts.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lifts.8	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+loyd.1	refused-other	expected a symbol, found a list
+loyd.2	refused-other	expected a symbol, found a list
+loyd.3	refused-other	expected a symbol, found a list
+lup.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lup.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lup.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+lup.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+mcs.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+mcs.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+mcs.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+mcs.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+mcs.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+mcs.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+msmie.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+msmie.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+msmie.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+msmie.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+needham.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+needham.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+needham.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+needham.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+peg_solitaire.1	refused-other	expected a symbol, found a list
+peg_solitaire.2	refused-other	expected a symbol, found a list
+peg_solitaire.3	refused-other	expected a symbol, found a list
+peg_solitaire.4	refused-other	expected a symbol, found a list
+peg_solitaire.5	refused-other	expected a symbol, found a list
+peg_solitaire.6	refused-other	expected a symbol, found a list
+peterson.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+peterson.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+peterson.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+peterson.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+peterson.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+peterson.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+peterson.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+pgm_protocol.1	refused-other	expected a symbol, found a list
+pgm_protocol.2	refused-other	expected a symbol, found a list
+pgm_protocol.3	refused-other	expected a symbol, found a list
+pgm_protocol.4	refused-other	expected a symbol, found a list
+pgm_protocol.5	refused-other	expected a symbol, found a list
+pgm_protocol.6	refused-other	expected a symbol, found a list
+pgm_protocol.7	refused-other	expected a symbol, found a list
+pgm_protocol.8	refused-other	expected a symbol, found a list
+phils.1	run-ok	80
+phils.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+phils.3	run-ok	729
+phils.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+phils.5	run-ok	531440
+phils.6	timeout	5s
+phils.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+phils.8	timeout	5s
+pouring.1	run-ok	503
+pouring.2	run-ok	51624
+production_cell.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+production_cell.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+production_cell.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+production_cell.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+production_cell.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+production_cell.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+protocols.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+protocols.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+protocols.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+protocols.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+protocols.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+public_subscribe.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+public_subscribe.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+public_subscribe.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+public_subscribe.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+public_subscribe.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+reader_writer.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+reader_writer.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+reader_writer.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+resistance.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+resistance.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+rether.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+rether.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+rether.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+rether.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+rether.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+rether.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+rether.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+rushhour.1	refused-other	expected a symbol, found a list
+rushhour.2	refused-other	expected a symbol, found a list
+rushhour.3	refused-other	expected a symbol, found a list
+rushhour.4	refused-other	expected a symbol, found a list
+sokoban.1	refused-other	expected a symbol, found a list
+sokoban.2	refused-other	expected a symbol, found a list
+sokoban.3	refused-other	expected a symbol, found a list
+sorter.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+sorter.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+sorter.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+sorter.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+sorter.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+synapse.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+synapse.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+synapse.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+synapse.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+synapse.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+synapse.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+synapse.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+szymanski.1	refused-other	expected a symbol, found a list
+szymanski.2	refused-other	expected a symbol, found a list
+szymanski.3	refused-other	expected a symbol, found a list
+szymanski.4	refused-other	expected a symbol, found a list
+szymanski.5	refused-other	expected a symbol, found a list
+telephony.1	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+telephony.2	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+telephony.3	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+telephony.4	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+telephony.5	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+telephony.6	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+telephony.7	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
+telephony.8	refused-§7	value is not a constant; relating two leaves needs split_equiv (§7), not implemented
