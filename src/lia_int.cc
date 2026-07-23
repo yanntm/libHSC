@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <ostream>
+#include <stdexcept>
 #include <vector>
 
 #include "hsc/lia/expr.hh"
@@ -206,9 +207,14 @@ std::int64_t expr_factory::fold(ikind k, std::int64_t l, std::int64_t r,
     case ikind::bit_and: return l & r;
     case ikind::bit_or: return l | r;
     case ikind::bit_xor: return l ^ r;
-    case ikind::lshift:
+    case ikind::lshift: {
       if (r < 0 || r >= 32) { undef = true; return 0; }
-      return l << r;
+      std::int64_t out = 0;
+      if (__builtin_mul_overflow(l, std::int64_t{1} << r, &out)) {
+        throw overflow_error("overflow folding a left shift");
+      }
+      return out;
+    }
     case ikind::rshift:
       if (r < 0 || r >= 32) { undef = true; return 0; }
       return l >> r;
@@ -346,6 +352,63 @@ iexpr expr_factory::subst_cell(iexpr e, std::uint32_t arr, std::int32_t index,
       return wrap(subst_cell_bool(n.operands()[0], arr, index, v));
   }
   return e;
+}
+
+// --- evaluation ------------------------------------------------------------
+
+std::int64_t expr_factory::eval_int(iexpr e, std::span<const std::int32_t> env,
+                                    bool& undef) const {
+  if (is_imm(e)) {
+    if (e == iundef) { undef = true; return 0; }
+    return dec(e);
+  }
+  const expr_node& n = node(e);
+  const auto k = static_cast<ikind>(n.kind);
+  switch (k) {
+    case ikind::constant: return n.payload;
+    case ikind::var: {
+      const auto pos = static_cast<std::size_t>(n.payload);
+      if (pos >= env.size()) {
+        throw std::logic_error("lia eval: position outside the environment");
+      }
+      return env[pos];
+    }
+    case ikind::plus:
+    case ikind::mult: {
+      std::int64_t acc = k == ikind::plus ? 0 : 1;
+      for (const iexpr op : n.operands()) {
+        const std::int64_t v = eval_int(op, env, undef);
+        if (undef) return 0;
+        const bool over = k == ikind::plus
+                              ? __builtin_add_overflow(acc, v, &acc)
+                              : __builtin_mul_overflow(acc, v, &acc);
+        if (over) throw overflow_error("overflow evaluating an expression");
+      }
+      return acc;
+    }
+    case ikind::bit_comp: {
+      const std::int64_t v = eval_int(n.operands()[0], env, undef);
+      return undef ? 0 : ~v;
+    }
+    case ikind::array:
+    case ikind::cell:
+      undef = true;  // cells resolve by subst_cell, not through an env
+      return 0;
+    case ikind::wrap_bool:
+      switch (eval_bool(n.operands()[0], env)) {
+        case truth::yes: return 1;
+        case truth::no: return 0;
+        case truth::undef: undef = true; return 0;
+      }
+      return 0;
+    default: {  // the binary operators share fold()
+      const std::int64_t l = eval_int(n.operands()[0], env, undef);
+      if (undef) return 0;
+      const std::int64_t r = eval_int(n.operands()[1], env, undef);
+      if (undef) return 0;
+      return fold(k, l, r, undef);
+    }
+  }
 }
 
 // --- reading ---------------------------------------------------------------

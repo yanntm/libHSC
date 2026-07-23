@@ -180,6 +180,48 @@ bexpr expr_factory::subst_cell_bool(bexpr e, std::uint32_t arr,
   return nary_bool(k, ops);
 }
 
+// --- evaluation ------------------------------------------------------------
+
+expr_factory::truth expr_factory::eval_bool(
+    bexpr e, std::span<const std::int32_t> env) const {
+  if (e == btrue) return truth::yes;
+  if (e == bfalse) return truth::no;
+  if (e == bundef) return truth::undef;
+  const expr_node& n = bool_node(e);
+  const auto k = static_cast<bkind>(n.kind);
+  if (is_comparison(k)) {
+    bool undef = false;
+    const std::int64_t l = eval_int(n.operands()[0], env, undef);
+    if (undef) return truth::undef;
+    const std::int64_t r = eval_int(n.operands()[1], env, undef);
+    if (undef) return truth::undef;
+    return cmp_eval(k, l, r) ? truth::yes : truth::no;
+  }
+  if (k == bkind::neg) {
+    switch (eval_bool(n.operands()[0], env)) {
+      case truth::yes: return truth::no;
+      case truth::no: return truth::yes;
+      case truth::undef: return truth::undef;
+    }
+  }
+  // conj / disj: ⊥ poisons, so every operand is read (no short circuit).
+  const bool is_and = k == bkind::conj;
+  bool decided = false;
+  for (const bexpr op : n.operands()) {
+    switch (eval_bool(op, env)) {
+      case truth::undef: return truth::undef;
+      case truth::yes:
+        if (!is_and) decided = true;
+        break;
+      case truth::no:
+        if (is_and) decided = true;
+        break;
+    }
+  }
+  if (is_and) return decided ? truth::no : truth::yes;
+  return decided ? truth::yes : truth::no;
+}
+
 // --- reading ---------------------------------------------------------------
 
 std::vector<std::uint32_t> expr_factory::support_bool(bexpr e) const {

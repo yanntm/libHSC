@@ -160,6 +160,23 @@ class expr_factory {
   bexpr subst_cell_bool(bexpr e, std::uint32_t arr, std::int32_t index,
                         iexpr v);
 
+  // --- evaluation ----------------------------------------------------------
+
+  /// Three-valued: a guard can hold, fail, or be undefined (⊥).
+  enum class truth : std::uint8_t { no, yes, undef };
+
+  /// Evaluate with \p env giving the value at each position (positions
+  /// beyond `env.size()` are an error the caller does not commit). Pure
+  /// reading: no interning traffic, unlike `subst`. Array accesses evaluate
+  /// to ⊥ — cells resolve by `subst_cell`, not through an env. Arithmetic
+  /// overflow is loud.
+  [[nodiscard]] truth eval_bool(bexpr e,
+                                std::span<const std::int32_t> env) const;
+  /// The integer twin; ⊥ is signalled by `undef` out-parameter.
+  [[nodiscard]] std::int64_t eval_int(iexpr e,
+                                      std::span<const std::int32_t> env,
+                                      bool& undef) const;
+
   // --- reading -------------------------------------------------------------
 
   /// The scalar positions read, ascending, deduplicated. An array access
