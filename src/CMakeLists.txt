@@ -15,5 +15,6 @@ target_sources(hsc PRIVATE
   lia_bool.cc
   lia_int.cc
   query.cc
+  force.cc
   event.cc
 )
