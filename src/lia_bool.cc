@@ -244,6 +244,40 @@ std::vector<std::uint32_t> expr_factory::support_bool(bexpr e) const {
   return out;
 }
 
+std::vector<expr_factory::array_ref> expr_factory::array_refs_bool(
+    bexpr e) const {
+  std::vector<array_ref> out;
+  if (is_imm(e)) return out;
+  const expr_node& n = bool_node(e);
+  const auto k = static_cast<bkind>(n.kind);
+  if (is_comparison(k)) {
+    for (const iexpr op : n.operands()) {
+      for (const auto& r : array_refs(op)) out.push_back(r);
+    }
+  } else {
+    for (const bexpr op : n.operands()) {
+      for (const auto& r : array_refs_bool(op)) out.push_back(r);
+    }
+  }
+  const auto dup = std::ranges::unique(out);
+  out.erase(dup.begin(), dup.end());
+  return out;
+}
+
+bexpr expr_factory::shift_positions_bool(bexpr e, std::int32_t delta) {
+  if (delta == 0 || is_imm(e)) return e;
+  const expr_node& n = bool_node(e);
+  const auto k = static_cast<bkind>(n.kind);
+  if (is_comparison(k)) {
+    return compare(k, shift_positions(n.operands()[0], delta),
+                   shift_positions(n.operands()[1], delta));
+  }
+  if (k == bkind::neg) return neg(shift_positions_bool(n.operands()[0], delta));
+  std::vector<bexpr> ops(n.operands().begin(), n.operands().end());
+  for (bexpr& op : ops) op = shift_positions_bool(op, delta);
+  return nary_bool(k, ops);
+}
+
 void expr_factory::print_bool(std::ostream& os, bexpr e) const {
   if (e == btrue) { os << "true"; return; }
   if (e == bfalse) { os << "false"; return; }

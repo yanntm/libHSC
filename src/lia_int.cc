@@ -442,6 +442,78 @@ std::vector<std::uint32_t> expr_factory::support(iexpr e) const {
   return out;
 }
 
+namespace {
+void collect_arrays(const expr_factory& f, iexpr e,
+                    std::vector<expr_factory::array_ref>& out) {
+  if (is_imm(e)) return;
+  const expr_node& n = f.node(e);
+  switch (static_cast<ikind>(n.kind)) {
+    case ikind::constant:
+    case ikind::var:
+      return;
+    case ikind::cell:
+      out.push_back({packed_arr(n.payload), packed_limit(n.payload),
+                     f.value(n.operands()[0])});
+      return;
+    case ikind::array:
+      out.push_back({packed_arr(n.payload), packed_limit(n.payload), -1});
+      collect_arrays(f, n.operands()[0], out);
+      return;
+    case ikind::wrap_bool:
+      for (const auto& r : f.array_refs_bool(n.operands()[0])) out.push_back(r);
+      return;
+    default:
+      for (const iexpr op : n.operands()) collect_arrays(f, op, out);
+      return;
+  }
+}
+}  // namespace
+
+std::vector<expr_factory::array_ref> expr_factory::array_refs(iexpr e) const {
+  std::vector<array_ref> out;
+  collect_arrays(*this, e, out);
+  const auto dup = std::ranges::unique(out);  // adjacent repeats only; cheap
+  out.erase(dup.begin(), dup.end());
+  return out;
+}
+
+iexpr expr_factory::shift_positions(iexpr e, std::int32_t delta) {
+  if (delta == 0 || is_imm(e)) return e;
+  const expr_node& n = node(e);
+  switch (static_cast<ikind>(n.kind)) {
+    case ikind::constant:
+      return e;
+    case ikind::var:
+      return variable(static_cast<std::uint32_t>(
+          static_cast<std::int64_t>(n.payload) + delta));
+    case ikind::cell: {
+      const std::uint32_t arr = static_cast<std::uint32_t>(
+          static_cast<std::int64_t>(packed_arr(n.payload)) + delta);
+      return array(arr, n.operands()[0], packed_limit(n.payload));
+    }
+    case ikind::array: {
+      const std::uint32_t arr = static_cast<std::uint32_t>(
+          static_cast<std::int64_t>(packed_arr(n.payload)) + delta);
+      return array(arr, shift_positions(n.operands()[0], delta),
+                   packed_limit(n.payload));
+    }
+    case ikind::plus:
+    case ikind::mult: {
+      std::vector<iexpr> ops(n.operands().begin(), n.operands().end());
+      for (iexpr& op : ops) op = shift_positions(op, delta);
+      return nary(static_cast<ikind>(n.kind), ops);
+    }
+    case ikind::bit_comp:
+      return bit_comp(shift_positions(n.operands()[0], delta));
+    case ikind::wrap_bool:
+      return wrap(shift_positions_bool(n.operands()[0], delta));
+    default:
+      return binary(static_cast<ikind>(n.kind),
+                    shift_positions(n.operands()[0], delta),
+                    shift_positions(n.operands()[1], delta));
+  }
+}
+
 iexpr expr_factory::first_subexpr(iexpr e) const {
   if (is_imm(e)) return e;
   const expr_node& n = node(e);

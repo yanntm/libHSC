@@ -184,6 +184,30 @@ class expr_factory {
   [[nodiscard]] std::vector<std::uint32_t> support(iexpr e) const;
   [[nodiscard]] std::vector<std::uint32_t> support_bool(bexpr e) const;
 
+  /// One array mention: the array id, its cell count, and the index — a
+  /// resolved constant for a `cell` node, or -1 while the index is still an
+  /// expression (`array` node). By libHSC convention the id *is* the
+  /// frontier position of the array's cell 0, so `id + index` addresses a
+  /// cell as a position.
+  struct array_ref {
+    std::uint32_t arr;
+    std::int32_t limit;
+    std::int32_t index;  ///< the cell index, or -1 while unresolved
+    friend bool operator==(const array_ref&, const array_ref&) = default;
+  };
+
+  /// Every array mention in \p e, deduplicated, in reading order. A `cell`
+  /// (index >= 0) is readable by splitting its position; an unresolved
+  /// `array` grounds its index first — that support is in `support`.
+  [[nodiscard]] std::vector<array_ref> array_refs(iexpr e) const;
+  [[nodiscard]] std::vector<array_ref> array_refs_bool(bexpr e) const;
+
+  /// \brief Re-root: shift every scalar position, and every array id (the
+  /// position of cell 0, so cells move with their array), by \p delta.
+  /// Renormalizes through the factories.
+  iexpr shift_positions(iexpr e, std::int32_t delta);
+  bexpr shift_positions_bool(bexpr e, std::int32_t delta);
+
   /// The innermost non-constant nested expression (an array index), or
   /// \p e itself when nothing nests — the resolution order for
   /// `tab[tab[x]]`: curry x, then the inner access, then the outer.
