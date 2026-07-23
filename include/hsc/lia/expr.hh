@@ -51,8 +51,11 @@ enum class ikind : std::uint8_t {
   bit_comp,  ///< unary ~
   lshift,    ///< binary; negative or >= 32 shift is ⊥
   rshift,    ///< binary; negative or >= 32 shift is ⊥
-  array,     ///< payload packs (array id, limit); operand 0 the index
-  cell,      ///< payload packs (array id, limit); operand 0 a constant index
+  array,     ///< operand 0 the index expression; operands 1… the frontier
+             ///< position of each cell, in index order (placement data, not
+             ///< expression codes). A constant index folds to the cell's
+             ///< variable, or ⊥ out of bounds — so a held array node always
+             ///< has an unresolved index.
   wrap_bool  ///< a bexpr as 0/1: operand 0 is the bexpr
 };
 
@@ -132,9 +135,13 @@ class expr_factory {
   iexpr bit_comp(iexpr a);
   iexpr lshift(iexpr a, iexpr b);
   iexpr rshift(iexpr a, iexpr b);
-  /// `arr[index]`, cells `[0, limit)`: a constant index resolves to `cell`
-  /// (or ⊥ out of bounds).
-  iexpr array(std::uint32_t arr, iexpr index, std::int32_t limit);
+  /// \brief The access `tab[index]`, \p cells the frontier position of each
+  /// cell in index order.
+  ///
+  /// The placement travels in the node: cells sit wherever the shape put
+  /// them — spread, permuted, nothing assumes adjacency. A constant index
+  /// folds to `variable(cells[i])`, out of range to ⊥.
+  iexpr array(std::span<const std::uint32_t> cells, iexpr index);
   /// A bexpr as the integer 0 or 1.
   iexpr wrap(bexpr b);
 
@@ -151,14 +158,12 @@ class expr_factory {
 
   // --- substitution: the currying step -------------------------------------
 
-  /// Replace position \p pos by \p v, renormalizing. Grounded subterms fold;
-  /// a fully grounded bexpr lands on btrue/bfalse/bundef.
+  /// Replace position \p pos by \p v, renormalizing. Grounded subterms fold
+  /// (an array whose index grounds becomes its cell's variable); a fully
+  /// grounded bexpr lands on btrue/bfalse/bundef. An array's cell positions
+  /// are placement data, not reads: they are never substituted into.
   iexpr subst(iexpr e, std::uint32_t pos, iexpr v);
   bexpr subst_bool(bexpr e, std::uint32_t pos, iexpr v);
-  /// Replace the array cell `arr[index]` by \p v.
-  iexpr subst_cell(iexpr e, std::uint32_t arr, std::int32_t index, iexpr v);
-  bexpr subst_cell_bool(bexpr e, std::uint32_t arr, std::int32_t index,
-                        iexpr v);
 
   // --- evaluation ----------------------------------------------------------
 
@@ -184,27 +189,15 @@ class expr_factory {
   [[nodiscard]] std::vector<std::uint32_t> support(iexpr e) const;
   [[nodiscard]] std::vector<std::uint32_t> support_bool(bexpr e) const;
 
-  /// One array mention: the array id, its cell count, and the index — a
-  /// resolved constant for a `cell` node, or -1 while the index is still an
-  /// expression (`array` node). By libHSC convention the id *is* the
-  /// frontier position of the array's cell 0, so `id + index` addresses a
-  /// cell as a position.
-  struct array_ref {
-    std::uint32_t arr;
-    std::int32_t limit;
-    std::int32_t index;  ///< the cell index, or -1 while unresolved
-    friend bool operator==(const array_ref&, const array_ref&) = default;
-  };
+  /// Every frontier position named as a cell by an array node of \p e,
+  /// ascending, deduplicated — the placement a criterion is pinned above
+  /// while its index is unresolved. (The index's own reads are in
+  /// `support`.)
+  [[nodiscard]] std::vector<std::uint32_t> array_positions(iexpr e) const;
+  [[nodiscard]] std::vector<std::uint32_t> array_positions_bool(bexpr e) const;
 
-  /// Every array mention in \p e, deduplicated, in reading order. A `cell`
-  /// (index >= 0) is readable by splitting its position; an unresolved
-  /// `array` grounds its index first — that support is in `support`.
-  [[nodiscard]] std::vector<array_ref> array_refs(iexpr e) const;
-  [[nodiscard]] std::vector<array_ref> array_refs_bool(bexpr e) const;
-
-  /// \brief Re-root: shift every scalar position, and every array id (the
-  /// position of cell 0, so cells move with their array), by \p delta.
-  /// Renormalizes through the factories.
+  /// \brief Re-root: shift every scalar position, and every array cell
+  /// position, by \p delta. Renormalizes through the factories.
   iexpr shift_positions(iexpr e, std::int32_t delta);
   bexpr shift_positions_bool(bexpr e, std::int32_t delta);
 

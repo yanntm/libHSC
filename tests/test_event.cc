@@ -177,13 +177,14 @@ TEST_CASE("array write tab[i] := x with out-of-bounds abort") {
   // Frontier: tab_0 tab_1 tab_2 at 0..2, i at 3, x at 4. i ranges over
   // [0,5): indices 3 and 4 are out of bounds — those states abort.
   const std::vector<int> sizes{2, 2, 2, 5, 3};
+  const std::uint32_t tab[] = {0, 1, 2};
   for (const bool bal : {false, true}) {
     const built b = bal ? balanced_cube(r.mgr, *r.theory, r.leaf, sizes, 0,
                                         sizes.size())
                         : spine_cube(r.mgr, *r.theory, r.leaf, sizes);
     lia::expr_factory& ex = r.ex();
     const case_engine::assign as[] = {
-        {ex.array(0, ex.variable(3), 3), ex.variable(4)}};
+        {ex.array(tab, ex.variable(3)), ex.variable(4)}};
     const core::code ev = r.cases->make_event(b.sort, lia::btrue, as);
     const core::code got = r.mgr.diagrams().apply_local(ev, b.cube);
     const core::code want =
@@ -196,17 +197,48 @@ TEST_CASE("array write tab[i] := x with out-of-bounds abort") {
   }
 }
 
-TEST_CASE("indirection: when tab[tab[x]] == 0 filter (R4 gate)") {
+TEST_CASE("spread cells: tab interleaved with other leaves") {
   rig r;
-  // tab_0..tab_2 at 0..2 over [0,3) — indices into itself — and x at 3.
-  const std::vector<int> sizes{3, 3, 3, 3};
+  // tab's cells sit at positions 4, 0, 3 — spread and permuted through the
+  // frontier; i at 1, x at 2. Placement is data, ordering-free.
+  const std::vector<int> sizes{2, 4, 3, 2, 2};
+  const std::uint32_t tab[] = {4, 0, 3};
   for (const bool bal : {false, true}) {
     const built b = bal ? balanced_cube(r.mgr, *r.theory, r.leaf, sizes, 0,
                                         sizes.size())
                         : spine_cube(r.mgr, *r.theory, r.leaf, sizes);
     lia::expr_factory& ex = r.ex();
-    const lia::iexpr inner = ex.array(0, ex.variable(3), 3);
-    const lia::iexpr outer = ex.array(0, inner, 3);
+    // when tab[i] != x do tab[i] := x  (i == 3 is out of bounds: abort)
+    const lia::iexpr access = ex.array(tab, ex.variable(1));
+    const lia::bexpr g =
+        ex.compare(lia::bkind::neq, access, ex.variable(2));
+    const case_engine::assign as[] = {{access, ex.variable(2)}};
+    const core::code ev = r.cases->make_event(b.sort, g, as);
+    const core::code got = r.mgr.diagrams().apply_local(ev, b.cube);
+    const core::code want =
+        oracle(r.mgr, *r.theory, b.sort, sizes, [&](std::vector<int>& t) {
+          if (t[1] >= 3) return false;  // abort
+          const std::size_t cell = tab[static_cast<std::size_t>(t[1])];
+          if (t[cell] == t[2]) return false;  // guard refuses
+          t[cell] = t[2];
+          return true;
+        });
+    CHECK(got == want);
+  }
+}
+
+TEST_CASE("indirection: when tab[tab[x]] == 0 filter (R4 gate)") {
+  rig r;
+  // tab_0..tab_2 at 0..2 over [0,3) — indices into itself — and x at 3.
+  const std::vector<int> sizes{3, 3, 3, 3};
+  const std::uint32_t tab[] = {0, 1, 2};
+  for (const bool bal : {false, true}) {
+    const built b = bal ? balanced_cube(r.mgr, *r.theory, r.leaf, sizes, 0,
+                                        sizes.size())
+                        : spine_cube(r.mgr, *r.theory, r.leaf, sizes);
+    lia::expr_factory& ex = r.ex();
+    const lia::iexpr inner = ex.array(tab, ex.variable(3));
+    const lia::iexpr outer = ex.array(tab, inner);
     const lia::bexpr g = ex.compare(lia::bkind::eq, outer, ex.constant(0));
     const core::code ev = r.cases->make_event(b.sort, g, {});
     const core::code got = r.mgr.diagrams().apply_local(ev, b.cube);

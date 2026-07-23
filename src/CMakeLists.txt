@@ -8,6 +8,7 @@ target_sources(hsc PRIVATE
   diagram.cc
   operation.cc
   surface_parser.cc
+  surface_expr.cc
   surface_translate.cc
   dve_parser.cc
   dve_to_surface.cc

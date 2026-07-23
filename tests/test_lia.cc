@@ -141,36 +141,44 @@ TEST_CASE("substitution is currying: residuals then ground") {
         f.add(f.variable(2), y));
 }
 
-TEST_CASE("arrays: constant index resolves, ⊥ out of bounds, tab[tab[x]]") {
+TEST_CASE("arrays: placement in the node, folding, spread cells") {
   expr_factory f;
   const iexpr x = f.variable(0);
+  // tab's four cells sit at positions 5, 2, 9, 7 — spread and permuted;
+  // nothing assumes adjacency.
+  const std::uint32_t tab[] = {5, 2, 9, 7};
 
-  CHECK(f.array(0, f.constant(7), 4) == iundef);       // out of bounds
-  const iexpr c2 = f.array(0, f.constant(2), 4);       // a named cell
-  CHECK(f.kind(c2) == ikind::cell);
-  const iexpr a = f.array(0, x, 4);                    // index is data
+  CHECK(f.array(tab, f.constant(7)) == iundef);        // out of bounds
+  CHECK(f.array(tab, f.constant(2)) == f.variable(9)); // folds to the cell
+  const iexpr a = f.array(tab, x);                     // index unresolved
   CHECK(f.kind(a) == ikind::array);
-  // currying the index resolves the access to a cell
-  CHECK(f.subst(a, 0, f.constant(2)) == c2);
-  // then the cell itself is a coordinate: tab[2] := 9 grounds it
-  CHECK(f.subst_cell(c2, 0, 2, f.constant(9)) == f.constant(9));
+  CHECK(f.support(a) == std::vector<std::uint32_t>{0});  // cells are data
+  CHECK(f.array_positions(a) == std::vector<std::uint32_t>{2, 5, 7, 9});
+  // currying the index folds the access to the cell's variable
+  CHECK(f.subst(a, 0, f.constant(1)) == f.variable(2));
+  // re-rooting shifts cells with every other position (index at 2 here,
+  // so every touched position survives the -2 shift)
+  CHECK(f.shift_positions(f.array(tab, f.variable(2)), -2) ==
+        f.array(std::vector<std::uint32_t>{3, 0, 7, 5}, f.variable(0)));
 
   // tab[tab[x]]: peel innermost-first
-  const iexpr nested = f.array(0, a, 4);
+  const iexpr nested = f.array(tab, a);
   CHECK(f.first_subexpr(nested) == a);   // the inner access
   CHECK(f.first_subexpr(a) == x);        // whose index is x
-  // resolution: x := 1, then tab[1] := 3, then tab[3] := 0
+  // x := 1 grounds the inner access to cell position 2; substituting that
+  // variable grounds the outer index, which folds the whole chain
   iexpr e = f.subst(nested, 0, f.constant(1));
-  e = f.subst_cell(e, 0, 1, f.constant(3));
-  e = f.subst_cell(e, 0, 3, f.constant(0));
-  CHECK(e == f.constant(0));
+  CHECK(e == f.array(tab, f.variable(2)));
+  e = f.subst(e, 2, f.constant(3));
+  CHECK(e == f.variable(7));
 }
 
 TEST_CASE("support and print read back") {
   expr_factory f;
   const iexpr x = f.variable(0);
   const iexpr z = f.variable(2);
-  const iexpr e = f.add(f.mul(x, f.constant(2)), f.array(0, z, 4));
+  const std::uint32_t tab[] = {4, 5, 6, 7};
+  const iexpr e = f.add(f.mul(x, f.constant(2)), f.array(tab, z));
   CHECK(f.support(e) == std::vector<std::uint32_t>{0, 2});
   const bexpr g = f.compare(bkind::lt, x, z);
   CHECK(f.support_bool(g) == std::vector<std::uint32_t>{0, 2});

@@ -36,38 +36,6 @@ case_engine::case_engine(core::manager& mgr, leaves::int_set_theory& theory)
   mgr.set_cases(this);
 }
 
-lia::iexpr case_engine::resolve_cells(lia::iexpr e) {
-  lia::expr_factory& ex = theory_->exprs();
-  for (;;) {
-    bool changed = false;
-    for (const auto& r : ex.array_refs(e)) {
-      if (r.index < 0) continue;
-      e = ex.subst_cell(e, r.arr, r.index,
-                        ex.variable(r.arr + static_cast<std::uint32_t>(
-                                                r.index)));
-      changed = true;
-      break;  // refs are stale after a rewrite: rescan
-    }
-    if (!changed) return e;
-  }
-}
-
-lia::bexpr case_engine::resolve_cells_bool(lia::bexpr e) {
-  lia::expr_factory& ex = theory_->exprs();
-  for (;;) {
-    bool changed = false;
-    for (const auto& r : ex.array_refs_bool(e)) {
-      if (r.index < 0) continue;
-      e = ex.subst_cell_bool(e, r.arr, r.index,
-                             ex.variable(r.arr + static_cast<std::uint32_t>(
-                                                     r.index)));
-      changed = true;
-      break;
-    }
-    if (!changed) return e;
-  }
-}
-
 code case_engine::zero_term(shape_code sort) {
   const core::shape_table& shapes = mgr_.shapes();
   if (shapes.kind(sort) == core::shape_kind::leaf) {
@@ -81,17 +49,12 @@ code case_engine::make_event(shape_code sort, lia::bexpr guard,
                              std::span<const assign> assigns) {
   lia::expr_factory& ex = theory_->exprs();
 
-  // Cells are positions: resolve them before anything reads a support.
-  guard = resolve_cells_bool(guard);
   if (guard == lia::bfalse || guard == lia::bundef) return zero_term(sort);
 
   std::vector<assign> as;
   as.reserve(assigns.size());
   for (const assign& a : assigns) {
-    // resolve_cells on the lhs rewrites a resolved cell target to its
-    // variable, and resolves cells inside an unresolved index; a plain
-    // variable passes through.
-    assign r{resolve_cells(a.lhs), resolve_cells(a.rhs)};
+    const assign r = a;
     if (r.lhs == lia::iundef || r.rhs == lia::iundef) {
       return zero_term(sort);  // an out-of-bounds access aborts: the 0
     }
@@ -118,27 +81,24 @@ code case_engine::make_event(shape_code sort, lia::bexpr guard,
   }
 
   // The touched positions decide the cut: reads (guard, rhs, array
-  // indices), the full range of any unresolved array, and write targets.
+  // indices), every cell an unresolved array could address, and write
+  // targets.
   std::uint32_t lo = no_read;
   std::uint32_t hi = 0;  // exclusive
-  const auto touch = [&](std::uint32_t p, std::uint32_t n = 1) {
+  const auto touch = [&](std::uint32_t p) {
     lo = std::min(lo, p);
-    hi = std::max(hi, p + n);
+    hi = std::max(hi, p + 1);
   };
   const auto touch_iexpr = [&](lia::iexpr e) {
     for (const std::uint32_t p : ex.support(e)) touch(p);
-    for (const auto& r : ex.array_refs(e)) {
-      touch(r.arr, static_cast<std::uint32_t>(r.limit));
-    }
+    for (const std::uint32_t p : ex.array_positions(e)) touch(p);
   };
   for (const std::uint32_t p : ex.support_bool(guard)) touch(p);
-  for (const auto& r : ex.array_refs_bool(guard)) {
-    touch(r.arr, static_cast<std::uint32_t>(r.limit));
-  }
+  for (const std::uint32_t p : ex.array_positions_bool(guard)) touch(p);
   for (const assign& a : as) {
     touch_iexpr(a.rhs);
     if (is_array_node(ex, a.lhs)) {
-      touch_iexpr(a.lhs);  // range of the target array, and its index reads
+      touch_iexpr(a.lhs);  // every cell it could write, and its index reads
     } else {
       touch(static_cast<std::uint32_t>(ex.node(a.lhs).payload));
     }

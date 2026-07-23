@@ -163,23 +163,6 @@ bexpr expr_factory::subst_bool(bexpr e, std::uint32_t pos, iexpr v) {
   return nary_bool(k, ops);
 }
 
-bexpr expr_factory::subst_cell_bool(bexpr e, std::uint32_t arr,
-                                    std::int32_t index, iexpr v) {
-  if (is_imm(e)) return e;
-  const expr_node& n = bool_node(e);
-  const auto k = static_cast<bkind>(n.kind);
-  if (is_comparison(k)) {
-    return compare(k, subst_cell(n.operands()[0], arr, index, v),
-                   subst_cell(n.operands()[1], arr, index, v));
-  }
-  if (k == bkind::neg) {
-    return neg(subst_cell_bool(n.operands()[0], arr, index, v));
-  }
-  std::vector<bexpr> ops(n.operands().begin(), n.operands().end());
-  for (bexpr& op : ops) op = subst_cell_bool(op, arr, index, v);
-  return nary_bool(k, ops);
-}
-
 // --- evaluation ------------------------------------------------------------
 
 expr_factory::truth expr_factory::eval_bool(
@@ -244,21 +227,21 @@ std::vector<std::uint32_t> expr_factory::support_bool(bexpr e) const {
   return out;
 }
 
-std::vector<expr_factory::array_ref> expr_factory::array_refs_bool(
-    bexpr e) const {
-  std::vector<array_ref> out;
+std::vector<std::uint32_t> expr_factory::array_positions_bool(bexpr e) const {
+  std::vector<std::uint32_t> out;
   if (is_imm(e)) return out;
   const expr_node& n = bool_node(e);
   const auto k = static_cast<bkind>(n.kind);
   if (is_comparison(k)) {
     for (const iexpr op : n.operands()) {
-      for (const auto& r : array_refs(op)) out.push_back(r);
+      for (const std::uint32_t p : array_positions(op)) out.push_back(p);
     }
   } else {
     for (const bexpr op : n.operands()) {
-      for (const auto& r : array_refs_bool(op)) out.push_back(r);
+      for (const std::uint32_t p : array_positions_bool(op)) out.push_back(p);
     }
   }
+  std::ranges::sort(out);
   const auto dup = std::ranges::unique(out);
   out.erase(dup.begin(), dup.end());
   return out;

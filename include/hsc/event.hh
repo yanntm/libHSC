@@ -28,12 +28,13 @@
 ///   the now-constant writes to each side. Federation is the join over
 ///   classes: merge by common key, no other machinery.
 ///
-/// * **Cells are positions.** A resolved `arr[i]` is rewritten to the plain
-///   variable `id + i` on entry (the id is cell 0's frontier position), so
-///   only unresolved indices keep array nodes alive, and an array never
-///   straddles a re-rooting: while unresolved it pins the term above its
-///   whole range. An index that resolves out of bounds is ⊥ — the event
-///   aborts, contributing absence, never a clamp.
+/// * **An array carries its placement.** A `lia` array node holds the
+///   frontier position of each cell — spread or permuted freely, nothing
+///   assumes adjacency — and folds to the cell's variable the moment its
+///   index grounds (a variable is the degenerate array access). While the
+///   index is unresolved the term is pinned above every cell it could
+///   touch; an index that resolves out of bounds is ⊥ — the event aborts,
+///   contributing absence, never a clamp.
 ///
 /// This lives above `core` and `leaves` like `query.hh`: §7 is the seam
 /// where the calculus consults a leaf theory's `split_equiv`; core carries
@@ -89,10 +90,6 @@ class case_engine final : public core::case_evaluator {
   /// The term refusing every word at \p sort: `keep_if(false)` at the
   /// leftmost leaf. Abort returns the algebra's 0.
   core::code zero_term(core::shape_code sort);
-
-  /// Rewrite every resolved cell `arr[i]` to the variable `arr + i`.
-  lia::iexpr resolve_cells(lia::iexpr e);
-  lia::bexpr resolve_cells_bool(lia::bexpr e);
 
   core::manager& mgr_;
   leaves::int_set_theory* theory_;

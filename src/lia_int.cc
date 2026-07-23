@@ -55,18 +55,6 @@ constexpr std::int32_t dec(iexpr e) {
   return (e & 2u) != 0 ? -mag : mag;
 }
 
-/// (array id, limit) packed into a node payload.
-constexpr std::int64_t pack(std::uint32_t arr, std::int32_t limit) {
-  return (static_cast<std::int64_t>(arr) << 32) |
-         static_cast<std::uint32_t>(limit);
-}
-constexpr std::uint32_t packed_arr(std::int64_t payload) {
-  return static_cast<std::uint32_t>(payload >> 32);
-}
-constexpr std::int32_t packed_limit(std::int64_t payload) {
-  return static_cast<std::int32_t>(payload & 0xffffffff);
-}
-
 /// A folded value must land back in int32; leaving it is loud, never silent.
 std::int32_t narrow(std::int64_t v) {
   if (v < INT32_MIN || v > INT32_MAX) {
@@ -262,18 +250,22 @@ iexpr expr_factory::bit_comp(iexpr a) {
 
 // --- arrays and bool wrapping ----------------------------------------------
 
-iexpr expr_factory::array(std::uint32_t arr, iexpr index, std::int32_t limit) {
+iexpr expr_factory::array(std::span<const std::uint32_t> cells, iexpr index) {
   if (index == iundef) return iundef;
   if (is_value(*this, index)) {
     const std::int32_t i = value(index);
-    if (i < 0 || i >= limit) return iundef;  // out of bounds is ⊥
-    const std::uint32_t ops[] = {index};
-    return intern(static_cast<std::uint8_t>(ikind::cell), pack(arr, limit),
-                  ops);
+    if (i < 0 || static_cast<std::size_t>(i) >= cells.size()) {
+      return iundef;  // out of bounds is ⊥
+    }
+    return variable(cells[static_cast<std::size_t>(i)]);
   }
-  const std::uint32_t ops[] = {index};
-  return intern(static_cast<std::uint8_t>(ikind::array), pack(arr, limit),
-                ops);
+  // Operand 0 the index expression, then the placement — raw positions,
+  // not expression codes; every walker treats them as data.
+  std::vector<std::uint32_t> ops;
+  ops.reserve(cells.size() + 1);
+  ops.push_back(index);
+  ops.insert(ops.end(), cells.begin(), cells.end());
+  return intern(static_cast<std::uint8_t>(ikind::array), 0, ops);
 }
 
 iexpr expr_factory::wrap(bexpr b) {
@@ -307,49 +299,13 @@ iexpr expr_factory::subst(iexpr e, std::uint32_t pos, iexpr v) {
                     subst(n.operands()[1], pos, v));
     case ikind::bit_comp:
       return bit_comp(subst(n.operands()[0], pos, v));
-    case ikind::cell:
-      return e;  // a named cell is substituted via subst_cell, not here
     case ikind::array:
-      return array(packed_arr(n.payload), subst(n.operands()[0], pos, v),
-                   packed_limit(n.payload));
+      // The cells are placement data, never substituted into; only the
+      // index resolves, and its grounding folds the access to a variable.
+      return array(n.operands().subspan(1),
+                   subst(n.operands()[0], pos, v));
     case ikind::wrap_bool:
       return wrap(subst_bool(n.operands()[0], pos, v));
-  }
-  return e;
-}
-
-iexpr expr_factory::subst_cell(iexpr e, std::uint32_t arr, std::int32_t index,
-                               iexpr v) {
-  if (is_imm(e)) return e;
-  const expr_node& n = node(e);
-  switch (static_cast<ikind>(n.kind)) {
-    case ikind::constant:
-    case ikind::var:
-      return e;
-    case ikind::cell:
-      return (packed_arr(n.payload) == arr && value(n.operands()[0]) == index)
-                 ? v
-                 : e;
-    case ikind::array:  // its cells are data; only the index can resolve
-      return array(packed_arr(n.payload),
-                   subst_cell(n.operands()[0], arr, index, v),
-                   packed_limit(n.payload));
-    case ikind::plus:
-    case ikind::mult: {
-      std::vector<iexpr> ops(n.operands().begin(), n.operands().end());
-      for (iexpr& op : ops) op = subst_cell(op, arr, index, v);
-      return nary(static_cast<ikind>(n.kind), ops);
-    }
-    case ikind::minus: case ikind::div: case ikind::mod: case ikind::pow:
-    case ikind::bit_and: case ikind::bit_or: case ikind::bit_xor:
-    case ikind::lshift: case ikind::rshift:
-      return binary(static_cast<ikind>(n.kind),
-                    subst_cell(n.operands()[0], arr, index, v),
-                    subst_cell(n.operands()[1], arr, index, v));
-    case ikind::bit_comp:
-      return bit_comp(subst_cell(n.operands()[0], arr, index, v));
-    case ikind::wrap_bool:
-      return wrap(subst_cell_bool(n.operands()[0], arr, index, v));
   }
   return e;
 }
@@ -391,8 +347,7 @@ std::int64_t expr_factory::eval_int(iexpr e, std::span<const std::int32_t> env,
       return undef ? 0 : ~v;
     }
     case ikind::array:
-    case ikind::cell:
-      undef = true;  // cells resolve by subst_cell, not through an env
+      undef = true;  // an unresolved index cannot be read through an env
       return 0;
     case ikind::wrap_bool:
       switch (eval_bool(n.operands()[0], env)) {
@@ -429,6 +384,10 @@ void collect(const expr_factory& f, iexpr e, std::vector<std::uint32_t>& out) {
     }
     return;
   }
+  if (k == ikind::array) {  // the cells are placement data, not reads
+    collect(f, n.operands()[0], out);
+    return;
+  }
   for (const iexpr op : n.operands()) collect(f, op, out);
 }
 }  // namespace
@@ -444,23 +403,23 @@ std::vector<std::uint32_t> expr_factory::support(iexpr e) const {
 
 namespace {
 void collect_arrays(const expr_factory& f, iexpr e,
-                    std::vector<expr_factory::array_ref>& out) {
+                    std::vector<std::uint32_t>& out) {
   if (is_imm(e)) return;
   const expr_node& n = f.node(e);
   switch (static_cast<ikind>(n.kind)) {
     case ikind::constant:
     case ikind::var:
       return;
-    case ikind::cell:
-      out.push_back({packed_arr(n.payload), packed_limit(n.payload),
-                     f.value(n.operands()[0])});
+    case ikind::array: {
+      const auto ops = n.operands();
+      out.insert(out.end(), ops.begin() + 1, ops.end());
+      collect_arrays(f, ops[0], out);
       return;
-    case ikind::array:
-      out.push_back({packed_arr(n.payload), packed_limit(n.payload), -1});
-      collect_arrays(f, n.operands()[0], out);
-      return;
+    }
     case ikind::wrap_bool:
-      for (const auto& r : f.array_refs_bool(n.operands()[0])) out.push_back(r);
+      for (const std::uint32_t p : f.array_positions_bool(n.operands()[0])) {
+        out.push_back(p);
+      }
       return;
     default:
       for (const iexpr op : n.operands()) collect_arrays(f, op, out);
@@ -469,10 +428,11 @@ void collect_arrays(const expr_factory& f, iexpr e,
 }
 }  // namespace
 
-std::vector<expr_factory::array_ref> expr_factory::array_refs(iexpr e) const {
-  std::vector<array_ref> out;
+std::vector<std::uint32_t> expr_factory::array_positions(iexpr e) const {
+  std::vector<std::uint32_t> out;
   collect_arrays(*this, e, out);
-  const auto dup = std::ranges::unique(out);  // adjacent repeats only; cheap
+  std::ranges::sort(out);
+  const auto dup = std::ranges::unique(out);
   out.erase(dup.begin(), dup.end());
   return out;
 }
@@ -486,16 +446,13 @@ iexpr expr_factory::shift_positions(iexpr e, std::int32_t delta) {
     case ikind::var:
       return variable(static_cast<std::uint32_t>(
           static_cast<std::int64_t>(n.payload) + delta));
-    case ikind::cell: {
-      const std::uint32_t arr = static_cast<std::uint32_t>(
-          static_cast<std::int64_t>(packed_arr(n.payload)) + delta);
-      return array(arr, n.operands()[0], packed_limit(n.payload));
-    }
     case ikind::array: {
-      const std::uint32_t arr = static_cast<std::uint32_t>(
-          static_cast<std::int64_t>(packed_arr(n.payload)) + delta);
-      return array(arr, shift_positions(n.operands()[0], delta),
-                   packed_limit(n.payload));
+      const auto ops = n.operands();
+      std::vector<std::uint32_t> cells(ops.begin() + 1, ops.end());
+      for (std::uint32_t& c : cells) {
+        c = static_cast<std::uint32_t>(static_cast<std::int64_t>(c) + delta);
+      }
+      return array(cells, shift_positions(ops[0], delta));
     }
     case ikind::plus:
     case ikind::mult: {
@@ -518,7 +475,7 @@ iexpr expr_factory::first_subexpr(iexpr e) const {
   if (is_imm(e)) return e;
   const expr_node& n = node(e);
   const auto k = static_cast<ikind>(n.kind);
-  if (k == ikind::constant || k == ikind::var || k == ikind::cell) return e;
+  if (k == ikind::constant || k == ikind::var) return e;
   if (k == ikind::array) return n.operands()[0];  // peel one layer per call
   for (const iexpr op : n.operands()) {
     const iexpr r = first_subexpr(op);
@@ -568,12 +525,19 @@ void expr_factory::print(std::ostream& os, iexpr e) const {
       os << "~";
       print(os, n.operands()[0]);
       return;
-    case ikind::array:
-    case ikind::cell:
-      os << 't' << packed_arr(n.payload) << '[';
-      print(os, n.operands()[0]);
+    case ikind::array: {
+      // placement then index: t{p0,p1,…}[index]
+      os << "t{";
+      const auto ops = n.operands();
+      for (std::size_t i = 1; i < ops.size(); ++i) {
+        if (i > 1) os << ',';
+        os << ops[i];
+      }
+      os << "}[";
+      print(os, ops[0]);
       os << ']';
       return;
+    }
     case ikind::wrap_bool:
       os << "int(";
       print_bool(os, n.operands()[0]);
