@@ -10,6 +10,7 @@ target_sources(hsc PRIVATE
   surface_parser.cc
   surface_translate.cc
   dve_parser.cc
+  dve_to_surface.cc
   lia_bool.cc
   lia_int.cc
   query.cc
