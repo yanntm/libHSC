@@ -33,10 +33,13 @@ blocked there and only there.
    operation × shared block). Circular-set constraints (uniform
    CUR/NEXT, no symmetry-breaking index) are the checkable precondition
    for the declared route.
-2. Rule on the `select` seam (report finding 1) — resolved in code: select
-   atoms now take any BEXP through the guard path; bless or amend the
-   doc's `QATOM ::= BEXP` accordingly.
-3. Scalarset discipline + orbit tags (spec §3), now feeding item 1.
+2. Scalarset discipline + orbit tags (spec §3), now feeding item 1.
+
+The select seam is closed: atoms take any BEXP through the guard path,
+so the documented `QATOM ::= BEXP` is now literally true. The paper
+(hsc_core5) carries the fold as Proposition 4.5, the measured §8
+witness, and Open 6 (regular families) — the theory queue's item 1 is
+that Open item's working half.
 
 ## Blockers
 None.
