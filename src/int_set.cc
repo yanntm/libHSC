@@ -1,8 +1,10 @@
 #include "hsc/leaves/int_set.hh"
 
 #include <algorithm>
+#include <map>
 #include <ostream>
 #include <string>
+#include <vector>
 
 #include "hsc/util/errors.hh"
 
@@ -150,6 +152,30 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
     }
   }
   return core::none;
+}
+
+std::vector<std::pair<std::int32_t, core::code>> int_set_theory::split_equiv(
+    core::code set, std::int32_t coeff, std::int32_t offset) {
+  std::vector<std::pair<std::int32_t, core::code>> classes;
+  if (set == core::none) return classes;
+
+  // Group the elements by the value coeff*x + offset. `std::map` keeps the
+  // classes ascending by value; each element list stays ascending because the
+  // input elements are, so `of_sorted` needs no re-sort.
+  std::map<std::int32_t, std::vector<std::int32_t>> by_value;
+  for (const std::int32_t x : elements(set)) {
+    std::int32_t v;
+    if (__builtin_mul_overflow(coeff, x, &v) ||
+        __builtin_add_overflow(v, offset, &v)) {
+      throw overflow_error("int32 overflow evaluating split_equiv on " +
+                           std::to_string(x));
+    }
+    by_value[v].push_back(x);
+  }
+
+  classes.reserve(by_value.size());
+  for (auto& [value, xs] : by_value) classes.emplace_back(value, of_sorted(xs));
+  return classes;
 }
 
 core::code int_set_theory::join(core::code a, core::code b) {

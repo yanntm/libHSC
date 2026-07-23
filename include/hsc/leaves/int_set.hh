@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <span>
+#include <utility>
 #include <vector>
 
 #include "hsc/core/support.hh"
@@ -89,6 +90,17 @@ class int_set_theory final : public core::support_algebra {
 
   /// The elements of \p c, ascending. Empty for `none`.
   [[nodiscard]] std::span<const std::int32_t> elements(core::code c) const;
+
+  /// \brief `split_equiv` (§7): partition \p set by the value of the linear
+  /// expression `coeff*x + offset` over this leaf's coordinate `x`. Returns
+  /// `{value, sub-code}` pairs, ascending by value, one per distinct value the
+  /// expression takes — the sub-code holds the elements yielding it.
+  ///
+  /// Exact: one class per value, no cost knob (the added expressiveness of §7).
+  /// The value is a code of the interchange (LIA) domain — here a plain integer.
+  /// `coeff*x + offset` is overflow-checked, loud on leaving int32 range.
+  [[nodiscard]] std::vector<std::pair<std::int32_t, core::code>> split_equiv(
+      core::code set, std::int32_t coeff = 1, std::int32_t offset = 0);
 
   /// \name Local terms
   ///

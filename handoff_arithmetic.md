@@ -4,69 +4,75 @@ Current state and the next objective. Rewritten in place; no history here.
 
 ## The objective
 
-**Arithmetic across a cut.** Criteria and updates that relate coordinates on
-different sides of a cut — `a < b + c`, `x := y + z`, `tab[i] := e`,
-`tab[tab[x]]`. This is the inseparable fragment (hsc_core5 §7): what does *not*
-factor into per-position parts, and therefore what forces `split_equiv`. It is
-the one capability that is ours and not libITS's, and it is the whole point.
+**Arithmetic across a cut.** Criteria and updates relating coordinates on
+different sides of a cut — `a < b + c`, `x := y + z`, `x < y`, `tab[i]`. The
+inseparable fragment (hsc_core5 §7): what does not factor into per-position
+parts, and so forces `split_equiv`. Ours and not libITS's; the whole point.
 
 Everything below the cut is finished and validated: shapes, diagrams, the set
 algebra, product terms, saturation, the surface, NUPN import with Louvain
-decomposition, and the MCC examinations checked against the official oracle. The
-surface already *parses and rejects* crossing forms with a §7 pointer — the seam
-is cut, the fragment is scoped, nothing before it is in the way.
+decomposition, the MCC examinations checked against the oracle. The surface
+already parses and rejects crossing forms with a §7 pointer — the seam is cut,
+nothing before it is in the way.
 
-## Theory queue (next action first)
+## The operational model (now settled — build to this, not the Python)
 
-1. **The §7 bracket contract** (hsc_core5 Open 1). Pin down: the query/case
-   bracket at a cut; how a criterion's *residual* is normalised; and its
-   interaction with saturation (Thm 5.2) when the crossing reply does **not**
-   factor as `l ∘ f`. This is the blocker for all engineering below. Deliver it
-   as a spec precise enough to transcribe: the bracket's inputs/outputs, the
-   residual normal form, and the re-saturation rule for a `G` event that is a
-   case.
-2. **Interchange theory** (Def 2.6): fix that the residual of a cross-cut
-   criterion is a code of a declared common sort — LIA is the working one —
-   interpreted identically at both ends. State the currying: a criterion
-   partially evaluated at the head becomes a residual the tail dispatches on.
-3. *(Secondary)* syntactic pre-disjointness beyond selectors (Open 2) — a
-   property a theory could declare; not on the critical path.
+The Python prototype is **not** a reference. Build from the calculus and this:
 
-## Engineering queue (next action first; all gated on theory item 1)
+- **`split_equiv(code, expr)` → `{ LIA value → partition-piece }`.** Partition a
+  code by the integer value `expr` takes on it; **exact**, one class per distinct
+  value — no cost/soundness knob, this is added expressiveness. A leaf evaluates
+  `expr` over its coordinate and groups. The label lives in the interchange (LIA)
+  theory.
+- **Crossing = currying deeper.** `a.x < b.y`: split `a` by `x` → `{xv → piece}`;
+  carry the residual `xv < b.y` into `b`; split `b` by `y`; `xv < yv` is now
+  ground → keep/drop. Descend each named side to its coordinate, substitute,
+  recurse until the LIA formula is ground.
+- **A node's `split_equiv` is the bracket one level in** — same act, deeper.
+- **Federation = merge by common key** (the residual value). No kernel machinery.
+- **A case is an ordinary `G` event under saturation**: it unwraps (query/split),
+  rewraps (rebuild the diagram), hands back; re-saturation proceeds as for any
+  `G`. No special schedule, no separate termination story.
+- **Assign is the same machinery**: `x := y + z` curries the operands to a ground
+  value, then writes it.
 
-The Python prototype already carries this machinery — `python/hsc/hsc/classify/`
-(`query.py`: `split_equiv`, `Partition` = kernel + labelling, the federating
-merge, `theta`). It is the re-expression source here, exactly as the legacy
-engines were for the separable fragment. Read it before writing C++.
+## Names survive restructuring for free
 
-1. **`split_equiv` on the leaf** (`int_set` first): partition a code by the
-   residual of a criterion after substituting this coordinate; return the
-   realised classes indexed by residual. Enumeration is the honest baseline.
-2. **The LIA interchange theory**: expressions, currying to a position,
-   residuals as interned codes. New leaf-side module.
-3. **`split_equiv` on diagrams** (Prop 7.1 / internalisation): one construct,
-   the node instance being the bracket one level in. **Federation is the crux**
-   — a `Partition` is a *kernel* (the canonical interned tuple of pieces) plus a
-   *labelling* (residual code → kernel), so subqueries with different residuals
-   but equal realised partitions share a kernel. Not federating is a correctness
-   bug, not just a cost one.
-4. **The query/case operation term** at a composite sort, with re-saturation
-   fused into the reply (the reply is a morphism; morphisms compose).
-5. **Surface**: lift the refusal on crossing guards (`a < b + c`), crossing
-   assigns (`x := y + z`), and indirection (`tab[i]`) — compile them to the
-   bracket instead of erroring.
+Expressions are written on **flat** place names (`x`, `y`). Events are
+name-keyed, and the shape declaration is the single place a name is bound to a
+position. So Louvain (or any) restructuring cannot lose a reference: the same
+`x < y` resolves through whatever shape — a within-unit comparison if `x`,`y`
+land together, a deeper case if they split across units. The nested path
+`a.b.x` is a recoverable view of the resolution, not a rewrite of the criterion.
+Decomposition *creates* the cross-level structure that exercises `split_equiv`;
+it never invalidates an expression.
 
-**Gate (roadmap R4):** an indirection example `tab[tab[x]]` resolving at the
-surface, with an independent oracle (brute-force over a tiny carrier) agreeing.
+## Engineering queue (next action first)
+
+1. **`split_equiv` on the `int_set` leaf** — partition a code by the value of a
+   linear expression `coeff*x + offset`; overflow-checked. *In progress.*
+2. **The LIA interchange theory** — expressions over positions, substitution of a
+   coordinate by a value (currying), a residual normal form, interning.
+3. **The case bracket** at a cut — split the head coordinate, carry residuals
+   into the tail, ground-evaluate; assemble the resulting diagram. Comparison of
+   two places is the first shape (`x < y` = `Σ_v [x=v] ⊗ [y > v]`, the tail
+   restriction a plain meet).
+4. **`split_equiv` on diagrams** — the node instance of the bracket, one level
+   in; merge pieces by common residual key.
+5. **Surface**: accept crossing criteria (`(< x y)`, `(< a (+ b c))`,
+   `x := y + z`), resolve flat names through the shape, compile to the bracket.
+
+**Gate (roadmap R4):** `x < y` across a cut resolving at the surface, and
+`tab[tab[x]]`, each agreeing with a brute-force oracle over a tiny carrier.
+Stress it by decomposing a flat net so the two places land in different units.
 
 ## Blockers
 
-- Engineering is blocked on theory item 1 (the bracket contract). Start there.
-- No representational blocker below the cut — the separable engine is done and
-  the crossing seam is already isolated in the surface.
+None on the critical path — the operational model is settled and the separable
+engine is done. Open only in the tail: `tab[i]` indirection representation, and
+the residual normal form's interning, both settled in code as they arise.
 
 ## Explicitly not now (exists, or secondary to the destination)
 
-Benchmark campaign, ITS-tools/libDDD baselines, the R2 memory wall (GC), the
-fast FDD leaf (R3), P-invariant bounds for non-safe StateSpace. All real, all
-deferred behind cross-level arithmetic.
+Benchmark campaign, ITS-tools/libDDD baselines, the R2 memory wall, the fast FDD
+leaf (R3), P-invariant bounds for non-safe StateSpace. All real, all deferred.
