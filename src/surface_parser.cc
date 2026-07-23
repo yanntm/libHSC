@@ -9,6 +9,7 @@
 #include "hsc/surface/sexpr.hh"
 
 #include <cctype>
+#include <ostream>
 #include <string_view>
 
 namespace hsc::surface {
@@ -89,6 +90,21 @@ std::vector<datum> parse(std::string_view text) {
   std::vector<datum> forms;
   while (s.skip_trivia()) forms.push_back(read_datum(s));
   return forms;
+}
+
+void write(std::ostream& os, const datum& d) {
+  if (d.is_atom()) {
+    os << d.text();
+    return;
+  }
+  os << '(';
+  bool first = true;
+  for (const datum& item : d.items()) {
+    if (!first) os << ' ';
+    write(os, item);
+    first = false;
+  }
+  os << ')';
 }
 
 }  // namespace hsc::surface

@@ -9,6 +9,7 @@
 /// `translate.hh`). Many passes may one day sit between the two.
 #pragma once
 
+#include <iosfwd>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -75,5 +76,9 @@ class parse_error : public std::runtime_error {
 /// \brief Parse the top-level forms of \p text. Throws `parse_error` on
 /// unbalanced parentheses. Comments run from `;` to end of line.
 [[nodiscard]] std::vector<datum> parse(std::string_view text);
+
+/// \brief Render \p d back to s-expression text, one datum, no newline.
+/// `write(parse(t))` round-trips modulo whitespace and comments.
+void write(std::ostream& os, const datum& d);
 
 }  // namespace hsc::surface
