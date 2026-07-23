@@ -555,8 +555,8 @@ class translator {
 
   void do_count(const datum& form) {
     const code c = named(arg(form, 1, "result name"));
-    out_ << sym(form.items()[1]) << " count "
-         << mgr_.diagrams().cardinal(c) << '\n';
+    out_ << sym(form.items()[1]) << " count " << std::fixed
+         << std::setprecision(0) << mgr_.diagrams().cardinal(c) << '\n';
   }
 
   void do_nodes(const datum& form) {
