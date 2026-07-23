@@ -12,12 +12,14 @@
 #include "hsc/surface/expand.hh"
 
 #include <charconv>
+#include <cstdlib>
 #include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <optional>
 #include <ostream>
 #include <span>
@@ -80,9 +82,25 @@ struct array_decl {
   std::vector<std::uint32_t> positions;
 };
 
+/// How a `family` form is built: `declared` — the head-folded chain by
+/// recursion over the sort tree; `unfold` — every instance enumerated and
+/// summed; `check` (default) — both, requiring the same code. Chosen once
+/// per run by HSC_FAMILY.
+enum class family_mode { check, declared, unfold };
+
+family_mode family_mode_from_env() {
+  const char* e = std::getenv("HSC_FAMILY");
+  if (e == nullptr) return family_mode::check;
+  const std::string v = e;
+  if (v == "declared") return family_mode::declared;
+  if (v == "unfold") return family_mode::unfold;
+  return family_mode::check;
+}
+
 class translator final : public name_scope {
  public:
-  explicit translator(std::ostream& out) : out_(out) {
+  explicit translator(std::ostream& out)
+      : out_(out), fmode_(family_mode_from_env()) {
     auto [index, theory] = mgr_.import<leaves::int_set_theory>();
     theory_index_ = index;
     theory_ = &theory;
@@ -194,6 +212,7 @@ class translator final : public name_scope {
     else if (kw == "shape") do_shape(form);
     else if (kw == "init") do_init(form);
     else if (kw == "event") do_event(form);
+    else if (kw == "family") do_family(form);
     else if (kw == "reach") do_reach(form);
     else if (kw == "apply") do_apply(form);
     else if (kw == "word") do_word(form);
@@ -451,16 +470,24 @@ class translator final : public name_scope {
     return {lhs, rhs};
   }
 
-  /// The product term of per-position separable effects.
-  code separable_product(const std::map<std::size_t, leaf_effect>& eff) {
-    std::vector<code> by_leaf(order_.size(), core::op_table::id);
+  /// The product term of per-position separable effects, at \p sort whose
+  /// frontier starts at absolute position \p base. Leaf terms are
+  /// position-independent codes (guards and rhs shifted to the leaf), so
+  /// the product at a sub-sort is the sub-chain of the product at the top.
+  code separable_product_at(core::shape_code sort, std::size_t base,
+                            const std::map<std::size_t, leaf_effect>& eff) {
+    std::vector<code> by_leaf(mgr_.shapes().width(sort), core::op_table::id);
     for (const auto& [pos, e] : eff) {
       const lia::bexpr g = e.has_guard ? e.guard : lia::btrue;
-      by_leaf[pos] = e.has_havoc ? theory_->havoc_if(g, e.lo, e.hi)
-                     : e.has_rhs ? theory_->apply_if(g, e.rhs0)
-                                 : theory_->keep_if(g);
+      by_leaf.at(pos - base) = e.has_havoc ? theory_->havoc_if(g, e.lo, e.hi)
+                               : e.has_rhs ? theory_->apply_if(g, e.rhs0)
+                                           : theory_->keep_if(g);
     }
-    return core::product(mgr_.operations(), mgr_.shapes(), top_, by_leaf);
+    return core::product(mgr_.operations(), mgr_.shapes(), sort, by_leaf);
+  }
+
+  code separable_product(const std::map<std::size_t, leaf_effect>& eff) {
+    return separable_product_at(top_, 0, eff);
   }
 
   /// A dead event still names a term — the zero term, which never fires:
@@ -469,9 +496,11 @@ class translator final : public name_scope {
     define_event(form, name, zero_term());
   }
 
-  [[nodiscard]] code zero_term() {
-    return cases_->make_event(top_, lia::bfalse, {});
+  [[nodiscard]] code zero_term_at(core::shape_code sort) {
+    return cases_->make_event(sort, lia::bfalse, {});
   }
+
+  [[nodiscard]] code zero_term() { return zero_term_at(top_); }
 
   /// One do clause, compiled. Separable — every action writes one position
   /// that at most itself is read — is a product of independent leaf terms;
@@ -570,20 +599,44 @@ class translator final : public name_scope {
     return true;
   }
 
-  void do_event(const datum& form) {
-    if (top_ == core::none) fail(form, "event before shape");
-    const std::string& name = sym(arg(form, 1, "event name"));
+  /// Shift a crossing clause's assignments to positions relative to \p base.
+  std::vector<case_engine::assign> shift_assigns(
+      const std::vector<case_engine::assign>& assigns, std::size_t base) {
+    if (base == 0) return assigns;
+    lia::expr_factory& ex = theory_->exprs();
+    std::vector<case_engine::assign> out;
+    out.reserve(assigns.size());
+    const auto d = -static_cast<std::int32_t>(base);
+    for (const case_engine::assign& a : assigns) {
+      out.push_back({ex.shift_positions(a.lhs, d), ex.shift_positions(a.rhs, d)});
+    }
+    return out;
+  }
 
-    // Guard atoms and do clauses, the clauses kept in order as atomic
-    // sequential steps.
+  /// \brief The whole event-body compile — when/do \p body → one term — at
+  /// \p sort, whose frontier starts at absolute position \p base.
+  ///
+  /// Guard atoms and do clauses are kept in order as atomic sequential
+  /// steps; assembly composes the crossing filters, the product fusing
+  /// separable guards with the first clause's separable assignments, then
+  /// each remaining step. Every position the body touches must lie inside
+  /// the sort's frontier; leaf terms are position-independent, filters and
+  /// case brackets shift by −base. Sets \p dead (and returns the zero term
+  /// at the sort) when a guard or action folds dead. `do_event` is the
+  /// (top, 0) instance; a family straddler compiles at its block.
+  code compile_event_at(const datum& at, std::span<const datum> body,
+                        core::shape_code sort, std::size_t base, bool& dead) {
+    dead = false;
     std::map<std::size_t, leaf_effect> eff;
     std::vector<lia::bexpr> filters;
     std::vector<std::vector<parsed_assign>> clauses;
-    for (std::size_t i = 2; i < form.items().size(); ++i) {
-      const datum& clause = form.items()[i];
+    for (const datum& clause : body) {
       const std::string& kw = clause.head();
       if (kw == "when") {
-        if (!read_when(clause, eff, filters)) { dead_event(form, name); return; }
+        if (!read_when(clause, eff, filters)) {
+          dead = true;
+          return zero_term_at(sort);
+        }
       } else if (kw == "do") {
         std::vector<parsed_assign> acts;
         for (std::size_t a = 1; a < clause.items().size(); ++a) {
@@ -599,17 +652,22 @@ class translator final : public name_scope {
     // terms, or the whole clause as one case bracket).
     std::vector<compiled_clause> steps;
     for (const auto& acts : clauses) {
-      compiled_clause cc = compile_clause(form, acts);
-      if (cc.dead) { dead_event(form, name); return; }
+      compiled_clause cc = compile_clause(at, acts);
+      if (cc.dead) {
+        dead = true;
+        return zero_term_at(sort);
+      }
       steps.push_back(std::move(cc));
     }
 
-    // Assemble in application order: the crossing filters, the product
-    // fusing separable guards with the first clause's separable
-    // assignments, then each remaining step.
+    lia::expr_factory& ex = theory_->exprs();
     std::vector<code> parts;
     for (const lia::bexpr b : filters) {
-      parts.push_back(cases_->make_event(top_, b, {}));
+      const lia::bexpr sb =
+          base == 0 ? b
+                    : ex.shift_positions_bool(
+                          b, -static_cast<std::int32_t>(base));
+      parts.push_back(cases_->make_event(sort, sb, {}));
     }
     std::size_t first = 0;
     if (!steps.empty() && steps.front().cross.empty()) {
@@ -618,24 +676,284 @@ class translator final : public name_scope {
         g.has_rhs = true;
         g.rhs0 = e.rhs0;
       }
-      parts.push_back(separable_product(eff));
+      parts.push_back(separable_product_at(sort, base, eff));
       first = 1;
     } else if (!eff.empty()) {
-      parts.push_back(separable_product(eff));
+      parts.push_back(separable_product_at(sort, base, eff));
     }
     for (std::size_t s = first; s < steps.size(); ++s) {
-      parts.push_back(
-          steps[s].cross.empty()
-              ? separable_product(steps[s].sep)
-              : cases_->make_event(top_, lia::btrue, steps[s].cross));
+      parts.push_back(steps[s].cross.empty()
+                          ? separable_product_at(sort, base, steps[s].sep)
+                          : cases_->make_event(
+                                sort, lia::btrue,
+                                shift_assigns(steps[s].cross, base)));
     }
 
+    if (parts.size() > 1 &&
+        mgr_.shapes().kind(sort) != core::shape_kind::pair) {
+      fail(at, "a multi-step event compiled at a single leaf: composition "
+               "needs a composite sort");
+    }
     code ev = core::op_table::id;
     for (const code p : parts) ev = mgr_.operations().compose(p, ev);
+    return ev;
+  }
+
+  void do_event(const datum& form) {
+    if (top_ == core::none) fail(form, "event before shape");
+    const std::string& name = sym(arg(form, 1, "event name"));
+    bool dead = false;
+    const code ev = compile_event_at(
+        form, std::span(form.items()).subspan(2), top_, 0, dead);
+    if (dead) {
+      dead_event(form, name);
+      return;
+    }
     define_event(form, name, ev);
     if (ev == core::op_table::id) return;  // a no-op: skip in a seq,
                                            // nothing for the default ALT
     events_.push_back(ev);
+  }
+
+  // --- certified uniform families: the declared route (spec Part II) -------
+
+  /// One `(at@ ARRAY δ)` marker of a family body: a certified access to
+  /// the cell of component (i+δ) mod N.
+  struct fam_access {
+    std::string arr;
+    long long delta = 0;
+  };
+
+  static void collect_markers(const datum& d, std::vector<fam_access>& out) {
+    if (!d.is_list() || d.items().empty()) return;
+    if (d.head() == "at@") {
+      out.push_back({d.items()[1].text(), std::stoll(d.items()[2].text())});
+      return;
+    }
+    for (const datum& k : d.items()) collect_markers(k, out);
+  }
+
+  /// Materialize instance \p i of a family datum: `(at@ a δ)` becomes the
+  /// cell atom of component (i+δ) mod n; everything else is untouched.
+  datum instantiate(const datum& d, long long i, long long n) {
+    if (!d.is_list() || d.items().empty()) return d;
+    if (d.head() == "at@") {
+      const array_decl& a = arrays_.at(d.items()[1].text());
+      const long long c = ((i + std::stoll(d.items()[2].text())) % n + n) % n;
+      return datum::atom(a.cells[static_cast<std::size_t>(c)], d.line());
+    }
+    std::vector<datum> kids;
+    kids.reserve(d.items().size());
+    for (const datum& k : d.items()) kids.push_back(instantiate(k, i, n));
+    return datum::list(std::move(kids), d.line());
+  }
+
+  /// What the fold recursion walks: the family body, and each instance's
+  /// frontier extent. `period` is the layout's cell count per component —
+  /// the memo alignment.
+  struct fam_geometry {
+    const datum* at = nullptr;
+    std::span<const datum> body;
+    long long n = 0;
+    long long period = 1;
+    std::vector<std::size_t> min_pos, max_pos;
+  };
+
+  /// Instance \p i compiled at \p sort (frontier from \p lo). Deadness was
+  /// decided once on the representative — the family is uniform.
+  code fam_instance_at(const fam_geometry& g, long long i, core::shape_code s,
+                       std::size_t lo) {
+    std::vector<datum> inst;
+    inst.reserve(g.body.size());
+    for (const datum& cl : g.body) inst.push_back(instantiate(cl, i, g.n));
+    bool dead = false;
+    return compile_event_at(*g.at, inst, s, lo, dead);
+  }
+
+  using fam_memo = std::map<std::pair<core::shape_code, long long>, code>;
+
+  /// \brief The declared fold (spec Part II §7): the sum of instances
+  /// \p ids — each with every cell in [lo, lo+width) — as a head-folded
+  /// chain built by recursion over the sort tree, no site enumerated at
+  /// shared blocks.
+  ///
+  /// An instance straddling this cut is compiled here, flat; the sides
+  /// recurse. Memoized on (sort, lo mod period): equal sorts at equal
+  /// alignment hold translation-conjugate instances, whose terms are equal
+  /// codes by currification (the wrap-around instance straddles the root
+  /// cut, whose sort no inner block shares). The result is code-for-code
+  /// the `sum_at` of the enumerated instances — check mode asserts it.
+  code fold_family(const fam_geometry& g, core::shape_code s, std::size_t lo,
+                   std::vector<long long>&& ids, fam_memo& memo) {
+    if (ids.empty()) return core::op_table::id;
+    const auto key =
+        std::make_pair(s, static_cast<long long>(lo) % g.period);
+    const auto hit = memo.find(key);
+    if (hit != memo.end()) return hit->second;
+    code result = core::op_table::id;
+    if (mgr_.shapes().kind(s) != core::shape_kind::pair) {
+      // whole instances inside one leaf: theory terms, and the theory owns
+      // their sum (the leaf case of sum_at)
+      core::support_algebra& algebra = mgr_.algebra(s);
+      for (const long long i : ids) {
+        const code t = fam_instance_at(g, i, s, lo);
+        result =
+            result == core::op_table::id ? t : algebra.term_sum(result, t);
+      }
+    } else {
+      const core::shape_code h = mgr_.shapes().head(s);
+      const core::shape_code t = mgr_.shapes().tail(s);
+      const std::size_t mid = lo + mgr_.shapes().width(h);
+      std::vector<long long> hs, ts;
+      std::vector<code> parts;
+      for (const long long i : ids) {
+        if (g.max_pos[static_cast<std::size_t>(i)] < mid) {
+          hs.push_back(i);
+        } else if (g.min_pos[static_cast<std::size_t>(i)] >= mid) {
+          ts.push_back(i);
+        } else {
+          parts.push_back(fam_instance_at(g, i, s, lo));
+        }
+      }
+      const code hc = fold_family(g, h, lo, std::move(hs), memo);
+      const code tc = fold_family(g, t, mid, std::move(ts), memo);
+      if (hc != core::op_table::id) {
+        parts.push_back(mgr_.operations().node(hc, core::op_table::id));
+      }
+      if (tc != core::op_table::id) {
+        parts.push_back(mgr_.operations().node(core::op_table::id, tc));
+      }
+      result = mgr_.operations().sum(parts);
+    }
+    memo.emplace(key, result);
+    return result;
+  }
+
+  /// `(family NAME N CLAUSE…)`: a certified uniform family, one term for
+  /// all N instances. Routes: `declared` builds the head-folded chain by
+  /// recursion (O(distinct blocks) term constructions); `unfold` compiles
+  /// every instance and `sum_at`s the list; `check` — the default — does
+  /// both and requires the same code, which canonicity makes an exact
+  /// gate. A layout that is not index-periodic falls back to unfold with
+  /// a note.
+  void do_family(const datum& form) {
+    if (top_ == core::none) fail(form, "family before shape");
+    const std::string& name = sym(arg(form, 1, "family name"));
+    const long long n = as_int(arg(form, 2, "family size"));
+    if (n <= 0) fail(form, "family size must be positive");
+    const std::span<const datum> body = std::span(form.items()).subspan(3);
+
+    fam_geometry g{&form, body, n, 1, {}, {}};
+
+    // The representative decides deadness once: the family is uniform.
+    bool dead = false;
+    {
+      std::vector<datum> inst;
+      for (const datum& cl : body) inst.push_back(instantiate(cl, 0, n));
+      compile_event_at(form, inst, top_, 0, dead);
+    }
+    if (dead) {
+      dead_event(form, name);
+      return;
+    }
+
+    std::vector<fam_access> acc;
+    for (const datum& cl : body) collect_markers(cl, acc);
+
+    // C4 — index-periodic layout: every family array's cells sit at
+    // pos(a_i) = pos(a_0) + i·period, one period for all. The certificate
+    // upstream checked the indexing; the layout is this file's shape.
+    bool foldable = !acc.empty();
+    long long period = 0;
+    std::map<std::string, std::vector<std::uint32_t>> pos;
+    for (const fam_access& a : acc) {
+      if (pos.contains(a.arr)) continue;
+      const auto resolved = array(a.arr);
+      if (!resolved || resolved->size() != static_cast<std::size_t>(n)) {
+        fail(form, "family '" + name + "': array '" + a.arr +
+                       "' does not have " + std::to_string(n) + " cells");
+      }
+      pos.emplace(a.arr, *resolved);
+    }
+    for (const auto& [arr, ps] : pos) {
+      if (n == 1) continue;
+      const long long step = static_cast<long long>(ps[1]) - ps[0];
+      if (step <= 0) {
+        foldable = false;
+        break;
+      }
+      if (period == 0) period = step;
+      if (step != period) {
+        foldable = false;
+        break;
+      }
+      for (long long i = 0; i < n; ++i) {
+        if (ps[static_cast<std::size_t>(i)] !=
+            ps[0] + static_cast<std::uint32_t>(i * step)) {
+          foldable = false;
+          break;
+        }
+      }
+      if (!foldable) break;
+    }
+    if (period <= 0) period = 1;
+    g.period = period;
+
+    // Per-instance frontier extents, wrap included as it falls.
+    if (!acc.empty()) {
+      g.min_pos.assign(static_cast<std::size_t>(n), SIZE_MAX);
+      g.max_pos.assign(static_cast<std::size_t>(n), 0);
+      for (long long i = 0; i < n; ++i) {
+        for (const fam_access& a : acc) {
+          const long long c = ((i + a.delta) % n + n) % n;
+          const std::size_t p = pos.at(a.arr)[static_cast<std::size_t>(c)];
+          auto& mn = g.min_pos[static_cast<std::size_t>(i)];
+          auto& mx = g.max_pos[static_cast<std::size_t>(i)];
+          mn = std::min(mn, p);
+          mx = std::max(mx, p);
+        }
+      }
+    }
+
+    code term;
+    if (acc.empty()) {
+      // no indexed access: all instances are one code already
+      term = fam_instance_at(g, 0, top_, 0);
+    } else {
+      const bool want_unfold = !foldable || fmode_ != family_mode::declared;
+      const bool want_fold = foldable && fmode_ != family_mode::unfold;
+      code unfolded = core::none;
+      code folded = core::none;
+      if (want_unfold) {
+        std::vector<code> ts;
+        ts.reserve(static_cast<std::size_t>(n));
+        for (long long i = 0; i < n; ++i) {
+          ts.push_back(fam_instance_at(g, i, top_, 0));
+        }
+        unfolded = core::sum_at(mgr_, top_, ts);
+      }
+      if (want_fold) {
+        std::vector<long long> all(static_cast<std::size_t>(n));
+        std::iota(all.begin(), all.end(), 0);
+        fam_memo memo;
+        folded = fold_family(g, top_, 0, std::move(all), memo);
+      }
+      if (want_unfold && want_fold && folded != unfolded) {
+        fail(form, "family '" + name +
+                       "': declared fold and enumerated sum disagree — "
+                       "fold gate violated, report this");
+      }
+      if (!foldable) {
+        std::cerr << "note: family '" << name
+                  << "': layout is not index-periodic; enumerated (line "
+                  << form.line() << ")\n";
+      }
+      term = want_fold ? folded : unfolded;
+    }
+
+    define_event(form, name, term);
+    if (term == core::op_table::id) return;
+    events_.push_back(term);
   }
 
   // --- the event algebra: named terms, alt = sum, seq = compose ------------
@@ -1067,6 +1385,7 @@ class translator final : public name_scope {
   // --- state ---------------------------------------------------------------
 
   std::ostream& out_;
+  family_mode fmode_;
   core::manager mgr_;
   core::theory_index theory_index_ = 0;
   leaves::int_set_theory* theory_ = nullptr;
