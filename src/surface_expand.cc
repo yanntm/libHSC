@@ -110,6 +110,8 @@ class expander {
  private:
   std::map<std::string, long long> env_;     // params and bound indexes
   std::map<std::string, long long> arrays_;  // count-form arrays: name → size
+  // 2-D count-form arrays: name → {rows, cols}; cells NAME_i_j, row-major
+  std::map<std::string, std::pair<long long, long long>> arrays2_;
   std::set<std::string> names_;              // every declared or bound name
 
   // ---- names and environment ----------------------------------------
@@ -216,10 +218,37 @@ class expander {
   }
 
   datum at_node(const datum& d) {
-    if (d.items().size() != 3 || !d.items()[1].is_atom())
-      throw expand_error(d.line(), "at expects (at NAME EXPR)");
+    if ((d.items().size() != 3 && d.items().size() != 4) ||
+        !d.items()[1].is_atom())
+      throw expand_error(d.line(), "at expects (at NAME EXPR [EXPR])");
     const std::string& name = d.items()[1].text();
     datum idx = expr_node(d.items()[2]);
+    if (d.items().size() == 4) {  // 2-D access
+      const auto it2 = arrays2_.find(name);
+      if (it2 == arrays2_.end())
+        throw expand_error(d.line(), "'" + name + "' is not a 2-D array");
+      const auto [rows, cols] = it2->second;
+      datum jdx = expr_node(d.items()[3]);
+      if (is_int_atom(idx) && is_int_atom(jdx)) {
+        const long long i = int_value(idx), j = int_value(jdx);
+        if (i < 0 || i >= rows || j < 0 || j >= cols)
+          throw expand_error(d.line(), "index (" + std::to_string(i) + " " +
+                                       std::to_string(j) +
+                                       ") out of range for array '" + name +
+                                       "' of " + std::to_string(rows) + "x" +
+                                       std::to_string(cols));
+        return datum::atom(
+            name + "_" + std::to_string(i) + "_" + std::to_string(j),
+            d.line());
+      }
+      // open index: row-major linearization onto the flat cell list
+      datum lin = expr_node(list_of(
+          "+",
+          {list_of("*", {std::move(idx), int_atom(cols, d.line())}, d.line()),
+           std::move(jdx)},
+          d.line()));
+      return list_of("at", {d.items()[1], std::move(lin)}, d.line());
+    }
     const auto it = arrays_.find(name);
     if (it != arrays_.end() && is_int_atom(idx)) {
       const long long k = int_value(idx);
@@ -228,6 +257,20 @@ class expander {
                                      " out of range for array '" + name +
                                      "' of size " + std::to_string(it->second));
       return datum::atom(name + "_" + std::to_string(k), d.line());
+    }
+    const auto it2 = arrays2_.find(name);
+    if (it2 != arrays2_.end() && is_int_atom(idx)) {
+      // grounded flat access to a 2-D array: the row-major cell
+      const long long k = int_value(idx);
+      const auto [rows, cols] = it2->second;
+      if (k < 0 || k >= rows * cols)
+        throw expand_error(d.line(), "flat index " + std::to_string(k) +
+                                     " out of range for array '" + name +
+                                     "' of " + std::to_string(rows) + "x" +
+                                     std::to_string(cols));
+      return datum::atom(name + "_" + std::to_string(k / cols) + "_" +
+                             std::to_string(k % cols),
+                         d.line());
     }
     return list_of("at", {d.items()[1], std::move(idx)}, d.line());
   }
@@ -709,25 +752,43 @@ class expander {
     out.push_back(f);
   }
 
+  /// Lower a count-form array. Arity decides the form: 3 is 1-D open,
+  /// 5 is 1-D bounded, 4 is 2-D open, 6 is 2-D bounded. A 2-D array's
+  /// cells are NAME_i_j in row-major order, grouped by one flat explicit
+  /// (array …) so an open (linearized) index stays an ordinary access.
   void lower_count_array(const datum& f, long long count,
                          std::vector<datum>& out) {
-    if (f.items().size() != 3 && f.items().size() != 5)
+    const std::size_t n = f.items().size();
+    if (n < 3 || n > 6)
       throw expand_error(f.line(), "count-form array expects "
-                                   "(array NAME COUNT [LO HI])");
-    if (count < 0)
-      throw expand_error(f.line(), "negative array size");
+                                   "(array NAME COUNT [COLS] [LO HI])");
+    if (count < 0) throw expand_error(f.line(), "negative array size");
     const std::string& name = f.items()[1].text();
+    const bool two_d = (n == 4 || n == 6);
+    long long cols = 1;
+    if (two_d) {
+      datum c = expr_node(f.items()[3]);
+      if (!is_int_atom(c))
+        throw expand_error(f.line(), "2-D array's second dimension does not "
+                                     "fold to an integer");
+      cols = int_value(c);
+      if (cols < 0) throw expand_error(f.line(), "negative array size");
+    }
     std::vector<datum> bounds;
-    if (f.items().size() == 5) {
-      bounds.push_back(expr_node(f.items()[3]));
-      bounds.push_back(expr_node(f.items()[4]));
+    if (n >= 5) {
+      bounds.push_back(expr_node(f.items()[n - 2]));
+      bounds.push_back(expr_node(f.items()[n - 1]));
       if (!is_int_atom(bounds[0]) || !is_int_atom(bounds[1]))
         throw expand_error(f.line(), "array bounds do not fold to integers");
     }
     std::vector<datum> cells = {datum::atom("array", f.line()),
                                 datum::atom(name, f.line())};
-    for (long long i = 0; i < count; ++i) {
-      const std::string cell = name + "_" + std::to_string(i);
+    const long long total = two_d ? count * cols : count;
+    for (long long k = 0; k < total; ++k) {
+      const std::string cell =
+          two_d ? name + "_" + std::to_string(k / cols) + "_" +
+                      std::to_string(k % cols)
+                : name + "_" + std::to_string(k);
       if (!names_.insert(cell).second)
         throw expand_error(f.line(), "generated cell '" + cell +
                                      "' collides with a declared name");
@@ -738,7 +799,10 @@ class expander {
       cells.push_back(datum::atom(cell, f.line()));
     }
     out.push_back(datum::list(std::move(cells), f.line()));
-    arrays_[name] = count;
+    if (two_d)
+      arrays2_[name] = {count, cols};
+    else
+      arrays_[name] = count;
   }
 };
 
