@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "hsc/core/code.hh"
+#include "hsc/lia/expr.hh"
 
 namespace hsc::core {
 class manager;
@@ -76,5 +77,15 @@ enum class cmp : std::uint8_t { lt, le, eq, ne, ge, gt };
                                    leaves::int_set_theory& theory,
                                    core::shape_code sort, core::code diagram,
                                    std::size_t pos, core::code set);
+
+/// \brief The subset of \p diagram whose value at frontier position \p pos
+/// satisfies \p guard, a `bexpr` over that single coordinate (`lia`
+/// position 0). Same descent as `select_in`, the filter symbolic: the guard
+/// is evaluated on the values present, no domain materialized.
+[[nodiscard]] core::code select_where(core::manager& mgr,
+                                      leaves::int_set_theory& theory,
+                                      core::shape_code sort,
+                                      core::code diagram, std::size_t pos,
+                                      lia::bexpr guard);
 
 }  // namespace hsc

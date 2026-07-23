@@ -40,56 +40,35 @@ code restrict_leaf(leaves::int_set_theory& theory, code leaf,
   return theory.of(out);
 }
 
-/// Restrict \p c so the value at frontier position \p pos satisfies the
-/// per-position bound — the curried residual, which is separable and so a
-/// plain descent to that leaf followed by a filter.
-code restrict(core::manager& mgr, leaves::int_set_theory& theory,
-              shape_code sort, code c, std::size_t pos, const residual& r) {
+/// Restrict \p c so the value at frontier position \p pos satisfies
+/// \p leaf_op — the one descent every separable per-position criterion
+/// shares; only the filter applied at the leaf differs.
+template <class LeafOp>
+code descend(core::manager& mgr, shape_code sort, code c, std::size_t pos,
+             LeafOp&& leaf_op) {
   if (c == core::none) return core::none;
   const core::shape_table& shapes = mgr.shapes();
-  if (shapes.kind(sort) == core::shape_kind::leaf) {
-    return restrict_leaf(theory, c, r);
-  }
+  if (shapes.kind(sort) == core::shape_kind::leaf) return leaf_op(c);
   core::diagram_engine& diagrams = mgr.diagrams();
   const std::size_t wh = shapes.width(shapes.head(sort));
   std::vector<core::arc> rects;
   for (const core::arc& a : diagrams.arcs(c)) {
     if (pos < wh) {
-      const code np = restrict(mgr, theory, shapes.head(sort), a.prime, pos, r);
+      const code np = descend(mgr, shapes.head(sort), a.prime, pos, leaf_op);
       if (np != core::none) rects.push_back({np, a.sub});
     } else {
-      const code ns =
-          restrict(mgr, theory, shapes.tail(sort), a.sub, pos - wh, r);
+      const code ns = descend(mgr, shapes.tail(sort), a.sub, pos - wh, leaf_op);
       if (ns != core::none) rects.push_back({a.prime, ns});
     }
   }
   return diagrams.canonize(sort, rects);
 }
 
-/// Restrict \p c so the value at frontier position \p pos lies in \p set —
-/// the same descent as `restrict`, the filter a meet instead of a predicate.
-code restrict_set(core::manager& mgr, leaves::int_set_theory& theory,
-                  shape_code sort, code c, std::size_t pos, code set) {
-  if (c == core::none) return core::none;
-  const core::shape_table& shapes = mgr.shapes();
-  if (shapes.kind(sort) == core::shape_kind::leaf) {
-    return theory.meet(c, set);
-  }
-  core::diagram_engine& diagrams = mgr.diagrams();
-  const std::size_t wh = shapes.width(shapes.head(sort));
-  std::vector<core::arc> rects;
-  for (const core::arc& a : diagrams.arcs(c)) {
-    if (pos < wh) {
-      const code np =
-          restrict_set(mgr, theory, shapes.head(sort), a.prime, pos, set);
-      if (np != core::none) rects.push_back({np, a.sub});
-    } else {
-      const code ns =
-          restrict_set(mgr, theory, shapes.tail(sort), a.sub, pos - wh, set);
-      if (ns != core::none) rects.push_back({a.prime, ns});
-    }
-  }
-  return diagrams.canonize(sort, rects);
+/// The curried residual as a per-position restriction.
+code restrict(core::manager& mgr, leaves::int_set_theory& theory,
+              shape_code sort, code c, std::size_t pos, const residual& r) {
+  return descend(mgr, sort, c, pos,
+                 [&](code leaf) { return restrict_leaf(theory, leaf, r); });
 }
 
 /// Partition \p c (sort \p sort) by the value at frontier position \p pos —
@@ -191,7 +170,15 @@ code select_compare(core::manager& mgr, leaves::int_set_theory& theory,
 
 code select_in(core::manager& mgr, leaves::int_set_theory& theory,
                shape_code sort, code diagram, std::size_t pos, code set) {
-  return restrict_set(mgr, theory, sort, diagram, pos, set);
+  return descend(mgr, sort, diagram, pos,
+                 [&](code leaf) { return theory.meet(leaf, set); });
+}
+
+code select_where(core::manager& mgr, leaves::int_set_theory& theory,
+                  shape_code sort, code diagram, std::size_t pos,
+                  lia::bexpr guard) {
+  return descend(mgr, sort, diagram, pos,
+                 [&](code leaf) { return theory.filter(leaf, guard); });
 }
 
 std::vector<std::pair<std::int32_t, code>> split_equiv(
