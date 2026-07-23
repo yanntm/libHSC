@@ -15,6 +15,10 @@ forms are specified in `research_notes/hsc_parametric.md`.
   as two dependent ranges; the init event states the real initial marking
   (the GAL original must bootstrap it through a pseudo-state). Oracles:
   saturate vs naive; mutual-exclusion image empty.
+* `hanoipole.hsc` — Hanoi again, as a P×N *2-D* occupancy-bit array, after
+  `~/git/ITS-Exercise/hanoipole.gal` (which linearizes indices by hand and
+  boots through an init flag dragged into every guard). Oracle: the same
+  `3^N` as hanoi.hsc — two encodings, one answer; goal reached once.
 * `rotate.hsc` — indexed init (`a[i] := i`) and a *simultaneous* rotation:
   the binder inside one `do` clause is a synchronous multi-assign. Oracle:
   exactly the N cyclic shifts.
