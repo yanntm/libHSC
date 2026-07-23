@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+	<!-- Written by GreatSPN Editor. -->
+	<net id="Sudoku-PT-AN01" type="http://www.pnml.org/version-2009/grammar/ptnet">
+		<name>
+			<text>Sudoku-PT-AN01</text>
+		</name>
+		<page id="page0">
+			<name>
+				<text>DefaultPage</text>
+			</name>
+			<!-- List of places -->
+			<place id="Rows_0_0">
+				<name>
+					<text>Rows_0_0</text>
+				</name>
+				<initialMarking>
+					<text>1</text>
+				</initialMarking>
+			</place>
+			<place id="Board_0_0_0">
+				<name>
+					<text>Board_0_0_0</text>
+				</name>
+			</place>
+			<place id="Cells_0_0">
+				<name>
+					<text>Cells_0_0</text>
+				</name>
+				<initialMarking>
+					<text>1</text>
+				</initialMarking>
+			</place>
+			<place id="Columns_0_0">
+				<name>
+					<text>Columns_0_0</text>
+				</name>
+				<initialMarking>
+					<text>1</text>
+				</initialMarking>
+			</place>
+			<!-- List of transitions -->
+			<transition id="select_0_0_0">
+				<name>
+					<text>select_0_0_0</text>
+				</name>
+			</transition>
+			<!-- List of arcs -->
+			<arc id="id1" source="select_0_0_0" target="Board_0_0_0">
+			</arc>
+			<arc id="id2" source="Columns_0_0" target="select_0_0_0">
+			</arc>
+			<arc id="id3" source="Rows_0_0" target="select_0_0_0">
+			</arc>
+			<arc id="id4" source="Cells_0_0" target="select_0_0_0">
+			</arc>
+			<toolspecific tool="nupn" version="1.1">
+				<size places="4" transitions="1" arcs="4"/>
+				<structure units="4" root="u0" safe="true">
+					<unit id="u0">
+						<places/>
+						<subunits>u1 u2 u3</subunits>
+					</unit>
+					<unit id="u1">
+						<places>Rows_0_0</places>
+						<subunits/>
+					</unit>
+					<unit id="u2">
+						<places>Cells_0_0</places>
+						<subunits/>
+					</unit>
+					<unit id="u3">
+						<places>Columns_0_0
+						 Board_0_0_0</places>
+						<subunits/>
+					</unit>
+				</structure>
+			</toolspecific>
+		</page>
+	</net>
+</pnml>

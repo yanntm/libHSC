@@ -1,0 +1,10 @@
+# MCC 2025 oracle verdicts for the sample nets (from website/oracle/MODEL-{SS,OS,RD}.out).
+# model,states,onesafe,deadlock
+Sudoku-PT-AN01,2,TRUE,TRUE
+ShieldRVt-PT-001A,33,TRUE,FALSE
+ERK-PT-000001,13,TRUE,FALSE
+AutoFlight-PT-01a,253,TRUE,TRUE
+Raft-PT-02,7381,TRUE,FALSE
+CircadianClock-PT-000001,128,TRUE,FALSE
+Angiogenesis-PT-01,110,TRUE,TRUE
+Angiogenesis-PT-05,42734935,FALSE,TRUE
