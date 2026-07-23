@@ -8,9 +8,19 @@ Layer order, each folder knowing only the ones above it in this list:
   **Knows nothing about diagrams**: it interns and caches values of a type
   parameter, whatever that type is.
 * `core/` — the calculus itself: shapes, the leaf-theory concepts, diagram
-  and operation declarations. (M1, second half.)
-* `leaves/` — leaf theories. (M2+.)
-* `ops/` — operation terms. (M4+.)
+  and operation declarations.
+* `lia/` — the interchange theory: interned integer and boolean expressions
+  over positions. Depends on `mem/` and `util/` only.
+* `leaves/` — leaf theories (`int_set`, symbolically guarded via `lia/`).
+* `query.hh` — cross-level criteria over diagrams: `split_equiv` lifted to
+  diagrams, `select_compare` (the §7 case), the per-position filters. Sits
+  above `core/` and `leaves/`.
+* `surface/` — the `.hsc` file surface: s-expression parser (T2M) and
+  translator (M2M). The only layer that gives text operational meaning.
+* `petri/` — PNML/NUPN import and Louvain decomposition, emitting surface
+  text.
+* `dve/` — the DVE (BEEM) front end: parser to a DVE model (T2M), transform
+  to surface forms (M2M), `.hsc` serialization (M2T).
 
 Non-header implementation lives in `src/`, mirroring these names.
 

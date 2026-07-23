@@ -1,4 +1,10 @@
-# `samples/` — a small NUPN test set
+# `samples/` — test corpora
+
+`divine/` holds the BEEM (DVE) benchmark and its generated `.hsc` forms —
+see its own README, citation included. The rest of this folder is the NUPN
+set below.
+
+## A small NUPN test set
 
 Six safe P/T nets with NUPN unit trees, from the Model Checking Contest corpus
 (`pnmcc-models-2025`, the `PT` instances), chosen small and across families. They

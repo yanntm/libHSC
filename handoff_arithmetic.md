@@ -65,44 +65,32 @@ it never invalidates an expression.
 2. **`tab[i]`** — indirection through `first_subexpr`/`subst_cell`, already
    exercised at the expression level; `tab[tab[x]]` is the remaining half
    of the R4 gate.
-3. **DVE front end (BEEM)** — after 1: parser for the 69-model
-   channel-free/array-free fragment first; grammar reference:
-   ITSTools `dve/fr.lip6.move.divine.xtext/.../Divine.xtext`. DVE `byte`
-   wraps mod 256 (a wrapping shift in the theory, not a bound); `.prop1.reach`
-   files are select criteria and libITS perfs are the baseline.
+3. **BEEM corpus greening** — `samples/divine/status.tsv` is the
+   scoreboard: 10 run today, 150 §7-refusals and 114 unread expression
+   atoms, both fed by item 1. Then: DVE `byte` wraps mod 256 (a wrapping
+   shift in the theory, not a bound — anderson et al. diverge without it);
+   map the `.prop1.reach` criteria to `select`; check the run-ok counts
+   against libITS baselines (`~/git/libITS/perfs/test_models`, bounded or
+   skipped). `trans_*` transient states are noted per file, semantics not
+   reproduced.
 
-Done: **`hsc/lia/`** — GAL's positional expression layer on `mem::intern`
-(constants tagged inside the code, factory-normalized, ⊥-poisoning,
-overflow-loud folds; subst/subst_cell the currying step; eval_int/eval_bool
-ground with no interning traffic). **Symbolic guards end to end**: `int_set`
-terms guarded by a `bexpr` over the coordinate (`keep_if`/`assign_if`/
-`shift_if`, `filter`), surface leaves are Int with `(leaf NAME LO HI)`
-opt-in, deadlock filters `R` by guards (`select_where`) instead of domain
-cylinders. MCC sample verdicts and all example oracles unchanged;
-`examples/models/unbounded.hsc` exercises Int leaves, negatives, and
-crossing queries with no domain anywhere.
+## What stands under this (validated, documented in the packages)
 
-Done and validated: `split_equiv` on the `int_set` leaf *and on diagrams* (a
-coordinate resolves at any depth, any shape); the case bracket for two-place
-comparison, all six comparators (`select_compare`, doctests vs brute force on
-spine and balanced shapes); surface `(select NAME SOURCE atom+)` — separable
-atoms, crossing comparisons, conjunction. Exercised by
-`examples/models/ring4.hsc` and `ring4b.hsc` (multi-token ring, spine vs
-balanced, stars-and-bars oracle, ctests). End-to-end on Angiogenesis-PT-05
-(42 734 935 states, tokens to 5): flat vs `--decompose` Louvain shapes give
-identical exact counts on four cross-unit selects; reach matches the MCC
-oracle. The `x < y`-across-a-cut half of gate R4 is met, including the
-decomposed-net stress.
+The separable engine and the first §7 shape are done: `split_equiv` on the
+leaf and on diagrams, `select_compare` at any depth and shape, surface
+`select`, symbolic (`lia`) guards end to end with Int leaves and opt-in
+bounds, compose-based multi-step events, the DVE front end (276/276 parse
+and transform), the Angiogenesis-PT-05 flat-vs-Louvain cross-check. Details:
+`include/hsc/{lia,dve,surface}/`, `hsc/query.hh`, `examples/models/`,
+`samples/divine/`, git.
 
-**Gate (roadmap R4):** `x < y` across a cut resolving at the surface, and
-`tab[tab[x]]`, each agreeing with a brute-force oracle over a tiny carrier.
-Stress it by decomposing a flat net so the two places land in different units.
+**Gate (roadmap R4):** the `x < y`-across-a-cut half is met, including the
+decomposed-net stress; `tab[tab[x]]` vs a brute-force oracle remains.
 
 ## Blockers
 
-None on the critical path — the operational model is settled and the separable
-engine is done. Open only in the tail: `tab[i]` indirection representation, and
-the residual normal form's interning, both settled in code as they arise.
+None on the critical path — the operational model is settled, expressions
+are interned with their normal form, and the separable engine is done.
 
 ## Explicitly not now (exists, or secondary to the destination)
 
