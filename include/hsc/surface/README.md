@@ -4,7 +4,8 @@ Runs a model from a file instead of a `.cc`. The surface is an SMT-flavoured
 s-expression syntax; the input is **generated and trusted** (its complexity —
 templates, parameters, instance arrays — is resolved upstream, exactly as GAL's
 front end resolves them before the engine sees anything). What reaches here is
-small: bounded scalar leaves, a shape, and separable events.
+small: integer leaves (Int by type, a finite domain opt-in), a shape, and
+separable events with symbolic guards.
 
 ## Two modules, not one
 

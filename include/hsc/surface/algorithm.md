@@ -28,7 +28,7 @@ well-ordered, and the translator errors (with a line) if it is not.
 ### Forms
 
 ```
-(leaf  NAME LO HI)                 ; a leaf ⟨A⟩ over int, domain [LO, HI)
+(leaf  NAME [LO HI])               ; a leaf ⟨A⟩ over Int; bound opt-in
 (shape SORT)                       ; the top sort; every leaf used exactly once
 (init  (NAME VAL)*)                ; initial word; unlisted leaves take LO
 (event NAME (when ATOM*) (do ACT*))
@@ -52,12 +52,17 @@ ACT  ::= (:= NAME K) | (+= NAME K) | (-= NAME K)
 
 ### Leaves and the shape
 
-A `leaf` imports the `int_set` theory (the only one wired) and records the
-bound `[LO,HI)`. `shape` interns the sort tree via `shape_table::pair`; `spine`
-and `balanced` are desugared here, not in the parser. The left-to-right leaf
-order of the shape is the frontier; each `NAME` resolves to its frontier index.
-A bound is mandatory: an unguarded shift under a closure has no finite orbit
-without one (Obligation 2.7 / hazard H2). Input is trusted to guard its shifts.
+A `leaf` imports the `int_set` theory (the only one wired). The type is
+**Int**: no domain is required or materialized. `(leaf NAME LO HI)` opts into
+a finite domain — recorded as model information (the init default becomes LO
+instead of 0), available to a compiler that wants an enumeration; it is not a
+clamp and never silently enters a guard. `shape` interns the sort tree via
+`shape_table::pair`; `spine` and `balanced` are desugared here, not in the
+parser. The left-to-right leaf order of the shape is the frontier; each
+`NAME` resolves to its frontier index. What keeps an orbit finite is the
+model's own guards (Obligation 2.7 / hazard H2): an unguarded shift under a
+closure diverges honestly — a value leaving int32 is a loud
+`overflow_error`, never a silent wrap.
 
 ### An event is a product term
 
@@ -67,18 +72,18 @@ that leaf's atoms and its (at most one) action, then assembles the event with
 path of the shape's depth (Thm 4.3 — skip is free, visible in the compiled
 term).
 
-Compiling a leaf's contribution, `D = interval(LO,HI)` its domain:
+Compiling a leaf's contribution — guards are **symbolic** (`lia` expressions
+over the coordinate, evaluated on the values present; nothing precomputed):
 
-* **guard** = meet over the leaf's atoms, each atom filtered from `D` by
-  enumeration (`==`,`in` pick values; `<`,`<=`,`>`,`>=`,`!=` filter `D`). No
-  atoms ⇒ guard is *all* (the sentinel `none`, read by the theory as "no
-  guard").
-* if the guard is **empty**, the event can never fire ⇒ the whole event is
-  dropped (never built). This sidesteps `keep(∅)`, which the theory folds to
-  `id`.
-* **action** (≤ 1 per leaf): `:=K` ⇒ `assign(guard,K)`; `+=K` ⇒ `shift(guard,K)`;
-  `-=K` ⇒ `shift(guard,-K)`. No action but a guard ⇒ `keep(guard)`. No action
-  and no guard ⇒ `id`.
+* **guard** = conjunction over the leaf's atoms, each a `bexpr` on the
+  coordinate (`(< x K)` ⇒ `v0 < K`; `(in x K…)` ⇒ a disjunction of `==` —
+  an enumeration the model itself wrote). No atoms ⇒ `true`.
+* a guard that **folds to `false`** (contradictory constants) drops the whole
+  event; a guard that merely never holds in practice is an honest
+  never-firing term.
+* **action** (≤ 1 per leaf): `:=K` ⇒ `assign_if(guard,K)`; `+=K` ⇒
+  `shift_if(guard,K)`; `-=K` ⇒ `shift_if(guard,-K)`. No action but a guard ⇒
+  `keep_if(guard)`. No action and no guard ⇒ `id`.
 
 ### Separability check (the §6/§7 line)
 
@@ -124,5 +129,7 @@ value left its representable range) it prints `CANNOT_COMPUTE` loudly rather tha
 a wrong count. `one-safe` is `max_leaf_value(R) ≤ 1` — a general per-leaf
 statistic of the reachable diagram, not a bound trick — and an overflow means a
 place grew past 1, i.e. FALSE. `deadlock` is `R ∖ ⋃ enabled_t` nonempty (§4.7):
-each event's enabling set is the cylinder of its guard sets (full declared domain
-elsewhere), unioned, subtracted from `R`.
+per event, `R` filtered through its guard expressions position by position
+(`select_where`), unioned over events, subtracted from `R`. No domain
+cylinder: only values `R` holds are consulted, so a state outside a declared
+domain is judged by the guards like any other.

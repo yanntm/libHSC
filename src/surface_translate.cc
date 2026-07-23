@@ -39,18 +39,22 @@ using core::code;
 /// verdicts come from saturated decision diagrams.
 constexpr const char* TECHNIQUES = " TECHNIQUES DECISION_DIAGRAMS SATURATION\n";
 
-/// A declared leaf: its bound and its position on the frontier.
+/// A declared leaf: its frontier position, and an optional bound. The type
+/// is Int; `(leaf NAME LO HI)` opts into a finite domain a compiler may
+/// exploit (and an init default of LO), it is never required.
 struct leaf_decl {
+  bool bounded = false;
   std::int32_t lo = 0;
   std::int32_t hi = 0;
   std::size_t index = 0;  ///< frontier position, assigned when the shape is read
   bool placed = false;    ///< set once the shape uses it (exactly once)
 };
 
-/// One leaf's contribution to an event: a guard set and at most one action.
+/// One leaf's contribution to an event: a symbolic guard (a `bexpr` over the
+/// coordinate) and at most one action.
 struct leaf_effect {
   bool has_guard = false;
-  code guard = core::none;  ///< meet of the leaf's atoms, when has_guard
+  lia::bexpr guard = lia::btrue;  ///< conjunction of the leaf's atoms
   enum class act { none, assign, shift } action = act::none;
   std::int32_t arg = 0;
 };
@@ -140,12 +144,16 @@ class translator {
 
   void do_leaf(const datum& form) {
     const std::string& name = sym(arg(form, 1, "leaf name"));
-    const std::int32_t lo = as_int(arg(form, 2, "lower bound"));
-    const std::int32_t hi = as_int(arg(form, 3, "upper bound"));
-    if (hi <= lo) fail(form, "empty domain [" + std::to_string(lo) + "," +
-                                 std::to_string(hi) + ")");
     if (leaves_.contains(name)) fail(form, "leaf '" + name + "' redeclared");
-    leaves_.emplace(name, leaf_decl{lo, hi, 0, false});
+    leaf_decl d;
+    if (form.items().size() > 2) {  // optional: (leaf NAME LO HI)
+      d.bounded = true;
+      d.lo = as_int(arg(form, 2, "lower bound"));
+      d.hi = as_int(arg(form, 3, "upper bound"));
+      if (d.hi <= d.lo) fail(form, "empty domain [" + std::to_string(d.lo) +
+                                       "," + std::to_string(d.hi) + ")");
+    }
+    leaves_.emplace(name, d);
   }
 
   // --- the shape, and the frontier order it fixes --------------------------
@@ -202,11 +210,9 @@ class translator {
       if (!decl.placed) fail(form, "leaf '" + name + "' is not in the shape");
     }
     init_.assign(order_.size(), 0);
-    domains_.assign(order_.size(), core::none);
     for (std::size_t i = 0; i < order_.size(); ++i) {
       const leaf_decl& d = leaves_.at(order_[i]);
-      init_[i] = d.lo;  // default: the domain's low end
-      domains_[i] = theory_->interval(d.lo, d.hi);  // an unguarded leaf's set
+      if (d.bounded) init_[i] = d.lo;  // bounded default: the low end; else 0
     }
   }
 
@@ -256,26 +262,30 @@ class translator {
 
   // --- events: the separable Presburger fragment ---------------------------
 
-  /// The set a single atom `(cmp leaf K)` or `(in leaf K…)` selects from the
-  /// leaf's domain. Refuses anything relating a second leaf (§7).
-  code atom_set(const datum& atom, const leaf_decl& d) {
+  /// The predicate a single atom `(cmp leaf K)` or `(in leaf K…)` puts on
+  /// the leaf's coordinate (`lia` position 0) — symbolic, no domain
+  /// materialized. Refuses anything relating a second leaf (§7).
+  lia::bexpr atom_guard(const datum& atom) {
+    lia::expr_factory& ex = theory_->exprs();
+    const lia::iexpr v0 = ex.variable(0);
     const std::string& op = atom.head();
     const auto& items = atom.items();
-    const std::int32_t lo = d.lo, hi = d.hi;
-    if (op == "in") {
-      std::vector<std::int32_t> vs;
-      for (std::size_t i = 2; i < items.size(); ++i) vs.push_back(as_int(items[i]));
-      return theory_->meet(theory_->of(vs), theory_->interval(lo, hi));
+    if (op == "in") {  // an enumeration by nature: a disjunction of ==
+      std::vector<lia::bexpr> alts;
+      for (std::size_t i = 2; i < items.size(); ++i) {
+        alts.push_back(
+            ex.compare(lia::bkind::eq, v0, ex.constant(as_int(items[i]))));
+      }
+      return ex.disj(alts);
     }
     if (items.size() != 3) fail(atom, "comparison takes a leaf and a constant");
-    const std::int32_t k = require_constant(items[2], "constraint");
-    const code dom = theory_->interval(lo, hi);
-    if (op == "==") return theory_->meet(theory_->singleton(k), dom);
-    if (op == "!=") return theory_->minus(dom, theory_->singleton(k));
-    if (op == "<") return theory_->interval(lo, std::min(k, hi));
-    if (op == "<=") return theory_->interval(lo, std::min<std::int32_t>(k + 1, hi));
-    if (op == ">") return theory_->interval(std::max<std::int32_t>(k + 1, lo), hi);
-    if (op == ">=") return theory_->interval(std::max(k, lo), hi);
+    const lia::iexpr k = ex.constant(require_constant(items[2], "constraint"));
+    if (op == "==") return ex.compare(lia::bkind::eq, v0, k);
+    if (op == "!=") return ex.compare(lia::bkind::neq, v0, k);
+    if (op == "<") return ex.compare(lia::bkind::lt, v0, k);
+    if (op == "<=") return ex.compare(lia::bkind::leq, v0, k);
+    if (op == ">") return ex.compare(lia::bkind::gt, v0, k);
+    if (op == ">=") return ex.compare(lia::bkind::geq, v0, k);
     fail(atom, "unknown comparison '" + op + "'");
   }
 
@@ -286,10 +296,10 @@ class translator {
       fail(atom, "an atom is (cmp leaf constant)");
     }
     const datum& leaf_ref = atom.items()[1];
-    const leaf_decl& d = require_leaf(leaf_ref);
-    const code set = atom_set(atom, d);
+    require_leaf(leaf_ref);
+    const lia::bexpr g = atom_guard(atom);
     leaf_effect& e = eff[sym(leaf_ref)];
-    e.guard = e.has_guard ? theory_->meet(e.guard, set) : set;
+    e.guard = e.has_guard ? theory_->exprs().conj(e.guard, g) : g;
     e.has_guard = true;
   }
 
@@ -331,25 +341,26 @@ class translator {
       }
     }
 
-    // Assemble the by-leaf terms; a guard that no value satisfies makes the
-    // whole event dead, so it is never built. The guard sets are kept beside
-    // the event so its enabling set (for deadlock) can be rebuilt.
+    // Assemble the by-leaf terms. A guard that folded to false makes the
+    // whole event dead, so it is never built; a merely unsatisfiable-in-
+    // practice guard is an honest never-firing term. The guard expressions
+    // are kept beside the event so deadlock can re-filter by them.
     std::vector<code> by_leaf(order_.size(), core::op_table::id);
-    std::vector<std::pair<std::size_t, code>> guards;
+    std::vector<std::pair<std::size_t, lia::bexpr>> guards;
     for (const auto& [name, e] : eff) {
-      if (e.has_guard && e.guard == core::none) return;  // unsatisfiable event
+      if (e.has_guard && e.guard == lia::bfalse) return;  // dead event
       const std::size_t idx = leaves_.at(name).index;
-      const code guard = e.has_guard ? e.guard : core::none;
+      const lia::bexpr guard = e.has_guard ? e.guard : lia::btrue;
       if (e.has_guard) guards.emplace_back(idx, e.guard);
       switch (e.action) {
         case leaf_effect::act::assign:
-          by_leaf[idx] = theory_->assign(guard, e.arg);
+          by_leaf[idx] = theory_->assign_if(guard, e.arg);
           break;
         case leaf_effect::act::shift:
-          by_leaf[idx] = theory_->shift(guard, e.arg);
+          by_leaf[idx] = theory_->shift_if(guard, e.arg);
           break;
         case leaf_effect::act::none:
-          by_leaf[idx] = e.has_guard ? theory_->keep(guard) : core::op_table::id;
+          by_leaf[idx] = theory_->keep_if(guard);
           break;
       }
     }
@@ -431,30 +442,17 @@ class translator {
     return mx;
   }
 
-  /// The enabling set of an event: its guard sets at the guarded leaves, the
-  /// full declared domain elsewhere — a cylinder over the shape.
-  code enabling(const std::vector<std::pair<std::size_t, code>>& guards) {
-    std::vector<code> sets = domains_;
-    for (const auto& [i, s] : guards) sets[i] = s;
-    std::size_t next = 0;
-    return build_cylinder(top_, sets, next);
-  }
-
-  code build_cylinder(core::shape_code s, const std::vector<code>& sets,
-                      std::size_t& next) {
-    core::diagram_engine& diagrams = mgr_.diagrams();
-    switch (mgr_.shapes().kind(s)) {
-      case core::shape_kind::unit:
-        return diagrams.one();
-      case core::shape_kind::leaf:
-        return sets[next++];
-      case core::shape_kind::pair: {
-        const code h = build_cylinder(mgr_.shapes().head(s), sets, next);
-        const code t = build_cylinder(mgr_.shapes().tail(s), sets, next);
-        return diagrams.rectangle(s, h, t);
-      }
+  /// The states of \p from where an event's guards all hold: successive
+  /// per-position filters by each guard expression. No domain cylinder — only
+  /// values the diagram actually holds are consulted.
+  code enabled_in(code from,
+                  const std::vector<std::pair<std::size_t, lia::bexpr>>& gs) {
+    code cur = from;
+    for (const auto& [pos, g] : gs) {
+      if (cur == core::none) break;
+      cur = hsc::select_where(mgr_, *theory_, top_, cur, pos, g);
     }
-    return core::none;
+    return cur;
   }
 
   void do_states(const datum& form) {
@@ -495,10 +493,11 @@ class translator {
       return;
     }
     core::diagram_engine& diagrams = mgr_.diagrams();
-    code enabled = core::none;  // union of every event's enabling set
+    code enabled = core::none;  // union over events of "guards hold in R"
     for (const auto& guards : guards_) {
-      const code cyl = enabling(guards);
-      enabled = enabled == core::none ? cyl : diagrams.join(enabled, cyl);
+      const code en = enabled_in(r, guards);
+      if (en == core::none) continue;
+      enabled = enabled == core::none ? en : diagrams.join(enabled, en);
     }
     const code dead = enabled == core::none ? r : diagrams.minus(r, enabled);
     out_ << "FORMULA ReachabilityDeadlock "
@@ -518,7 +517,8 @@ class translator {
 
   /// One query atom applied to \p src. A right-hand side naming a second leaf
   /// is the crossing comparison, resolved by the §7 case (`select_compare`);
-  /// a constant right-hand side (or `in`) is separable, a per-position meet.
+  /// a constant right-hand side (or `in`) is separable, a symbolic
+  /// per-position filter.
   code apply_atom(const datum& atom, code src) {
     if (!atom.is_list() || atom.items().size() < 3) {
       fail(atom, "a query atom is (cmp leaf constant-or-leaf) or (in leaf K+)");
@@ -530,15 +530,11 @@ class translator {
       const std::optional<cmp> op = comparator(atom.head());
       if (!op) fail(atom, "unknown comparison '" + atom.head() + "'");
       const leaf_decl& y = leaves_.at(rhs.text());
-      try {
-        return hsc::select_compare(mgr_, *theory_, top_, src, x.index, *op,
-                                   y.index);
-      } catch (const std::logic_error& e) {
-        fail(atom, e.what());
-      }
+      return hsc::select_compare(mgr_, *theory_, top_, src, x.index, *op,
+                                 y.index);
     }
-    return hsc::select_in(mgr_, *theory_, top_, src, x.index,
-                          atom_set(atom, x));
+    return hsc::select_where(mgr_, *theory_, top_, src, x.index,
+                             atom_guard(atom));
   }
 
   /// `(select NAME SOURCE ATOM+)`: filter a stored result by a conjunction of
@@ -605,8 +601,8 @@ class translator {
   bool init_set_ = false;
 
   std::vector<code> events_;
-  std::vector<std::vector<std::pair<std::size_t, code>>> guards_;  ///< per event
-  std::vector<code> domains_;  ///< each leaf's declared set, by frontier index
+  /// Per event, its guard expression at each guarded frontier position.
+  std::vector<std::vector<std::pair<std::size_t, lia::bexpr>>> guards_;
   std::unordered_map<std::string, code> results_;
   double reach_seconds_ = 0.0;
   int failures_ = 0;
