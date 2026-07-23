@@ -50,11 +50,18 @@ instrument.
   The old ⊥-poisoning claim ("GAL's semantics") was wrong — see
   `lia/algorithm.md` for the deviation note.
 * **The event algebra**: `event`/`alt`/`seq` declare named terms (sum,
-  compose), nesting inline; `(reach R [strategy] [EVTERM])` takes the
-  system, default = ALT of every event. Dead event = zero term. Queries
-  compose over bound results (`states`/`count`/`nodes`/`max-value`/
-  `select`); `deadlock` and `one-safe` forms are gone — MCC protocol
-  lives in `hsc-mcc`.
+  compose), nesting inline plus anonymous `(when …)`/`(do …)` atoms;
+  `(reach R [strategy] [EVTERM] [from RESULT])` takes the system, default
+  = ALT of every event. Dead event = zero term. Queries compose over
+  bound results (`states`/`count`/`nodes`/`max-value`/`select`);
+  `deadlock` and `one-safe` forms are gone — MCC protocol lives in
+  `hsc-mcc`.
+* **The state layer**: initialization is an event applied once to the
+  base word (leaves at LO) — `alt` for several initial states, `havoc`
+  ranges (one theory term), havoc-then-`when` for regions by predicate;
+  an empty init image is a refused model. States are results: `word`
+  literals, `apply` one-step images, `get-witness`/`get-states` exhibit
+  states as re-runnable word literals.
 * **DVE fidelity**: byte wrap mod 256 (M2M-emitted `%` chains), rendezvous
   value on the pre-state with receiver-before-sender effects (the
   operative dve2gal order). Both were found by differential against
@@ -76,5 +83,4 @@ note, and the placement-vector array encoding.
 
 Benchmark campaign at real budgets (≥60s, memory metering), the R2 memory
 wall, the fast FDD leaf (R3), P-invariant bounds, composite-cell arrays,
-reach from a bound initial set, `trans_*` transient semantics (noted per
-file, not reproduced).
+`trans_*` transient semantics (noted per file, not reproduced).
