@@ -32,13 +32,20 @@ well-ordered, and the translator errors (with a line) if it is not.
 (array NAME CELL+)                 ; the named leaves, in index order, are
                                    ; addressable as NAME[i] — placed anywhere
 (shape SORT)                       ; the top sort; every leaf used exactly once
-(init  (NAME VAL)*)                ; initial word; unlisted leaves take LO
+(init  (NAME VAL)*)                ; edit the base word (all leaves at LO)
+(init  EVTERM)                     ; seed = EVTERM applied ONCE to the base;
+                                   ; an empty image is a malformed model
 (event NAME (when BEXP*) (do ACT*)+)   ; several (do …): sequential steps
 (alt NAME EVTERM+)                 ; nondeterministic choice, a named term
 (seq NAME EVTERM+)                 ; sequential composition, a named term
-(reach NAME [saturate|naive] [EVTERM])
-                                   ; least fixpoint of EVTERM from init;
-                                   ; default: the ALT of every (event …)
+(word NAME (LEAF VAL)*)            ; bind one state; unlisted leaves at LO
+(reach NAME [saturate|naive] [EVTERM] [from RESULT])
+                                   ; least fixpoint of EVTERM from a bound
+                                   ; result (default: the seed); default
+                                   ; EVTERM: the ALT of every (event …)
+(apply NAME EVTERM SOURCE)         ; one-step image, no closure
+(get-witness NAME)                 ; one state of NAME, as a word literal
+(get-states NAME [K])              ; up to K states (10), one per line
 (select NAME SOURCE QATOM+)        ; subset of SOURCE satisfying every QATOM
 (count NAME) (nodes NAME) (print NAME)
 (max-value NAME)                   ; largest value any leaf holds in NAME
@@ -52,12 +59,17 @@ SORT ::= unit | NAME
        | (balanced SORT+)          ; sugar: split in half, left-biased
 EVTERM ::= NAME                          ; a declared event / alt / seq
        | (alt EVTERM+) | (seq EVTERM+)   ; inline composition
+       | (when BEXP+) | (do ACT+)        ; anonymous filter / one clause —
+                                         ; a guarded command is their seq
 EXPR ::= INT | NAME | (at NAME EXPR)     ; an array access, any index
        | (OP EXPR EXPR) | (~ EXPR)       ; OP ∈ + - * / % << >> & | ^
 BEXP ::= (CMP EXPR EXPR) | (in EXPR INT+)      ; CMP ∈ == != < <= > >=
        | (and BEXP*) | (or BEXP*) | (not BEXP) | (imply BEXP BEXP)
 QATOM ::= BEXP | (CMP NAME NAME)
 ACT  ::= (:= LHS EXPR) | (+= LHS EXPR) | (-= LHS EXPR)
+       | (havoc LHS K K)                 ; any value of [lo, hi): the ALT
+                                         ; of the range's assignments, one
+                                         ; theory term
 LHS  ::= NAME | (at NAME EXPR)
 ```
 
@@ -147,6 +159,20 @@ either side of the cut — a coordinate below the head splits the head
 same flat-name query resolves under any shape: spine, balanced, or a
 decomposed unit tree. Events take the same crossing forms through the case
 engine (`hsc/event.hh`); `select` keeps its own two-leaf path for queries.
+
+### The state layer
+
+A state is a bound result like any other. The **base word** is every leaf
+at its declared LO (0 unbounded), edited by pair `init`s. An **init
+event** seeds by applying an event term once to the base — specification
+level, not a step of the transition relation: `alt` gives several initial
+states, `havoc` ranges, and havoc-then-`when` declares an initial region
+by predicate. An init event whose image is empty is a malformed model,
+refused loudly. `word` binds a literal state; `reach … from R` closes
+from any bound result; `apply` is the one-step image. `get-witness`
+exhibits one state — the SMT `get-model` analogue, a nonempty result
+being sat — and `get-states` enumerates boundedly; both print **word
+literals**, so every exhibited state is re-runnable text.
 
 ### Queries
 

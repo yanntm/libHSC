@@ -142,6 +142,15 @@ core::code int_set_theory::apply_if(lia::bexpr g, lia::iexpr rhs,
                              rhs});
 }
 
+core::code int_set_theory::havoc_if(lia::bexpr g, std::int32_t lo,
+                                    std::int32_t hi) {
+  if (hi <= lo) return keep_if(lia::bfalse);  // no value to pick: the 0
+  const int_guard gk = g == lia::btrue ? int_guard::none : int_guard::symbolic;
+  return terms_.get(int_term{int_shape::primitive, int_action::havoc, gk, lo,
+                             gk == int_guard::none ? core::none : g,
+                             static_cast<core::code>(hi)});
+}
+
 core::code int_set_theory::filter(core::code set, lia::bexpr g) {
   if (set == core::none || g == lia::bfalse) return core::none;
   if (g == lia::btrue) return set;
@@ -247,6 +256,9 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
       }
       return of(out);
     }
+    case int_action::havoc:
+      // any value of the range, whatever passed the guard
+      return interval(t.arg, static_cast<std::int32_t>(t.b));
   }
   return core::none;
 }

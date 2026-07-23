@@ -48,6 +48,9 @@ enum class int_action : std::uint8_t {
   shift,   ///< x := x + arg
   xform,   ///< x := e(x): `b` is a `lia::iexpr` over the coordinate;
            ///< `arg` a modulo wrapping the result into [0, arg) (0: none)
+  havoc,   ///< x := any value of [arg, (int32)b): the ALT of the range's
+           ///< assignments as one term — the pushforward image is the
+           ///< whole interval
 };
 
 /// How a term is built.
@@ -139,6 +142,9 @@ class int_set_theory final : public core::support_algebra {
   /// outside int32 is loud. Folds to the assign/shift/keep forms when the
   /// expression is one of them.
   core::code apply_if(lia::bexpr g, lia::iexpr rhs, std::int32_t modulo = 0);
+  /// `x := any value of [lo, hi)`, guarded by \p g: the ALT of the range's
+  /// assignments, carried as one term. An empty range is the zero term.
+  core::code havoc_if(lia::bexpr g, std::int32_t lo, std::int32_t hi);
   ///@}
 
   /// The elements of \p set on which \p g evaluates to true (⊥ excludes).

@@ -11,6 +11,7 @@
 
 #include <charconv>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -55,14 +56,17 @@ struct leaf_decl {
 };
 
 /// One leaf's separable contribution to an event: a symbolic guard and at
-/// most one assignment, both `lia` expressions over the coordinate
-/// (position 0). `apply_if` folds the assignment to assign/shift where the
-/// expression is one.
+/// most one action — an assignment (a `lia` expression over the
+/// coordinate, position 0; `apply_if` folds it to assign/shift where the
+/// expression is one) or a havoc range.
 struct leaf_effect {
   bool has_guard = false;
   lia::bexpr guard = lia::btrue;  ///< conjunction of the leaf's atoms
   bool has_rhs = false;
   lia::iexpr rhs0 = 0;  ///< x := rhs0(x), when present
+  bool has_havoc = false;
+  std::int32_t lo = 0;  ///< havoc: x := any value of [lo, hi)
+  std::int32_t hi = 0;
 };
 
 /// A declared array: `(array NAME CELL…)` names its cell leaves in index
@@ -179,6 +183,10 @@ class translator final : public name_scope {
     else if (kw == "init") do_init(form);
     else if (kw == "event") do_event(form);
     else if (kw == "reach") do_reach(form);
+    else if (kw == "apply") do_apply(form);
+    else if (kw == "word") do_word(form);
+    else if (kw == "get-witness") do_get_witness(form);
+    else if (kw == "get-states") do_get_states(form);
     else if (kw == "states") do_states(form);
     else if (kw == "max-value") do_max_value(form);
     else if (kw == "select") do_select(form);
@@ -275,11 +283,12 @@ class translator final : public name_scope {
     for (const auto& [name, decl] : leaves_) {
       if (!decl.placed) fail(form, "leaf '" + name + "' is not in the shape");
     }
-    init_.assign(order_.size(), 0);
+    defaults_.assign(order_.size(), 0);
     for (std::size_t i = 0; i < order_.size(); ++i) {
       const leaf_decl& d = leaves_.at(order_[i]);
-      if (d.bounded) init_[i] = d.lo;  // bounded default: the low end; else 0
+      if (d.bounded) defaults_[i] = d.lo;  // bounded default: LO; else 0
     }
+    init_ = defaults_;
   }
 
   const leaf_decl& require_leaf(const datum& d) {
@@ -290,41 +299,70 @@ class translator final : public name_scope {
     return it->second;
   }
 
-  // --- the initial word ----------------------------------------------------
+  // --- the initial state ---------------------------------------------------
+  //
+  // The base word is every leaf at its declared LO (0 unbounded); the pair
+  // form edits it. The event form seeds by applying an event term ONCE to
+  // the base — not a step of the transition relation, applied before the
+  // closure. With alt / havoc / guards it declares initial *regions*.
 
   void do_init(const datum& form) {
     if (top_ == core::none) fail(form, "init before shape");
-    for (std::size_t i = 1; i < form.items().size(); ++i) {
-      const datum& pair = form.items()[i];
-      if (!pair.is_list() || pair.items().size() != 2) {
-        fail(pair, "init entry must be (leaf value)");
+    if (form.items().size() == 1) return;  // (init): the base word as is
+    const bool pairs =
+        form.items().size() > 1 && form.items()[1].is_list() &&
+        form.items()[1].items().size() == 2 &&
+        form.items()[1].items()[0].is_atom() &&
+        leaves_.contains(form.items()[1].items()[0].text());
+    if (pairs) {
+      if (seed_override_) fail(form, "pair init after an init event");
+      for (std::size_t i = 1; i < form.items().size(); ++i) {
+        const datum& pair = form.items()[i];
+        if (!pair.is_list() || pair.items().size() != 2) {
+          fail(pair, "init entry must be (leaf value)");
+        }
+        const leaf_decl& d = require_leaf(pair.items()[0]);
+        init_[d.index] = as_int(pair.items()[1]);
       }
-      const leaf_decl& d = require_leaf(pair.items()[0]);
-      init_[d.index] = as_int(pair.items()[1]);
+      return;
     }
-    init_set_ = true;
+    if (form.items().size() != 2) fail(form, "init takes pairs or one event term");
+    if (seed_override_) fail(form, "init event already set");
+    const code seeded =
+        mgr_.diagrams().apply_local(read_evterm(form.items()[1]), initial());
+    if (seeded == core::none) {
+      fail(form, "init event produced no state: the initial set is empty, "
+                 "the model is malformed");
+    }
+    seed_override_ = seeded;
   }
 
-  code build_point(core::shape_code sort, std::size_t& next) {
+  code build_point(core::shape_code sort, std::size_t& next,
+                   const std::vector<std::int32_t>& values) {
     core::diagram_engine& diagrams = mgr_.diagrams();
     switch (mgr_.shapes().kind(sort)) {
       case core::shape_kind::unit:
         return diagrams.one();
       case core::shape_kind::leaf:
-        return theory_->singleton(init_[next++]);
+        return theory_->singleton(values[next++]);
       case core::shape_kind::pair: {
-        const code head = build_point(mgr_.shapes().head(sort), next);
-        const code tail = build_point(mgr_.shapes().tail(sort), next);
+        const code head = build_point(mgr_.shapes().head(sort), next, values);
+        const code tail = build_point(mgr_.shapes().tail(sort), next, values);
         return diagrams.rectangle(sort, head, tail);
       }
     }
     return core::none;
   }
 
+  /// The base word: `init_` (declared LO defaults, edited by pair inits).
   code initial() {
     std::size_t next = 0;
-    return build_point(top_, next);
+    return build_point(top_, next, init_);
   }
+
+  /// What reach and the queries start from: the init event's image when
+  /// one was declared, the base word otherwise.
+  code seed() { return seed_override_ ? *seed_override_ : initial(); }
 
   // --- events: the separable Presburger fragment ---------------------------
 
@@ -355,11 +393,15 @@ class translator final : public name_scope {
     fail(atom, "unknown comparison '" + op + "'");
   }
 
-  /// One parsed assignment: target and value as expressions over frontier
-  /// positions. The target is a variable or an array access.
+  /// One parsed action: an assignment (target and value as expressions
+  /// over frontier positions; the target a variable or an array access) or
+  /// a havoc range on a target.
   struct parsed_assign {
     lia::iexpr lhs;
-    lia::iexpr rhs;
+    lia::iexpr rhs = 0;
+    bool is_havoc = false;
+    std::int32_t lo = 0;
+    std::int32_t hi = 0;
   };
 
   [[nodiscard]] bool is_node_kind(lia::iexpr e, lia::ikind k) const {
@@ -367,10 +409,12 @@ class translator final : public name_scope {
   }
 
   /// Parse one action `(op LHS EXPR)`; `+=`/`-=` desugar to `:=` with the
-  /// target read on the right.
+  /// target read on the right; `(havoc LHS LO HI)` is any value of the
+  /// range.
   parsed_assign parse_action(const datum& act) {
-    if (!act.is_list() || act.items().size() != 3) {
-      fail(act, "an action is (:= lhs expr), (+= lhs expr) or (-= lhs expr)");
+    if (!act.is_list() || act.items().size() < 3) {
+      fail(act, "an action is (:= lhs expr), (+= lhs expr), (-= lhs expr) "
+                "or (havoc lhs lo hi)");
     }
     const std::string& op = act.head();
     lia::expr_factory& ex = theory_->exprs();
@@ -379,6 +423,15 @@ class translator final : public name_scope {
         !is_node_kind(lhs, lia::ikind::array) && lhs != lia::iundef) {
       fail(act.items()[1], "assignment target is not a leaf or array cell");
     }
+    if (op == "havoc") {
+      if (act.items().size() != 4) fail(act, "havoc takes lhs, lo and hi");
+      parsed_assign a{lhs};
+      a.is_havoc = true;
+      a.lo = as_int(act.items()[2]);
+      a.hi = as_int(act.items()[3]);
+      return a;
+    }
+    if (act.items().size() != 3) fail(act, "an action takes lhs and expr");
     lia::iexpr rhs = reader_->read_int(act.items()[2]);
     if (op == "+=") rhs = ex.add(lhs, rhs);
     else if (op == "-=") rhs = ex.sub(lhs, rhs);
@@ -391,8 +444,9 @@ class translator final : public name_scope {
     std::vector<code> by_leaf(order_.size(), core::op_table::id);
     for (const auto& [pos, e] : eff) {
       const lia::bexpr g = e.has_guard ? e.guard : lia::btrue;
-      by_leaf[pos] =
-          e.has_rhs ? theory_->apply_if(g, e.rhs0) : theory_->keep_if(g);
+      by_leaf[pos] = e.has_havoc ? theory_->havoc_if(g, e.lo, e.hi)
+                     : e.has_rhs ? theory_->apply_if(g, e.rhs0)
+                                 : theory_->keep_if(g);
     }
     return core::product(mgr_.operations(), mgr_.shapes(), top_, by_leaf);
   }
@@ -400,18 +454,116 @@ class translator final : public name_scope {
   /// A dead event still names a term — the zero term, which never fires:
   /// absent from an alt, fatal to a seq.
   void dead_event(const datum& form, const std::string& name) {
-    define_event(form, name, cases_->make_event(top_, lia::bfalse, {}));
+    define_event(form, name, zero_term());
+  }
+
+  [[nodiscard]] code zero_term() {
+    return cases_->make_event(top_, lia::bfalse, {});
+  }
+
+  /// One do clause, compiled. Separable — every action writes one position
+  /// that at most itself is read — is a product of independent leaf terms;
+  /// otherwise the whole clause is one case bracket, its assignments
+  /// simultaneous and its reads pre-clause. `dead` on a statically ⊥
+  /// access.
+  struct compiled_clause {
+    std::map<std::size_t, leaf_effect> sep;
+    std::vector<case_engine::assign> cross;  ///< empty when separable
+    bool dead = false;
+  };
+
+  compiled_clause compile_clause(const datum& at,
+                                 const std::vector<parsed_assign>& acts) {
+    lia::expr_factory& ex = theory_->exprs();
+    compiled_clause cc;
+    bool crossing = false;
+    for (const parsed_assign& a : acts) {
+      if (a.lhs == lia::iundef || a.rhs == lia::iundef) {
+        cc.dead = true;
+        return cc;
+      }
+      if (!is_node_kind(a.lhs, lia::ikind::var)) {
+        if (a.is_havoc) fail(at, "havoc needs a resolved single-leaf target");
+        crossing = true;
+        continue;
+      }
+      if (a.is_havoc) continue;  // single leaf, no reads: always separable
+      const auto p = static_cast<std::size_t>(ex.node(a.lhs).payload);
+      const auto supp = ex.support(a.rhs);
+      if (!ex.array_positions(a.rhs).empty() ||
+          !(supp.empty() || (supp.size() == 1 && supp[0] == p))) {
+        crossing = true;
+      }
+    }
+    if (crossing) {
+      for (const parsed_assign& a : acts) {
+        if (a.is_havoc) {
+          fail(at, "havoc cannot share a clause with a crossing action");
+        }
+        cc.cross.push_back({a.lhs, a.rhs});
+      }
+      return cc;
+    }
+    for (const parsed_assign& a : acts) {
+      const auto p = static_cast<std::size_t>(ex.node(a.lhs).payload);
+      leaf_effect& s = cc.sep[p];
+      if (s.has_rhs || s.has_havoc) {
+        fail(at, "a position is assigned twice in one do clause");
+      }
+      if (a.is_havoc) {
+        s.has_havoc = true;
+        s.lo = a.lo;
+        s.hi = a.hi;
+      } else {
+        s.has_rhs = true;
+        s.rhs0 = ex.shift_positions(a.rhs, -static_cast<std::int32_t>(p));
+      }
+    }
+    return cc;
+  }
+
+  /// The term of one compiled clause alone (an anonymous `(do …)`).
+  code clause_term(const compiled_clause& cc) {
+    if (cc.dead) return zero_term();
+    if (!cc.cross.empty()) {
+      return cases_->make_event(top_, lia::btrue, cc.cross);
+    }
+    return separable_product(cc.sep);
+  }
+
+  /// Read when-atoms: separable single-position atoms fuse per leaf,
+  /// anything else is a crossing filter (a §7 case bracket, applied before
+  /// any action so every guard reads the pre-state). False when an atom
+  /// folds dead.
+  bool read_when(const datum& clause, std::map<std::size_t, leaf_effect>& eff,
+                 std::vector<lia::bexpr>& filters) {
+    lia::expr_factory& ex = theory_->exprs();
+    for (std::size_t a = 1; a < clause.items().size(); ++a) {
+      const lia::bexpr b = reader_->read_bool(clause.items()[a]);
+      if (b == lia::bfalse || b == lia::bundef) return false;
+      if (b == lia::btrue) continue;
+      const auto supp = ex.support_bool(b);
+      if (ex.array_positions_bool(b).empty() && supp.size() == 1) {
+        const std::size_t p = supp[0];
+        const lia::bexpr b0 =
+            ex.shift_positions_bool(b, -static_cast<std::int32_t>(p));
+        leaf_effect& e = eff[p];
+        e.guard = e.has_guard ? ex.conj(e.guard, b0) : b0;
+        e.has_guard = true;
+        if (e.guard == lia::bfalse) return false;  // contradictory atoms
+      } else {
+        filters.push_back(b);
+      }
+    }
+    return true;
   }
 
   void do_event(const datum& form) {
     if (top_ == core::none) fail(form, "event before shape");
     const std::string& name = sym(arg(form, 1, "event name"));
-    lia::expr_factory& ex = theory_->exprs();
 
-    // Read the guard atoms — separable single-position atoms fuse per
-    // leaf, anything else is a crossing filter (a §7 case bracket, applied
-    // before any action so every guard reads the pre-state) — and the do
-    // clauses, kept in order as atomic sequential steps.
+    // Guard atoms and do clauses, the clauses kept in order as atomic
+    // sequential steps.
     std::map<std::size_t, leaf_effect> eff;
     std::vector<lia::bexpr> filters;
     std::vector<std::vector<parsed_assign>> clauses;
@@ -419,22 +571,7 @@ class translator final : public name_scope {
       const datum& clause = form.items()[i];
       const std::string& kw = clause.head();
       if (kw == "when") {
-        for (std::size_t a = 1; a < clause.items().size(); ++a) {
-          const lia::bexpr b = reader_->read_bool(clause.items()[a]);
-          if (b == lia::bfalse || b == lia::bundef) { dead_event(form, name); return; }
-          if (b == lia::btrue) continue;
-          const auto supp = ex.support_bool(b);
-          if (ex.array_positions_bool(b).empty() && supp.size() == 1) {
-            const std::size_t p = supp[0];
-            const lia::bexpr b0 =
-                ex.shift_positions_bool(b, -static_cast<std::int32_t>(p));
-            leaf_effect& e = eff[p];
-            e.guard = e.has_guard ? ex.conj(e.guard, b0) : b0;
-            e.has_guard = true;
-          } else {
-            filters.push_back(b);
-          }
-        }
+        if (!read_when(clause, eff, filters)) { dead_event(form, name); return; }
       } else if (kw == "do") {
         std::vector<parsed_assign> acts;
         for (std::size_t a = 1; a < clause.items().size(); ++a) {
@@ -445,50 +582,13 @@ class translator final : public name_scope {
         fail(clause, "an event clause is (when …) or (do …)");
       }
     }
-    for (const auto& [pos, e] : eff) {
-      if (e.guard == lia::bfalse) { dead_event(form, name); return; }
-    }
 
-    // Compile each do clause. It is separable when every assignment writes
-    // one position that at most itself is read; then it is a product of
-    // independent leaf terms. Otherwise the whole clause becomes one case
-    // bracket — its assignments stay simultaneous, reads pre-clause.
-    struct compiled_clause {
-      std::map<std::size_t, leaf_effect> sep;
-      std::vector<case_engine::assign> cross;  ///< empty when separable
-    };
+    // Compile each do clause (compile_clause: separable product of leaf
+    // terms, or the whole clause as one case bracket).
     std::vector<compiled_clause> steps;
     for (const auto& acts : clauses) {
-      compiled_clause cc;
-      bool crossing = false;
-      for (const parsed_assign& a : acts) {
-        if (a.lhs == lia::iundef || a.rhs == lia::iundef) { dead_event(form, name); return; }
-        if (!is_node_kind(a.lhs, lia::ikind::var)) {
-          crossing = true;
-          continue;
-        }
-        const auto p = static_cast<std::size_t>(ex.node(a.lhs).payload);
-        const auto supp = ex.support(a.rhs);
-        if (!ex.array_positions(a.rhs).empty() ||
-            !(supp.empty() || (supp.size() == 1 && supp[0] == p))) {
-          crossing = true;
-        }
-      }
-      if (crossing) {
-        for (const parsed_assign& a : acts) {
-          cc.cross.push_back({a.lhs, a.rhs});
-        }
-      } else {
-        for (const parsed_assign& a : acts) {
-          const auto p = static_cast<std::size_t>(ex.node(a.lhs).payload);
-          leaf_effect& s = cc.sep[p];
-          if (s.has_rhs) {
-            fail(form, "a position is assigned twice in one do clause");
-          }
-          s.has_rhs = true;
-          s.rhs0 = ex.shift_positions(a.rhs, -static_cast<std::int32_t>(p));
-        }
-      }
+      compiled_clause cc = compile_clause(form, acts);
+      if (cc.dead) { dead_event(form, name); return; }
       steps.push_back(std::move(cc));
     }
 
@@ -534,7 +634,9 @@ class translator final : public name_scope {
     }
   }
 
-  /// An event term: a declared name, or an inline (alt …) / (seq …).
+  /// An event term: a declared name, an inline (alt …) / (seq …), or an
+  /// anonymous atom — (when BEXP+) a pure filter, (do ACT+) one clause.
+  /// A guarded command is their seq.
   code read_evterm(const datum& d) {
     if (d.is_atom()) {
       const auto it = named_events_.find(d.text());
@@ -545,6 +647,26 @@ class translator final : public name_scope {
     }
     if (!d.is_list() || d.items().empty()) fail(d, "not an event term");
     const std::string& kw = d.head();
+    if (kw == "when") {
+      std::map<std::size_t, leaf_effect> eff;
+      std::vector<lia::bexpr> filters;
+      if (!read_when(d, eff, filters)) return zero_term();
+      code ev = core::op_table::id;
+      for (const lia::bexpr b : filters) {
+        ev = mgr_.operations().compose(cases_->make_event(top_, b, {}), ev);
+      }
+      if (!eff.empty()) {
+        ev = mgr_.operations().compose(separable_product(eff), ev);
+      }
+      return ev;
+    }
+    if (kw == "do") {
+      std::vector<parsed_assign> acts;
+      for (std::size_t a = 1; a < d.items().size(); ++a) {
+        acts.push_back(parse_action(d.items()[a]));
+      }
+      return clause_term(compile_clause(d, acts));
+    }
     if (d.items().size() < 2) fail(d, "'" + kw + "' needs event terms");
     if (kw == "alt") {
       std::vector<code> ops;
@@ -603,11 +725,12 @@ class translator final : public name_scope {
   }
 
   /// The least fixpoint of \p system (default: the ALT of every declared
-  /// event) from the initial word. `naive` iterates, `saturate` applies the
-  /// static closure over the flattened summands; both denote the same
-  /// diagram. Propagates `hsc::overflow_error` if a leaf value leaves its
-  /// representable range.
-  code run_reach(bool naive, std::optional<code> system = std::nullopt) {
+  /// event) from \p from (default: the seed). `naive` iterates, `saturate`
+  /// applies the static closure over the flattened summands; both denote
+  /// the same diagram. Propagates `hsc::overflow_error` if a leaf value
+  /// leaves its representable range.
+  code run_reach(bool naive, std::optional<code> system = std::nullopt,
+                 std::optional<code> from = std::nullopt) {
     std::vector<code> summands;
     if (system) {
       collect_summands(*system, summands);
@@ -615,7 +738,7 @@ class translator final : public name_scope {
       summands = events_;
     }
     core::diagram_engine& diagrams = mgr_.diagrams();
-    code reachable = initial();
+    code reachable = from ? *from : seed();
     util::stopwatch sw;
     if (naive) {
       const code all = mgr_.operations().sum(summands);
@@ -638,14 +761,140 @@ class translator final : public name_scope {
     const std::string& name = sym(arg(form, 1, "result name"));
     bool naive = false;
     std::optional<code> system;
+    std::optional<code> from;
     for (std::size_t i = 2; i < form.items().size(); ++i) {
       const datum& d = form.items()[i];
       if (d.is_atom() && d.text() == "naive") naive = true;
       else if (d.is_atom() && d.text() == "saturate") continue;
-      else if (!system) system = read_evterm(d);
+      else if (d.is_atom() && d.text() == "from") {
+        if (from || i + 1 >= form.items().size()) {
+          fail(d, "'from' takes one bound result");
+        }
+        from = named(form.items()[++i]);
+      } else if (!system) system = read_evterm(d);
       else fail(d, "reach takes one event term at most");
     }
-    results_[name] = run_reach(naive, system);
+    results_[name] = run_reach(naive, system, from);
+  }
+
+  /// `(apply NAME EVTERM SOURCE)`: the one-step image of a bound result —
+  /// the event applied once, no closure.
+  void do_apply(const datum& form) {
+    if (top_ == core::none) fail(form, "apply before shape");
+    const std::string& name = sym(arg(form, 1, "result name"));
+    const code term = read_evterm(arg(form, 2, "event term"));
+    const code src = named(arg(form, 3, "source result"));
+    results_[name] = mgr_.diagrams().apply_local(term, src);
+  }
+
+  /// `(word NAME (LEAF VAL)*)`: bind one state as a result — unlisted
+  /// leaves at their declared LO (0 unbounded). The syntax `get-witness`
+  /// prints, so exhibited states round-trip.
+  void do_word(const datum& form) {
+    if (top_ == core::none) fail(form, "word before shape");
+    const std::string& name = sym(arg(form, 1, "result name"));
+    std::vector<std::int32_t> values = defaults_;
+    for (std::size_t i = 2; i < form.items().size(); ++i) {
+      const datum& pair = form.items()[i];
+      if (!pair.is_list() || pair.items().size() != 2) {
+        fail(pair, "word entry must be (leaf value)");
+      }
+      const leaf_decl& d = require_leaf(pair.items()[0]);
+      values[d.index] = as_int(pair.items()[1]);
+    }
+    std::size_t next = 0;
+    results_[name] = build_point(top_, next, values);
+  }
+
+  // --- exhibiting states ---------------------------------------------------
+
+  /// Walk one word of \p c (first arc, first element throughout).
+  bool first_word(core::shape_code sort, code c,
+                  std::vector<std::int32_t>& out) {
+    if (c == core::none) return false;
+    switch (mgr_.shapes().kind(sort)) {
+      case core::shape_kind::unit:
+        return true;
+      case core::shape_kind::leaf:
+        out.push_back(theory_->elements(c).front());
+        return true;
+      case core::shape_kind::pair: {
+        const core::arc& a = mgr_.diagrams().arcs(c).front();
+        return first_word(mgr_.shapes().head(sort), a.prime, out) &&
+               first_word(mgr_.shapes().tail(sort), a.sub, out);
+      }
+    }
+    return false;
+  }
+
+  /// Print \p values as a word literal: `((x 1) (y 0) …)` — valid as the
+  /// body of `(word …)` or a pair `(init …)`, so states round-trip.
+  void print_word(const std::vector<std::int32_t>& values) {
+    out_ << '(';
+    for (std::size_t i = 0; i < values.size(); ++i) {
+      if (i != 0) out_ << ' ';
+      out_ << '(' << order_[i] << ' ' << values[i] << ')';
+    }
+    out_ << ')';
+  }
+
+  /// `(get-witness NAME)`: one state of a bound result, in word syntax —
+  /// the SMT get-model analogue (nonempty is sat, this is its model).
+  void do_get_witness(const datum& form) {
+    const code c = named(arg(form, 1, "result name"));
+    out_ << sym(form.items()[1]) << " witness ";
+    std::vector<std::int32_t> values;
+    if (first_word(top_, c, values)) print_word(values);
+    else out_ << "none";  // unsat: no state to exhibit
+    out_ << '\n';
+  }
+
+  /// DFS up to \p limit complete words of \p c, emitting each.
+  void enum_words(core::shape_code sort, code c,
+                  std::vector<std::int32_t>& acc, std::size_t& left,
+                  const std::function<void()>& k) {
+    if (c == core::none || left == 0) return;
+    switch (mgr_.shapes().kind(sort)) {
+      case core::shape_kind::unit:
+        k();
+        return;
+      case core::shape_kind::leaf:
+        for (const std::int32_t v : theory_->elements(c)) {
+          if (left == 0) return;
+          acc.push_back(v);
+          k();
+          acc.pop_back();
+        }
+        return;
+      case core::shape_kind::pair:
+        for (const core::arc& a : mgr_.diagrams().arcs(c)) {
+          if (left == 0) return;
+          enum_words(mgr_.shapes().head(sort), a.prime, acc, left, [&] {
+            enum_words(mgr_.shapes().tail(sort), a.sub, acc, left, k);
+          });
+        }
+        return;
+    }
+  }
+
+  /// `(get-states NAME [K])`: up to K states (default 10), one word
+  /// literal per line, after a header with the exact cardinal.
+  void do_get_states(const datum& form) {
+    const code c = named(arg(form, 1, "result name"));
+    std::size_t limit = 10;
+    if (form.items().size() > 2) {
+      limit = static_cast<std::size_t>(as_int(form.items()[2]));
+    }
+    out_ << sym(form.items()[1]) << ' ' << std::fixed << std::setprecision(0)
+         << mgr_.diagrams().cardinal(c) << " states, showing up to " << limit
+         << '\n';
+    std::vector<std::int32_t> acc;
+    std::size_t left = limit;
+    enum_words(top_, c, acc, left, [&] {
+      print_word(acc);
+      out_ << '\n';
+      --left;
+    });
   }
 
   /// The largest value any leaf holds across the diagram \p c, by a
@@ -796,8 +1045,9 @@ class translator final : public name_scope {
   std::unordered_map<std::string, leaf_decl> leaves_;
   std::vector<std::string> order_;  ///< leaf names in frontier order
   core::shape_code top_ = core::none;
-  std::vector<std::int32_t> init_;
-  bool init_set_ = false;
+  std::vector<std::int32_t> defaults_;  ///< every leaf at LO (0 unbounded)
+  std::vector<std::int32_t> init_;      ///< the base word: defaults + pairs
+  std::optional<code> seed_override_;   ///< the init event's image, once set
 
   /// Arrays resolve lazily (after the shape) and cache their placement.
   mutable std::unordered_map<std::string, array_decl> arrays_;
