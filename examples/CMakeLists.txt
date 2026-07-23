@@ -32,4 +32,6 @@ if(HSC_BUILD_TESTS)
            COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4.hsc)
   add_test(NAME surface_ring4b
            COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4b.hsc)
+  add_test(NAME surface_unbounded
+           COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/unbounded.hsc)
 endif()
