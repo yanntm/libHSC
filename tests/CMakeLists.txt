@@ -13,6 +13,7 @@ add_executable(hsc_tests
   test_timing.cc
   test_operations.cc
   test_split_equiv.cc
+  test_lia.cc
   test_query.cc
 )
 target_link_libraries(hsc_tests PRIVATE hsc::hsc doctest::doctest)

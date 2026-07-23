@@ -9,5 +9,7 @@ target_sources(hsc PRIVATE
   operation.cc
   surface_parser.cc
   surface_translate.cc
+  lia_bool.cc
+  lia_int.cc
   query.cc
 )
