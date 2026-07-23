@@ -65,7 +65,7 @@ TEST_CASE("the normal form: fold, flatten, sort, collapse") {
   CHECK(f.pow(f.constant(2), f.constant(10)) == f.constant(1024));
 }
 
-TEST_CASE("partial operations land on ⊥ and ⊥ poisons") {
+TEST_CASE("partial operations land on ⊥; connectives are strong Kleene") {
   expr_factory f;
   const iexpr x = f.variable(0);
   CHECK(f.div(x, f.constant(0)) != iundef);  // not ground: stays symbolic
@@ -76,8 +76,22 @@ TEST_CASE("partial operations land on ⊥ and ⊥ poisons") {
   CHECK(f.add(x, iundef) == iundef);
   CHECK(f.mul(iundef, x) == iundef);
   CHECK(f.compare(bkind::lt, iundef, x) == bundef);
-  CHECK(f.conj(f.compare(bkind::lt, x, f.constant(3)), bundef) == bundef);
-  CHECK(f.conj(bfalse, bundef) == bundef);  // poison beats absorption
+  // a decided absorbing constant wins even beside ⊥ …
+  CHECK(f.conj(bfalse, bundef) == bfalse);
+  CHECK(f.disj(btrue, bundef) == btrue);
+  // … a bare ⊥ (nothing else) is ⊥ …
+  CHECK(f.conj(btrue, bundef) == bundef);
+  CHECK(f.disj(bfalse, bundef) == bundef);
+  // … and beside an undecided operand ⊥ stays in the node: the state
+  // decides — x<3 false absorbs it, x<3 true reaches it (eval_bool).
+  const bexpr lt = f.compare(bkind::lt, x, f.constant(3));
+  const bexpr mixed = f.conj(lt, bundef);
+  CHECK(mixed != bundef);
+  CHECK(mixed != lt);
+  const std::int32_t big[] = {7};
+  CHECK(f.eval_bool(mixed, big) == expr_factory::truth::no);
+  const std::int32_t small[] = {1};
+  CHECK(f.eval_bool(mixed, small) == expr_factory::truth::undef);
 }
 
 TEST_CASE("overflow in a fold is loud") {

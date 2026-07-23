@@ -37,9 +37,17 @@ named world ends at the surface.
 Factories return normalized codes; there is no separate `eval`. The rules,
 applied bottom-up at each construction:
 
-* **⊥ propagates**: any operand ⊥ makes the result ⊥ (`NOT ⊥` is ⊥, an
-  `AND`/`OR` with a ⊥ operand is ⊥ — GAL's semantics: undefined is not
-  absorbed, it poisons).
+* **⊥ propagates through operators, strong Kleene through connectives**:
+  any ⊥ operand of an arithmetic operator or comparison makes it ⊥, and
+  `NOT ⊥` is ⊥; but in `AND`/`OR` a decided absorbing constant wins even
+  beside ⊥ (`false ∧ ⊥ = false`, `true ∨ ⊥ = true`), and only an ⊥ that is
+  actually reached poisons. Kleene is commutative and De Morgan-sound —
+  what the sorted n-ary form and comparison-flip negation require — and at
+  a guard it is observationally the lazy `&&`/`||` models are written
+  with, since ⊥ and `false` both refuse. [Deviation from the GAL engine's
+  operative rule, which *drops* an ⊥ disjunct (`false ∨ ⊥ = false`,
+  breaking De Morgan); the two differ only where a boolean containing a
+  dead ⊥ coerces to an integer, where we abort and GAL reads 0.]
 * **Constants fold**: every operator on all-constant operands becomes a
   constant (overflow-checked, loud); comparisons become `true`/`false`.
   `DIV`/`MOD` by zero, and `POW` with negative exponent, fold to ⊥.

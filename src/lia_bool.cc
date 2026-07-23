@@ -77,17 +77,22 @@ bexpr expr_factory::nary_bool(bkind k, std::span<const bexpr> xs) {
   std::vector<bexpr> flat;
   flat.reserve(xs.size());
 
-  // ⊥ poisons before anything absorbs; same-kind children flatten in.
-  for (const bexpr x : xs) {
-    if (x == bundef) return bundef;
-  }
+  // Strong Kleene: a decided absorbing constant wins even beside ⊥
+  // (false && ⊥ is false, true || ⊥ is true). Commutative and De
+  // Morgan-sound, which the normal form requires; at a guard,
+  // observationally the lazy &&/|| the models were written for, since ⊥
+  // and false both refuse (abort is the algebra's 0). An ⊥ operand beside
+  // *undecided* operands is kept in the node — the state decides: a false
+  // conjunct still absorbs it, only a reached ⊥ poisons (see eval_bool).
   for (const bexpr x : xs) {
     if (x == absorbing) return absorbing;
+  }
+  for (const bexpr x : xs) {
     if (x == neutral) continue;
     if (!is_imm(x) && bool_kind(x) == k) {
       for (const bexpr op : bool_node(x).operands()) flat.push_back(op);
     } else {
-      flat.push_back(x);
+      flat.push_back(x);  // includes a bare ⊥: kept, adjudicated per state
     }
   }
   if (flat.empty()) return neutral;
@@ -187,22 +192,26 @@ expr_factory::truth expr_factory::eval_bool(
       case truth::undef: return truth::undef;
     }
   }
-  // conj / disj: ⊥ poisons, so every operand is read (no short circuit).
+  // conj / disj, strong Kleene (order-free lazy &&/||): a decided
+  // absorbing value wins even beside ⊥; an ⊥ reached in an undecided node
+  // poisons it.
   const bool is_and = k == bkind::conj;
-  bool decided = false;
+  bool absorbed = false;
+  bool undef = false;
   for (const bexpr op : n.operands()) {
     switch (eval_bool(op, env)) {
-      case truth::undef: return truth::undef;
+      case truth::undef: undef = true; break;
       case truth::yes:
-        if (!is_and) decided = true;
+        if (!is_and) absorbed = true;
         break;
       case truth::no:
-        if (is_and) decided = true;
+        if (is_and) absorbed = true;
         break;
     }
   }
-  if (is_and) return decided ? truth::no : truth::yes;
-  return decided ? truth::yes : truth::no;
+  if (absorbed) return is_and ? truth::no : truth::yes;
+  if (undef) return truth::undef;
+  return is_and ? truth::yes : truth::no;
 }
 
 // --- reading ---------------------------------------------------------------
