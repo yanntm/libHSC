@@ -108,8 +108,10 @@ Instances whose guard folds to false are zero terms and vanish from the sum
 (existing rule) — degenerate instances (`i == j`, `a == b`) cost nothing.
 
 **Empty ranges**: splice contexts splice nothing; wrap contexts emit the
-identity filter `(when)` for `forall` and the zero filter `(when (!= 0 0))`
-for `exists`. An event whose body expands to nothing is an error.
+identity filter `(when)` for `forall` and `(abort)` — the zero term, added
+to the base grammar alongside this work — for `exists`. An event whose body
+expands to nothing is an error; an event family over an empty range emits
+no events (the zero term in the sum, honestly).
 
 ## 3. What is deliberately deferred
 
@@ -123,6 +125,23 @@ for `exists`. An event whose body expands to nothing is an error.
   *obstruct* it (keep the template → instance mapping reconstructible).
 - **CLI parameter override** (`-DN=12`): trivial, add on demand.
 - **Fusing provably-disjoint seq instances into one product**: measure first.
+- **Multi-dimensional arrays** — proposed next increment, pure expander
+  sugar: `(array m N M [LO HI])` declares cells `m_i_j`; `(at m I J)` with
+  all indexes grounded folds to the cell, with any index open lowers to the
+  flat 1-D access `(at m (+ (* I M) J))` — row-major linearization, exactly
+  C's. No calculus or translator change; the *layout* of the cells stays
+  the shape's business (rows as blocks, etc.), keeping declaration and
+  representation orthogonal.
+- **`ite` as a statement / general EVTERM event bodies**: GAL's
+  `for/if/abort` uses are subsumed by quantified guards; a genuine
+  branching update is expressible today as
+  `(alt (seq (when c) S₁) (seq (when (not c)) S₂))` at term level. If a
+  model wants that *inside* an auto-summed event, the clean home is
+  generalizing event bodies to EVTERM+ — a compiler change, staged.
+- **`select` with quantified disjunctions**: a select atom is pinned to one
+  leaf or relates two; an `(or …)` across several leaves is refused. The
+  workaround is canonical (a `(when …)` filter + `apply`); routing rich
+  BEXPs through the case engine in `select` itself is a possible unifier.
 
 ## 4. Milestones
 
