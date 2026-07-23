@@ -1,6 +1,6 @@
 /// \file test_query.cc
-/// \brief `x < y` across a cut (§7) against a brute-force oracle. The first
-/// cross-level criterion resolving on the real engine.
+/// \brief `x ⋈ y` across a cut (§7) against a brute-force oracle, for every
+/// comparator. The first cross-level criterion resolving on the real engine.
 
 #include <doctest/doctest.h>
 
@@ -38,12 +38,13 @@ built cube(core::manager& mgr, leaves::int_set_theory& theory,
   return {sort, val};
 }
 
-/// Brute-force count of tuples over `sizes` with tuple[xi] < tuple[yi].
-double oracle(const std::vector<int>& sizes, std::size_t xi, std::size_t yi) {
+/// Brute-force count of tuples over `sizes` with tuple[xi] op tuple[yi].
+double oracle(const std::vector<int>& sizes, std::size_t xi, cmp op,
+              std::size_t yi) {
   double n = 0;
   std::vector<int> t(sizes.size(), 0);
   for (;;) {
-    if (t[xi] < t[yi]) n += 1;
+    if (eval(op, t[xi], t[yi])) n += 1;
     std::size_t k = 0;
     for (; k < sizes.size(); ++k) {
       if (++t[k] < sizes[k]) break;
@@ -54,9 +55,11 @@ double oracle(const std::vector<int>& sizes, std::size_t xi, std::size_t yi) {
   return n;
 }
 
+constexpr cmp ALL[] = {cmp::lt, cmp::le, cmp::eq, cmp::ne, cmp::ge, cmp::gt};
+
 }  // namespace
 
-TEST_CASE("x < y at the top cut of a pair") {
+TEST_CASE("every comparator at the top cut of a pair") {
   core::manager mgr;
   auto [idx, theory] = mgr.import<leaves::int_set_theory>();
   const core::shape_code leaf = mgr.shapes().leaf(idx);
@@ -64,32 +67,52 @@ TEST_CASE("x < y at the top cut of a pair") {
   const std::vector<int> sizes{3, 3};  // x in [0,3), y in [0,3)
   auto [sort, c] = cube(mgr, theory, leaf, sizes);
 
-  const core::code sel = select_less_than(mgr, theory, sort, c, 0, 1);
-  CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, 0, 1));  // {(0,1),(0,2),(1,2)} = 3
+  for (const cmp op : ALL) {
+    const core::code sel = select_compare(mgr, theory, sort, c, 0, op, 1);
+    CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, 0, op, 1));
+  }
 }
 
-TEST_CASE("x < y with y a level deeper in the tail") {
+TEST_CASE("every comparator with y a level deeper in the tail") {
   core::manager mgr;
   auto [idx, theory] = mgr.import<leaves::int_set_theory>();
   const core::shape_code leaf = mgr.shapes().leaf(idx);
 
-  // frontier: 0=x, 1=m (spectator), 2=y.  criterion x < y.
+  // frontier: 0=x, 1=m (spectator), 2=y.  criterion x op y.
   const std::vector<int> sizes{3, 2, 3};
   auto [sort, c] = cube(mgr, theory, leaf, sizes);
 
-  const core::code sel = select_less_than(mgr, theory, sort, c, 0, 2);
-  CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, 0, 2));  // 3 * 2 = 6
+  for (const cmp op : ALL) {
+    const core::code sel = select_compare(mgr, theory, sort, c, 0, op, 2);
+    CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, 0, op, 2));
+  }
 }
 
-TEST_CASE("x < y with x the later coordinate (head holds y)") {
+TEST_CASE("every comparator with x the later coordinate (head holds y)") {
   core::manager mgr;
   auto [idx, theory] = mgr.import<leaves::int_set_theory>();
   const core::shape_code leaf = mgr.shapes().leaf(idx);
 
-  // frontier: 0=y, 1=x.  criterion value(1) < value(0), i.e. x < y with x later.
+  // frontier: 0=y, 1=x.  criterion value(1) op value(0), i.e. x later.
   const std::vector<int> sizes{4, 4};
   auto [sort, c] = cube(mgr, theory, leaf, sizes);
 
-  const core::code sel = select_less_than(mgr, theory, sort, c, 1, 0);
-  CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, 1, 0));
+  for (const cmp op : ALL) {
+    const core::code sel = select_compare(mgr, theory, sort, c, 1, op, 0);
+    CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, 1, op, 0));
+  }
+}
+
+TEST_CASE("x op x resolves on reflexivity") {
+  core::manager mgr;
+  auto [idx, theory] = mgr.import<leaves::int_set_theory>();
+  const core::shape_code leaf = mgr.shapes().leaf(idx);
+
+  const std::vector<int> sizes{3, 2};
+  auto [sort, c] = cube(mgr, theory, leaf, sizes);
+
+  for (const cmp op : ALL) {
+    const core::code sel = select_compare(mgr, theory, sort, c, 0, op, 0);
+    CHECK(sel == (eval(op, 0, 0) ? c : core::none));
+  }
 }
