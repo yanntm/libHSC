@@ -689,27 +689,91 @@ class expander {
     return d;
   }
 
-  /// `(blocked [spine] G BINDER CELL+)`: the grain sugar over a component
-  /// family — the libITS scalar-set grouping as a shape constructor. The
-  /// binder's instances are cut into consecutive blocks of G; each block
-  /// is a `balanced` (default) or `spine` sort over its instances' cells,
-  /// and the blocks compose under the same style. The last block is short
-  /// when G does not divide the range — two block sorts instead of one,
-  /// both shared. Lowers to plain spine/balanced: the translator is
-  /// untouched and `--expand` shows the grouping.
+  /// A right-comb of pairs over \p items — the n-ary composite level of an
+  /// SDD, written in the binary calculus: (pair a (pair b c)). One item is
+  /// itself.
+  static datum comb(std::vector<datum>&& items, int line) {
+    datum acc = std::move(items.back());
+    for (std::size_t i = items.size() - 1; i-- > 0;) {
+      acc = list_of("pair", {std::move(items[i]), std::move(acc)}, line);
+    }
+    return acc;
+  }
+
+  /// The DEPTHREC grouping: split \p groups into \p grain near-even
+  /// consecutive chunks (larger chunks first), recurse, comb the chunk
+  /// sorts — every level shows `grain` sub-components until a block of at
+  /// most `grain` instances lies flat.
+  datum rec_tree(std::vector<datum>&& groups, long long grain, int line) {
+    const long long n = static_cast<long long>(groups.size());
+    if (n <= grain) return comb(std::move(groups), line);
+    const long long base = n / grain;
+    const long long rem = n % grain;
+    std::vector<datum> chunks;
+    chunks.reserve(static_cast<std::size_t>(grain));
+    std::size_t at = 0;
+    for (long long c = 0; c < grain; ++c) {
+      const long long size = base + (c < rem ? 1 : 0);
+      std::vector<datum> part(
+          groups.begin() + static_cast<std::ptrdiff_t>(at),
+          groups.begin() + static_cast<std::ptrdiff_t>(at + size));
+      at += static_cast<std::size_t>(size);
+      chunks.push_back(rec_tree(std::move(part), grain, line));
+    }
+    return comb(std::move(chunks), line);
+  }
+
+  /// `(blocked [spine|rec] G BINDER CELL+)`: the grain sugar over a
+  /// component family — the libITS scalar-set grouping strategies as shape
+  /// constructors, lowered to plain sorts (the translator is untouched,
+  /// `--expand` shows the grouping).
+  ///
+  /// Default and `spine` (DEPTH1): one grouping level — consecutive blocks
+  /// of G components, balanced over balanced blocks (resp. spine of spine
+  /// blocks), the last block short when G does not divide the range.
+  ///
+  /// `rec` (DEPTHREC): G is the branching factor, recursively — every
+  /// level is a right-comb of G near-even sub-blocks (larger first) until
+  /// a block of at most G instances lies flat; each instance's cells stay
+  /// grouped as one sub-sort. `rec 2` is the component-grouped balanced
+  /// tree.
   datum blocked_node(const datum& d) {
     std::size_t ix = 1;
     std::string style = "balanced";
     if (ix < d.items().size() && d.items()[ix].is_atom() &&
-        d.items()[ix].text() == "spine") {
-      style = "spine";
+        (d.items()[ix].text() == "spine" || d.items()[ix].text() == "rec")) {
+      style = d.items()[ix].text();
       ++ix;
     }
     if (d.items().size() < ix + 3)
       throw expand_error(d.line(),
-                         "blocked expects [spine] G (NAME HI) CELL+");
+                         "blocked expects [spine|rec] G (NAME HI) CELL+");
     const long long grain = eval_int(d.items()[ix]);
     if (grain <= 0) throw expand_error(d.line(), "blocked grain must be > 0");
+    if (style == "rec") {
+      if (grain < 2)
+        throw expand_error(d.line(), "rec grain must be at least 2");
+      std::vector<datum> forall_items = {atom_at("forall", d)};
+      for (std::size_t i = ix + 1; i < d.items().size(); ++i)
+        forall_items.push_back(d.items()[i]);
+      const datum synth = datum::list(std::move(forall_items), d.line());
+      binder b = parse_binder(synth);
+      if (b.hi <= b.lo)
+        throw expand_error(d.line(), "blocked over an empty range");
+      bind(b);
+      std::vector<datum> groups;
+      for (long long i = b.lo; i < b.hi; ++i) {
+        set(b, i);
+        std::vector<datum> cells =
+            sort_list(synth.items().data() + 2,
+                      synth.items().data() + synth.items().size());
+        if (cells.empty())
+          throw expand_error(d.line(), "blocked instance has no cells");
+        groups.push_back(comb(std::move(cells), d.line()));
+      }
+      unbind(b);
+      return rec_tree(std::move(groups), grain, d.line());
+    }
     // reuse the binder machinery through a synthetic forall
     std::vector<datum> forall_items = {atom_at("forall", d)};
     for (std::size_t i = ix + 1; i < d.items().size(); ++i)
