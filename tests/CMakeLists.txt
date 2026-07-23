@@ -15,6 +15,7 @@ add_executable(hsc_tests
   test_split_equiv.cc
   test_lia.cc
   test_query.cc
+  test_event.cc
 )
 target_link_libraries(hsc_tests PRIVATE hsc::hsc doctest::doctest)
 target_compile_options(hsc_tests PRIVATE
