@@ -502,16 +502,12 @@ class transformer {
             fail(rt->line, "channel " + chan +
                                ": value passed on one side only");
           }
-          // reference order: sender effects, sender move, the carried value,
-          // receiver effects, receiver move — each an atomic step.
+          // The operative reference order (libITS dve2gal, mirrored by
+          // its fused GAL transitions): the carried value first — sent
+          // expression and receiving lvalue's index both read the
+          // pre-state — then receiver effects, receiver move, sender
+          // effects, sender move. Each an atomic step.
           std::vector<datum> clauses;
-          for (const assign& a : st->effects) {
-            clauses.push_back(do_clause(
-                assign_form(a.var, a.index.get(), sp->name,
-                            to_int(*a.rhs, sp->name), a.line),
-                a.line));
-          }
-          clauses.push_back(move_clause(*sp, st->dest, st->line));
           if (!rt->sync_var.empty()) {
             clauses.push_back(do_clause(
                 assign_form(rt->sync_var, rt->sync_index.get(), rp->name,
@@ -525,6 +521,13 @@ class transformer {
                 a.line));
           }
           clauses.push_back(move_clause(*rp, rt->dest, rt->line));
+          for (const assign& a : st->effects) {
+            clauses.push_back(do_clause(
+                assign_form(a.var, a.index.get(), sp->name,
+                            to_int(*a.rhs, sp->name), a.line),
+                a.line));
+          }
+          clauses.push_back(move_clause(*sp, st->dest, st->line));
           emit_event(chan + "_" + sp->name + "_" + rp->name + "_t" +
                          std::to_string(ti(*sp, *st)) + "_t" +
                          std::to_string(ti(*rp, *rt)),
