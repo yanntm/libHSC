@@ -9,6 +9,8 @@
 
 #include "hsc/surface/translate.hh"
 
+#include "hsc/surface/expand.hh"
+
 #include <charconv>
 #include <fstream>
 #include <functional>
@@ -1079,10 +1081,13 @@ int run_file(const std::string& path, std::ostream& out, std::ostream& err) {
   buf << in.rdbuf();
   const std::string text = buf.str();
   try {
-    const std::vector<datum> forms = parse(text);
+    const std::vector<datum> forms = expand(parse(text));
     return translate(forms, out) == 0 ? 0 : 1;
   } catch (const parse_error& e) {
     err << path << ": parse error: " << e.what() << '\n';
+    return 2;
+  } catch (const expand_error& e) {
+    err << path << ": expand error: " << e.what() << '\n';
     return 2;
   } catch (const translate_error& e) {
     err << path << ": " << e.what() << '\n';
