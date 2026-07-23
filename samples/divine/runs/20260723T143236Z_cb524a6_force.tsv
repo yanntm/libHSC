@@ -1,3 +1,5 @@
+# dve_sweep 20260723T143236Z rev=cb524a6 timeout=5s dve2hsc-flags=''
+# model	status	states-or-detail	nodes	seconds
 adding.1	run-ok	7372	243	0.06
 adding.2	timeout	5s		5.02
 adding.3	timeout	5s		5.02
