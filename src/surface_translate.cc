@@ -1418,7 +1418,8 @@ int translate(const std::vector<datum>& forms, std::ostream& out) {
   return t.run(forms);
 }
 
-int run_file(const std::string& path, std::ostream& out, std::ostream& err) {
+int run_file(const std::string& path, std::ostream& out, std::ostream& err,
+             const std::map<std::string, long long>& params) {
   std::ifstream in(path, std::ios::binary);
   if (!in) {
     err << "cannot open " << path << '\n';
@@ -1428,7 +1429,8 @@ int run_file(const std::string& path, std::ostream& out, std::ostream& err) {
   buf << in.rdbuf();
   const std::string text = buf.str();
   try {
-    const std::vector<datum> forms = expand(parse(text));
+    const std::vector<datum> forms =
+        expand(parse(text), /*families=*/true, params);
     return translate(forms, out) == 0 ? 0 : 1;
   } catch (const parse_error& e) {
     err << path << ": parse error: " << e.what() << '\n';

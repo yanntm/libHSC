@@ -11,6 +11,7 @@
 #pragma once
 
 #include <iosfwd>
+#include <map>
 #include <string>
 
 #include "hsc/surface/sexpr.hh"
@@ -37,8 +38,10 @@ class translate_error : public std::runtime_error {
 int translate(const std::vector<datum>& forms, std::ostream& out);
 
 /// \brief Parse and translate the file at \p path. Convenience for a runner.
+/// \p params overrides `param` values by name (the `-DN=…` command line).
 /// \return process exit code: 0 on success, nonzero on any parse error,
 /// translate error, or failed `expect`.
-int run_file(const std::string& path, std::ostream& out, std::ostream& err);
+int run_file(const std::string& path, std::ostream& out, std::ostream& err,
+             const std::map<std::string, long long>& params = {});
 
 }  // namespace hsc::surface

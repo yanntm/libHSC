@@ -12,6 +12,7 @@
 /// context → combinator table: research_notes/hsc_parametric.md.
 #pragma once
 
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -47,7 +48,12 @@ class expand_error : public std::runtime_error {
 /// `(family NAME N CLAUSE…)` form, accesses rewritten to `(at@ ARRAY δ)`,
 /// for the translator to build by recursion instead of by instance.
 /// `families = false` (the `--expand` dump) enumerates everything.
-[[nodiscard]] std::vector<datum> expand(const std::vector<datum>& forms,
-                                        bool families = true);
+///
+/// \p overrides substitutes a `param`'s declared value by name (the
+/// `-DN=…` command line): the file's expression is ignored for an
+/// overridden name; overriding an undeclared param is an error.
+[[nodiscard]] std::vector<datum> expand(
+    const std::vector<datum>& forms, bool families = true,
+    const std::map<std::string, long long>& overrides = {});
 
 }  // namespace hsc::surface

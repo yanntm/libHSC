@@ -101,17 +101,26 @@ branches cross(const branches& a, const branches& b) {
 
 class expander {
  public:
-  explicit expander(bool families) : families_(families) {}
+  expander(bool families, const std::map<std::string, long long>& overrides)
+      : families_(families), overrides_(overrides) {}
 
   std::vector<datum> run(const std::vector<datum>& forms) {
     collect_names(forms);
     std::vector<datum> out;
     top_forms(forms, out);
+    for (const auto& [name, v] : overrides_) {
+      if (!overridden_.count(name)) {
+        throw expand_error(0, "-D" + name + "=" + std::to_string(v) +
+                                  ": no param of that name in the file");
+      }
+    }
     return out;
   }
 
  private:
   bool families_;                            // emit certified family forms
+  const std::map<std::string, long long>& overrides_;  // -DNAME=VALUE
+  std::set<std::string> overridden_;         // overrides actually consumed
   std::map<std::string, long long> env_;     // params and bound indexes
   std::map<std::string, long long> arrays_;  // count-form arrays: name → size
   // 2-D count-form arrays: name → {rows, cols}; cells NAME_i_j, row-major
@@ -764,7 +773,13 @@ class expander {
       if (names_.count(name))
         throw expand_error(f.line(), "param '" + name + "' collides with a "
                                      "declared name");
-      env_[name] = eval_int(f.items()[2]);
+      const auto ov = overrides_.find(name);
+      if (ov != overrides_.end()) {
+        env_[name] = ov->second;  // -DNAME=…: the file's value is ignored
+        overridden_.insert(name);
+      } else {
+        env_[name] = eval_int(f.items()[2]);
+      }
       return;  // the form is consumed
     }
     if (h == "array" && f.items().size() >= 3) {
@@ -915,8 +930,9 @@ class expander {
 
 }  // namespace
 
-std::vector<datum> expand(const std::vector<datum>& forms, bool families) {
-  return expander{families}.run(forms);
+std::vector<datum> expand(const std::vector<datum>& forms, bool families,
+                          const std::map<std::string, long long>& overrides) {
+  return expander{families, overrides}.run(forms);
 }
 
 }  // namespace hsc::surface

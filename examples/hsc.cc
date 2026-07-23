@@ -10,6 +10,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
 
@@ -18,7 +19,8 @@
 
 namespace {
 
-int dump_expanded(const std::string& path) {
+int dump_expanded(const std::string& path,
+                  const std::map<std::string, long long>& params) {
   std::ifstream in(path, std::ios::binary);
   if (!in) {
     std::cerr << "cannot open " << path << '\n';
@@ -30,7 +32,7 @@ int dump_expanded(const std::string& path) {
     // The dump enumerates families too: its output is the flat, diffable,
     // runnable degeneralization.
     for (const hsc::surface::datum& form : hsc::surface::expand(
-             hsc::surface::parse(buf.str()), /*families=*/false)) {
+             hsc::surface::parse(buf.str()), /*families=*/false, params)) {
       hsc::surface::write(std::cout, form);
       std::cout << '\n';
     }
@@ -46,12 +48,37 @@ int dump_expanded(const std::string& path) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc == 3 && std::string(argv[1]) == "--expand")
-    return dump_expanded(argv[2]);
-  if (argc != 2) {
+  bool dump = false;
+  std::map<std::string, long long> params;  // -DNAME=VALUE param overrides
+  std::string path;
+  for (int i = 1; i < argc; ++i) {
+    const std::string a = argv[i];
+    if (a == "--expand") {
+      dump = true;
+    } else if (a.rfind("-D", 0) == 0) {
+      const auto eq = a.find('=');
+      if (eq == std::string::npos || eq == 2) {
+        std::cerr << a << ": expected -DNAME=VALUE\n";
+        return 2;
+      }
+      try {
+        params[a.substr(2, eq - 2)] = std::stoll(a.substr(eq + 1));
+      } catch (const std::exception&) {
+        std::cerr << a << ": expected an integer value\n";
+        return 2;
+      }
+    } else if (path.empty()) {
+      path = a;
+    } else {
+      path.clear();
+      break;
+    }
+  }
+  if (path.empty()) {
     std::cerr << "usage: " << (argc ? argv[0] : "hsc")
-              << " [--expand] <model.hsc>\n";
+              << " [--expand] [-DNAME=VALUE…] <model.hsc>\n";
     return 2;
   }
-  return hsc::surface::run_file(argv[1], std::cout, std::cerr);
+  if (dump) return dump_expanded(path, params);
+  return hsc::surface::run_file(path, std::cout, std::cerr, params);
 }
