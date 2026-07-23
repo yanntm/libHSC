@@ -49,13 +49,31 @@ it never invalidates an expression.
 
 ## Engineering queue (next action first)
 
-1. **The LIA interchange theory** — expressions over positions, substitution of
-   a coordinate by a value (currying), a residual normal form, interning. Turns
-   the query recursion cacheable and admits `(< a (+ b c))`.
-2. **Crossing updates** — `x := y + z` through the same bracket; surface
-   actions whose value reads another leaf.
-3. **`tab[i]`** — indirection through the same machinery; `tab[tab[x]]` is the
-   remaining half of the R4 gate.
+1. **Expression guards in `int_set` terms; surface bounds become optional.**
+   `hsc/lia/` (done, below) provides the guard language: a term's guard
+   becomes an interned `bexpr` over the coordinate, applied by filtering the
+   values present — intensional, no domain materialization. Then
+   `(leaf NAME)` declares x : Int, `(leaf NAME LO HI)` stays as an opt-in
+   enumeration bound; atom compilation and the deadlock check go
+   filter-based (the enabling-cylinder path also mislabels
+   out-of-declared-domain states dead today — filtering fixes it). The
+   stale "a bound is mandatory" rationale in `surface/algorithm.md` goes.
+2. **Crossing criteria and updates on `lia` expressions** — `(< a (+ b c))`,
+   `x := y + z`: generalize `select_compare`'s residual to a curried `bexpr`
+   (cacheable by its code), events gain expression actions.
+3. **`tab[i]`** — indirection through `first_subexpr`/`subst_cell`, already
+   exercised at the expression level; `tab[tab[x]]` is the remaining half
+   of the R4 gate.
+4. **DVE front end (BEEM)** — after 2: parser for the 69-model
+   channel-free/array-free fragment first; grammar reference:
+   ITSTools `dve/fr.lip6.move.divine.xtext/.../Divine.xtext`. DVE `byte`
+   wraps mod 256 (a wrapping shift in the theory, not a bound); `.prop1.reach`
+   files are select criteria and libITS perfs are the baseline.
+
+Done: **`hsc/lia/`** — GAL's positional expression layer ported onto
+`mem::intern` (constants tagged inside the code, factory-normalized,
+⊥-poisoning, overflow-loud folds; subst/subst_cell as the currying step,
+`first_subexpr` for nested indirection). Doctests green.
 
 Done and validated: `split_equiv` on the `int_set` leaf *and on diagrams* (a
 coordinate resolves at any depth, any shape); the case bracket for two-place
