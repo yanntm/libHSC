@@ -530,13 +530,30 @@ experiment measures the operation side and confirms both halves of
 Proposition 4.5's reading: the shared residuals of the `n` conjugate events
 are a constant number of codes independent of `n` (Theorem 4.4 at work),
 while the flat enumeration's wrapper chains contribute exactly `2n − 1`
-codes per event template — sites, not operations. The remaining road from
-`Θ(n)` construction to `O(log n)` is therefore *declaration*: a family
-declared as one template over a symmetric index set can have its folded
-chain built by recursion over the interned shape — the level recurrence
-`R_d = (R_{d−1} ⊗ id) + (id ⊗ R_{d−1})` plus a bounded seam term per level,
-the ring closing once at the root — with no site ever enumerated. What the
-declaration must certify, and what the schedule must consume, is Open 6.
+codes per event template — sites, not operations.
+
+The road from `Θ(n)` construction to `O(log n)` is *declaration*, and it is
+built. A family whose declaration passes a checkable uniformity
+certificate — one index over its full range, used only to address
+components at bounded constant offsets modulo `n`; scalar and circular
+sets are the recognized instances — never has its sites enumerated. The
+folded chain is built by recursion over the interned shape, memoized per
+(subtree sort, component alignment): the level recurrence
+`R_d = (R_{d−1} ⊗ id) + (id ⊗ R_{d−1})`, where an instance straddling a
+cut is compiled once, flat, at the block containing both of its ends — the
+seam terms, and the ring closing at the root, are exactly the straddlers,
+not separate machinery. Canonicity makes the construction verified rather
+than trusted, by the same cheap witness as Proposition 5.3: the declared
+term and the enumerated-then-folded term must be the *same code*, and are,
+at every size checked. Measured on the ring at the balanced shape, the
+operation side falls from `~6n` codes enumerated (98 335 at `n = 16384`)
+to `21 log₂ n − 8` declared (286); at `n = 2^20` the reachable set is 80
+nodes — `4 log₂ n` on the nose — and the closure contributes no
+measurable time, because a sum kept in head-folded normal form arrives at
+Theorem 5.2 already partitioned and the fixpoint memo, keyed on (term,
+argument), coincides across the blocks of a level. The residual `Θ(n)` is
+the declaration text of the `n` components themselves — surface, not
+calculus.
 
 Neither is a defect. Both are the same object under different presentations,
 and the presentations differ in cost by margins that grow with `n` in both
@@ -544,8 +561,16 @@ directions. It follows that **the shape is a parameter of the representation,
 supplied from outside**, and choosing it well is a question about a model's
 dependency structure — a community-detection problem over a graph in which
 control dependencies and data dependencies are distinguished — rather than a
-question about this calculus. The calculus consumes a shape and refuses to
-guess one; the honest statement of its scope includes saying so.
+question about this calculus. The scalar-set lineage's grouping dial is
+accordingly surface syntax for declared shapes here, not a mechanism of the
+calculus: one level of blocks of `G` components, or `G`-ary branching per
+level recursively, whose branching-2 point is exactly the balanced tree.
+Measured on the ring at `n = 256`, widening the branching factor shortens
+the operation side (1615 term codes at branching 2 down to 1217 at 16) and
+pays in node sharing (32 reachable-set nodes up to 120) — a tradeoff that
+belongs to the model, chosen from outside like the shape it decorates. The
+calculus consumes a shape and refuses to guess one; the honest statement of
+its scope includes saying so.
 
 ---
 
@@ -594,12 +619,13 @@ matters, though the spine may be long.
 5. **Isomorphism between shapes.** §8 asserts a computed isomorphism between
    shapes over a common frontier. Its cost, and whether re-shaping a
    representation in place is ever cheaper than rebuilding it, is open.
-6. **Regular families without enumeration.** §8's level recurrence builds a
-   symmetric family's folded term in `O(depth)`; what remains open is the
-   declaration that licenses it — a uniformity certificate over the index
-   set (scalar and circular sets are the known instances), its checkable
-   syntactic criterion at a surface, the seam terms' general form, and a
-   schedule (Theorem 5.2 instance) whose evaluation keys on the shared
-   block–operation pairs so the closure itself is computed `O(depth)`
-   times, not `O(n)`. Counting at that scale also leaves `double`
-   territory: the cardinal wants a log-form.
+6. **Regular families beyond one translation index.** The single-index
+   certificate — full range, bounded constant offsets modulo `n` — is
+   built and verified by code identity (§8); scalar and circular sets are
+   its instances. Open is everything richer: several indices (a family
+   over ordered pairs has orbit structure that translation does not see),
+   dependent ranges ("all j except i"), the general form of seams for
+   interactions wider than a bounded offset — and the quotient itself:
+   the fold shrinks the representation of a symmetric system, an orbit
+   reduction would shrink the system, and the certificate that licenses
+   the one ought to license the other.
