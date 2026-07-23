@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "hsc/core/support.hh"
+#include "hsc/lia/expr.hh"
 #include "hsc/mem/intern.hh"
 #include "hsc/util/hash.hh"
 
@@ -54,16 +55,26 @@ enum class int_shape : std::uint8_t {
   closure,    ///< `(a + id)*`
 };
 
+/// What a primitive term's guard is.
+enum class int_guard : std::uint8_t {
+  none,      ///< no guard: every value passes
+  set,       ///< extensional: `a` is an int_set code, guard is membership
+  symbolic,  ///< `a` is a `lia::bexpr` over the coordinate (position 0)
+};
+
 /// \brief A local term of this theory (Def 2.3).
 ///
 /// A guard then an action, plus sum and star closure — which is the term
 /// language Def 2.3 says a theory is handed *whole*. Enough for a Petri
 /// transition (`m >= w` then `m -= w`) and a Hanoi move (`pos == a` then
-/// `pos := b`). Only pushforwards appear: Def 2.2 exports no preimage and
-/// none is wanted.
+/// `pos := b`). A guard is symbolic (an interned expression, evaluated on
+/// the values present — no domain is materialized) or an extensional set
+/// where the model genuinely enumerates. Only pushforwards appear: Def 2.2
+/// exports no preimage and none is wanted.
 struct int_term {
   int_shape shape = int_shape::primitive;
   int_action action = int_action::keep;
+  int_guard gkind = int_guard::none;
   std::int32_t arg = 0;
   core::code a = core::none;  ///< primitive: the guard; sum/closure: operand
   core::code b = core::none;  ///< sum: the second operand
@@ -71,7 +82,8 @@ struct int_term {
   friend bool operator==(const int_term&, const int_term&) = default;
   [[nodiscard]] std::size_t hash() const {
     return util::hash_all(static_cast<std::uint8_t>(shape),
-                          static_cast<std::uint8_t>(action), arg, a, b);
+                          static_cast<std::uint8_t>(action),
+                          static_cast<std::uint8_t>(gkind), arg, a, b);
   }
 };
 
@@ -112,7 +124,20 @@ class int_set_theory final : public core::support_algebra {
   core::code assign(core::code set, std::int32_t value);
   /// `x := x + delta`, guarded by \p set (`none` for no guard).
   core::code shift(core::code set, std::int32_t delta);
+  /// The symbolic twins: guarded by \p g, a `bexpr` over the coordinate
+  /// (`lia` position 0), evaluated on the values present. `btrue` folds to
+  /// the unguarded form; a `bfalse` guard is the caller's dead term to drop.
+  core::code keep_if(lia::bexpr g);
+  core::code assign_if(lia::bexpr g, std::int32_t value);
+  core::code shift_if(lia::bexpr g, std::int32_t delta);
   ///@}
+
+  /// The elements of \p set on which \p g evaluates to true (⊥ excludes).
+  core::code filter(core::code set, lia::bexpr g);
+
+  /// The expression factory guards are written in — shared with every layer
+  /// that builds or reads criteria over this theory's coordinates.
+  [[nodiscard]] lia::expr_factory& exprs() { return exprs_; }
 
   core::code apply_local(core::code term, core::code value) override;
   core::code term_sum(core::code a, core::code b) override;
@@ -134,6 +159,7 @@ class int_set_theory final : public core::support_algebra {
 
   mem::intern<int_set> table_;
   mem::intern<int_term> terms_;
+  lia::expr_factory exprs_;
   std::vector<std::int32_t> scratch_;  ///< reused by of() and interval()
 };
 

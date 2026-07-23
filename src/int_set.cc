@@ -71,24 +71,60 @@ std::span<const std::int32_t> int_set_theory::elements(core::code c) const {
 
 core::code int_set_theory::keep(core::code set) {
   if (set == core::none) return core::none;  // a guard nothing satisfies
-  return terms_.get(int_term{int_shape::primitive, int_action::keep, 0, set, 0});
+  return terms_.get(int_term{int_shape::primitive, int_action::keep,
+                             int_guard::set, 0, set, 0});
 }
 
 core::code int_set_theory::assign(core::code set, std::int32_t value) {
+  const int_guard g = set == core::none ? int_guard::none : int_guard::set;
   return terms_.get(
-      int_term{int_shape::primitive, int_action::assign, value, set, 0});
+      int_term{int_shape::primitive, int_action::assign, g, value, set, 0});
 }
 
 core::code int_set_theory::shift(core::code set, std::int32_t delta) {
   if (delta == 0) return set == core::none ? core::code{0} : keep(set);
+  const int_guard g = set == core::none ? int_guard::none : int_guard::set;
   return terms_.get(
-      int_term{int_shape::primitive, int_action::shift, delta, set, 0});
+      int_term{int_shape::primitive, int_action::shift, g, delta, set, 0});
+}
+
+core::code int_set_theory::keep_if(lia::bexpr g) {
+  if (g == lia::btrue) return 0;  // keep everything: id
+  return terms_.get(int_term{int_shape::primitive, int_action::keep,
+                             int_guard::symbolic, 0, g, 0});
+}
+
+core::code int_set_theory::assign_if(lia::bexpr g, std::int32_t value) {
+  if (g == lia::btrue) return assign(core::none, value);
+  return terms_.get(int_term{int_shape::primitive, int_action::assign,
+                             int_guard::symbolic, value, g, 0});
+}
+
+core::code int_set_theory::shift_if(lia::bexpr g, std::int32_t delta) {
+  if (delta == 0) return keep_if(g);
+  if (g == lia::btrue) return shift(core::none, delta);
+  return terms_.get(int_term{int_shape::primitive, int_action::shift,
+                             int_guard::symbolic, delta, g, 0});
+}
+
+core::code int_set_theory::filter(core::code set, lia::bexpr g) {
+  if (set == core::none || g == lia::bfalse) return core::none;
+  if (g == lia::btrue) return set;
+  std::vector<std::int32_t> out;
+  for (const std::int32_t v : elements(set)) {
+    const std::int32_t env[] = {v};
+    if (exprs_.eval_bool(g, env) == lia::expr_factory::truth::yes) {
+      out.push_back(v);  // ⊥ excludes, like a failed guard
+    }
+  }
+  return of_sorted(out);
 }
 
 core::code int_set_theory::term_sum(core::code a, core::code b) {
   if (a == b) return a;
   if (a > b) std::swap(a, b);  // sum is commutative: one code for both orders
-  return terms_.get(int_term{int_shape::sum, int_action::keep, 0, a, b});
+  return terms_.get(
+      int_term{int_shape::sum, int_action::keep, int_guard::none, 0, a, b});
 }
 
 core::code int_set_theory::term_closure(core::code t) {
@@ -101,7 +137,8 @@ core::code int_set_theory::term_closure(core::code t) {
     // (g + id)* = id. Discipline 5 -- this is a cheaper bill, same meaning.
     return 0;
   }
-  return terms_.get(int_term{int_shape::closure, int_action::keep, 0, t, 0});
+  return terms_.get(
+      int_term{int_shape::closure, int_action::keep, int_guard::none, 0, t, 0});
 }
 
 core::code int_set_theory::apply_local(core::code term, core::code value) {
@@ -123,7 +160,12 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
     }
   }
 
-  const core::code kept = t.a == core::none ? value : meet(value, t.a);
+  core::code kept = value;
+  switch (t.gkind) {
+    case int_guard::none: break;
+    case int_guard::set: kept = meet(value, t.a); break;
+    case int_guard::symbolic: kept = filter(value, t.a); break;
+  }
   if (kept == core::none) return core::none;  // the guard refused: deadlock
 
   switch (t.action) {
