@@ -129,8 +129,10 @@ void to_surface(std::ostream& out, const SparsePetriNet<int>& net,
 
   switch (opts.exam) {
     case examination::state_space: out << "(states)\n"; break;
-    case examination::one_safe:    out << "(one-safe)\n"; break;
-    case examination::deadlock:    out << "(deadlock)\n"; break;
+    case examination::one_safe:
+      // the general statistic; the MCC OneSafe verdict is the runner's
+      out << "(reach R saturate)\n(max-value R)\n";
+      break;
     case examination::none:
       out << "(reach R saturate)\n(count R)\n(nodes R)\n(bill)\n";
       break;

@@ -17,8 +17,10 @@
 namespace hsc::petri {
 
 /// Which trailing query the emitted model runs. `none` emits the plain
-/// reach/count/nodes/bill; the others emit a single MCC examination command.
-enum class examination { none, state_space, one_safe, deadlock };
+/// reach/count/nodes/bill; `state_space` emits the MCC command, `one_safe`
+/// the general forms (`reach` + `max-value`) its runner turns into the MCC
+/// verdict.
+enum class examination { none, state_space, one_safe };
 
 struct emit_options {
   int bound = 2;  ///< leaf domain is [0, bound); a safe NUPN needs only 2
