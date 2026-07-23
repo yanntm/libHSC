@@ -25,9 +25,9 @@
 (reach RN naive)
 (expect RN 82)
 (expect R 82)
-; no two neighbours eat at once: the shared fork forbids it. A quantified
-; crossing predicate is a filter term; apply takes its image of R.
-(apply clash
-  (when (exists (i N) (and (== (at st i) 2) (== (at st (% (+ i 1) N)) 2))))
-  R)
+; no two neighbours eat at once: the shared fork forbids it. A select atom
+; is any boolean form — this quantified crossing disjunction compiles like
+; an event guard, through the case engine.
+(select clash R
+  (exists (i N) (and (== (at st i) 2) (== (at st (% (+ i 1) N)) 2))))
 (expect clash 0)
