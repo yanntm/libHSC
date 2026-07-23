@@ -28,4 +28,6 @@ target_compile_options(hscrun PRIVATE
 if(HSC_BUILD_TESTS)
   add_test(NAME surface_hanoi3
            COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/hanoi3.hsc)
+  add_test(NAME surface_ring4
+           COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4.hsc)
 endif()
