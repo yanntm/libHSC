@@ -30,4 +30,6 @@ if(HSC_BUILD_TESTS)
            COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/hanoi3.hsc)
   add_test(NAME surface_ring4
            COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4.hsc)
+  add_test(NAME surface_ring4b
+           COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4b.hsc)
 endif()
