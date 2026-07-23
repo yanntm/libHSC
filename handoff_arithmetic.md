@@ -51,7 +51,17 @@ it never invalidates an expression.
 
 1. **Crossing criteria and updates on `lia` expressions** — `(< a (+ b c))`,
    `x := y + z`: generalize `select_compare`'s residual to a curried `bexpr`
-   (cacheable by its code), events gain expression actions.
+   (cacheable by its code), events gain expression actions. **Settled shape
+   of the do-language** (GAL's statement language, staged):
+   `STMT ::= (:= x e) | (ite COND STMT* [STMT*])`, sequence = repeated
+   `(do …)` (compose); `when` is the sole *refusing* construct, so deadlock
+   and enabling stay cheap per-position filters. An `ite` whose condition
+   crosses leaves IS the §7 case bracket — one machinery for both. GAL's
+   `abort` returns the algebra's 0 — absence is a legal answer everywhere
+   (Discipline 1), `keep_if(bfalse)` is that term today, composition
+   propagates it; no new machinery. Only the deadlock check assumes refusal
+   sits in `when` (enabling as a pre-state filter) — revisit that one
+   consumer when abort-bearing events arrive.
 2. **`tab[i]`** — indirection through `first_subexpr`/`subst_cell`, already
    exercised at the expression level; `tab[tab[x]]` is the remaining half
    of the R4 gate.
