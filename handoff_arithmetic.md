@@ -49,31 +49,28 @@ it never invalidates an expression.
 
 ## Engineering queue (next action first)
 
-1. **Expression guards in `int_set` terms; surface bounds become optional.**
-   `hsc/lia/` (done, below) provides the guard language: a term's guard
-   becomes an interned `bexpr` over the coordinate, applied by filtering the
-   values present — intensional, no domain materialization. Then
-   `(leaf NAME)` declares x : Int, `(leaf NAME LO HI)` stays as an opt-in
-   enumeration bound; atom compilation and the deadlock check go
-   filter-based (the enabling-cylinder path also mislabels
-   out-of-declared-domain states dead today — filtering fixes it). The
-   stale "a bound is mandatory" rationale in `surface/algorithm.md` goes.
-2. **Crossing criteria and updates on `lia` expressions** — `(< a (+ b c))`,
+1. **Crossing criteria and updates on `lia` expressions** — `(< a (+ b c))`,
    `x := y + z`: generalize `select_compare`'s residual to a curried `bexpr`
    (cacheable by its code), events gain expression actions.
-3. **`tab[i]`** — indirection through `first_subexpr`/`subst_cell`, already
+2. **`tab[i]`** — indirection through `first_subexpr`/`subst_cell`, already
    exercised at the expression level; `tab[tab[x]]` is the remaining half
    of the R4 gate.
-4. **DVE front end (BEEM)** — after 2: parser for the 69-model
+3. **DVE front end (BEEM)** — after 1: parser for the 69-model
    channel-free/array-free fragment first; grammar reference:
    ITSTools `dve/fr.lip6.move.divine.xtext/.../Divine.xtext`. DVE `byte`
    wraps mod 256 (a wrapping shift in the theory, not a bound); `.prop1.reach`
    files are select criteria and libITS perfs are the baseline.
 
-Done: **`hsc/lia/`** — GAL's positional expression layer ported onto
-`mem::intern` (constants tagged inside the code, factory-normalized,
-⊥-poisoning, overflow-loud folds; subst/subst_cell as the currying step,
-`first_subexpr` for nested indirection). Doctests green.
+Done: **`hsc/lia/`** — GAL's positional expression layer on `mem::intern`
+(constants tagged inside the code, factory-normalized, ⊥-poisoning,
+overflow-loud folds; subst/subst_cell the currying step; eval_int/eval_bool
+ground with no interning traffic). **Symbolic guards end to end**: `int_set`
+terms guarded by a `bexpr` over the coordinate (`keep_if`/`assign_if`/
+`shift_if`, `filter`), surface leaves are Int with `(leaf NAME LO HI)`
+opt-in, deadlock filters `R` by guards (`select_where`) instead of domain
+cylinders. MCC sample verdicts and all example oracles unchanged;
+`examples/models/unbounded.hsc` exercises Int leaves, negatives, and
+crossing queries with no domain anywhere.
 
 Done and validated: `split_equiv` on the `int_set` leaf *and on diagrams* (a
 coordinate resolves at any depth, any shape); the case bracket for two-place
