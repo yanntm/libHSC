@@ -17,24 +17,25 @@
 
 int main(int argc, char** argv) {
   std::string in, out;
-  bool summary = false, parse_only = false;
+  bool summary = false, parse_only = false, force_order = true;
+  constexpr const char* usage =
+      "usage: %s <in.dve> [-o out.hsc] [--order=force|decl] "
+      "[--summary|--parse-only]\n";
   for (int i = 1; i < argc; ++i) {
     const std::string a = argv[i];
     if (a == "--summary") summary = true;
     else if (a == "--parse-only") parse_only = true;
+    else if (a == "--order=force") force_order = true;
+    else if (a == "--order=decl") force_order = false;
     else if (a == "-o" && i + 1 < argc) out = argv[++i];
     else if (in.empty()) in = a;
     else {
-      std::fprintf(stderr,
-                   "usage: %s <in.dve> [-o out.hsc] [--summary|--parse-only]\n",
-                   argv[0]);
+      std::fprintf(stderr, usage, argv[0]);
       return 2;
     }
   }
   if (in.empty()) {
-    std::fprintf(stderr,
-                 "usage: %s <in.dve> [-o out.hsc] [--summary|--parse-only]\n",
-                 argv[0]);
+    std::fprintf(stderr, usage, argv[0]);
     return 2;
   }
 
@@ -63,7 +64,7 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (parse_only) return 0;
-    const hsc::dve::surface_model sm = hsc::dve::to_surface(m);
+    const hsc::dve::surface_model sm = hsc::dve::to_surface(m, force_order);
     if (out.empty()) {
       hsc::dve::print_hsc(std::cout, sm);
     } else {

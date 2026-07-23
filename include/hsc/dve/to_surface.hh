@@ -40,7 +40,14 @@ class transform_error : public std::runtime_error {
 };
 
 /// \brief Transform \p m. Throws `transform_error`.
-[[nodiscard]] surface_model to_surface(const model& m);
+///
+/// \p force_order lays the leaves out with the FORCE heuristic
+/// (`hsc/order/force.hh`): one clique per event over the leaves it
+/// touches, one precedence per (read, addressed cell / written target)
+/// pair. `false` keeps DVE declaration order. Order is representation
+/// only — state counts are invariant under it.
+[[nodiscard]] surface_model to_surface(const model& m,
+                                       bool force_order = true);
 
 /// \brief M2T: serialize as `.hsc` text, notes as leading comments.
 void print_hsc(std::ostream& os, const surface_model& sm);

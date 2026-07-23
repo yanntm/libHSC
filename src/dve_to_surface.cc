@@ -5,12 +5,14 @@
 #include <cstdlib>
 #include <map>
 #include <ostream>
+#include <set>
 
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "hsc/dve/to_surface.hh"
+#include "hsc/order/force.hh"
 
 namespace hsc::dve {
 
@@ -26,17 +28,25 @@ datum num(std::int64_t v, int line) {
 /// The transform pass: resolution context plus emission.
 class transformer {
  public:
-  explicit transformer(const model& m) : m_(m) {}
+  transformer(const model& m, bool force_order)
+      : m_(m), force_order_(force_order) {}
 
   surface_model run() {
     if (!m_.async) fail(0, "system sync (lockstep) is not supported");
     fold_constants();
     declare_leaves();
+    for (std::size_t i = 0; i < order_.size(); ++i) {
+      name_pos_.emplace(order_[i], static_cast<std::uint32_t>(i));
+    }
+    emit_events();  // buffered in events_; constraints collected per event
+    if (force_order_) apply_force();
+    emit_shape();
     emit_init();
-    emit_events();
+    for (datum& ev : events_) out_.forms.push_back(std::move(ev));
     out_.forms.push_back(datum::list(
         {atom("reach", 0), atom("R", 0), atom("saturate", 0)}, 0));
     out_.forms.push_back(datum::list({atom("count", 0), atom("R", 0)}, 0));
+    out_.forms.push_back(datum::list({atom("nodes", 0), atom("R", 0)}, 0));
     return std::move(out_);
   }
 
@@ -149,6 +159,7 @@ class transformer {
         arr.push_back(atom(info.leaf + "_" + std::to_string(i), v.line));
       }
       out_.forms.push_back(datum::list(std::move(arr), v.line));
+      sarrays_.emplace(info.leaf, v.size);
     } else {
       one(info.leaf, v.init ? const_eval(*v.init, scope) : 0);
     }
@@ -178,15 +189,124 @@ class transformer {
         if (s.rfind("trans_", 0) == 0) ++transients_;
       }
     }
-    std::vector<datum> spine{atom("spine", 0)};
-    for (const std::string& l : order_) spine.push_back(atom(l, 0));
-    out_.forms.push_back(datum::list(
-        {atom("shape", 0), datum::list(std::move(spine), 0)}, 0));
     if (transients_ != 0) {
       out_.notes.push_back(std::to_string(transients_) +
                            " trans_* states: DiVinE transient semantics not "
                            "reproduced");
     }
+  }
+
+  void emit_shape() {
+    std::vector<datum> spine{atom("spine", 0)};
+    for (const std::string& l : order_) spine.push_back(atom(l, 0));
+    out_.forms.push_back(datum::list(
+        {atom("shape", 0), datum::list(std::move(spine), 0)}, 0));
+  }
+
+  // --- ordering: FORCE over the constraints the events induce --------------
+
+  /// Walk an expression datum: every leaf it can read into \p touched and
+  /// \p reads; an `(at NAME e)` touches every cell of NAME, adds a
+  /// precedence (index read, cell) per pair — the curry grounds the index
+  /// before reaching the cells — and reads the cells.
+  void expr_reads(const datum& d, std::set<std::uint32_t>& touched,
+                  std::vector<std::uint32_t>& reads) {
+    if (d.is_atom()) {
+      const auto it = name_pos_.find(d.text());
+      if (it != name_pos_.end()) {
+        touched.insert(it->second);
+        reads.push_back(it->second);
+      }
+      return;
+    }
+    if (d.items().empty()) return;
+    if (d.head() == "at" && d.items().size() == 3) {
+      const std::vector<std::uint32_t> cells = cells_of(d.items()[1]);
+      std::vector<std::uint32_t> ireads;
+      expr_reads(d.items()[2], touched, ireads);
+      for (const std::uint32_t c : cells) {
+        touched.insert(c);
+        reads.push_back(c);
+        for (const std::uint32_t r : ireads) precs_.push_back({r, c, 1.0f});
+      }
+      reads.insert(reads.end(), ireads.begin(), ireads.end());
+      return;
+    }
+    for (std::size_t i = 1; i < d.items().size(); ++i) {
+      expr_reads(d.items()[i], touched, reads);
+    }
+  }
+
+  [[nodiscard]] std::vector<std::uint32_t> cells_of(const datum& name) {
+    std::vector<std::uint32_t> cells;
+    if (!name.is_atom()) return cells;
+    const auto it = sarrays_.find(name.text());
+    if (it == sarrays_.end()) return cells;
+    cells.reserve(static_cast<std::size_t>(it->second));
+    for (std::int32_t i = 0; i < it->second; ++i) {
+      cells.push_back(name_pos_.at(name.text() + "_" + std::to_string(i)));
+    }
+    return cells;
+  }
+
+  /// One clique per event over every leaf it touches; one precedence per
+  /// (rhs read, written target) pair.
+  void collect_constraints(const datum& event_form) {
+    std::set<std::uint32_t> touched;
+    for (std::size_t i = 2; i < event_form.items().size(); ++i) {
+      const datum& clause = event_form.items()[i];
+      if (clause.head() == "when") {
+        for (std::size_t a = 1; a < clause.items().size(); ++a) {
+          std::vector<std::uint32_t> r;
+          expr_reads(clause.items()[a], touched, r);
+        }
+        continue;
+      }
+      for (std::size_t a = 1; a < clause.items().size(); ++a) {  // do
+        const datum& act = clause.items()[a];
+        if (!act.is_list() || act.items().size() != 3) continue;
+        std::vector<std::uint32_t> targets;
+        const datum& lhs = act.items()[1];
+        if (lhs.is_atom()) {
+          const auto it = name_pos_.find(lhs.text());
+          if (it != name_pos_.end()) {
+            touched.insert(it->second);
+            targets.push_back(it->second);
+          }
+        } else if (!lhs.items().empty() && lhs.head() == "at") {
+          targets = cells_of(lhs.items()[1]);
+          std::vector<std::uint32_t> ireads;
+          expr_reads(lhs.items()[2], touched, ireads);
+          for (const std::uint32_t c : targets) {
+            touched.insert(c);
+            for (const std::uint32_t r : ireads) {
+              precs_.push_back({r, c, 1.0f});
+            }
+          }
+        }
+        std::vector<std::uint32_t> rr;
+        expr_reads(act.items()[2], touched, rr);
+        for (const std::uint32_t r : rr) {
+          for (const std::uint32_t t : targets) {
+            if (r != t) precs_.push_back({r, t, 1.0f});
+          }
+        }
+      }
+    }
+    if (touched.size() > 1) {
+      cliques_.push_back(
+          {{touched.begin(), touched.end()}, 1.0f});
+    }
+  }
+
+  /// Re-lay the frontier with FORCE; every later emission reads `order_`.
+  void apply_force() {
+    const std::vector<std::uint32_t> perm =
+        order::force(order_.size(), cliques_, precs_);
+    std::vector<std::string> laid;
+    laid.reserve(order_.size());
+    for (const std::uint32_t p : perm) laid.push_back(order_[p]);
+    order_ = std::move(laid);
   }
 
   static std::int32_t state_index(const process& p, const std::string& s,
@@ -448,7 +568,8 @@ class transformer {
         line);
   }
 
-  /// One surface event: the when-atoms, then the ordered do-clauses.
+  /// One surface event, buffered (the shape is emitted after ordering);
+  /// its leaves feed the FORCE constraints.
   void emit_event(const std::string& name, std::vector<datum> atoms,
                   std::vector<datum> clauses, int line) {
     std::vector<datum> when{atom("when", line)};
@@ -456,7 +577,9 @@ class transformer {
     std::vector<datum> ev{atom("event", line), atom(name, line),
                           datum::list(std::move(when), line)};
     for (datum& c : clauses) ev.push_back(std::move(c));
-    out_.forms.push_back(datum::list(std::move(ev), line));
+    datum form = datum::list(std::move(ev), line);
+    if (force_order_) collect_constraints(form);
+    events_.push_back(std::move(form));
   }
 
   /// The `when` atoms of a transition: its source-state atom plus its guard.
@@ -571,12 +694,19 @@ class transformer {
   // --- state ---------------------------------------------------------------
 
   const model& m_;
+  const bool force_order_;
   surface_model out_;
   std::unordered_map<std::string, std::int64_t> consts_;
   std::unordered_map<std::string, leaf_info> vars_;
   std::vector<std::string> order_;
   std::vector<std::pair<std::string, std::int64_t>> inits_;
   std::size_t transients_ = 0;
+
+  std::vector<datum> events_;  ///< buffered: emitted after the shape
+  std::unordered_map<std::string, std::uint32_t> name_pos_;
+  std::unordered_map<std::string, std::int32_t> sarrays_;
+  std::vector<order::clique> cliques_;
+  std::vector<order::precedence> precs_;
 };
 
 void print_datum(std::ostream& os, const datum& d) {
@@ -596,7 +726,9 @@ void print_datum(std::ostream& os, const datum& d) {
 
 }  // namespace
 
-surface_model to_surface(const model& m) { return transformer(m).run(); }
+surface_model to_surface(const model& m, bool force_order) {
+  return transformer(m, force_order).run();
+}
 
 void print_hsc(std::ostream& os, const surface_model& sm) {
   for (const std::string& n : sm.notes) os << "; " << n << '\n';
