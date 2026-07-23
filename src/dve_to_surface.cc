@@ -143,6 +143,12 @@ class transformer {
                 : 0;
         one(info.leaf + "_" + std::to_string(i), init);
       }
+      // the placement declaration: cells by name, in index order
+      std::vector<datum> arr{atom("array", v.line), atom(info.leaf, v.line)};
+      for (std::int32_t i = 0; i < v.size; ++i) {
+        arr.push_back(atom(info.leaf + "_" + std::to_string(i), v.line));
+      }
+      out_.forms.push_back(datum::list(std::move(arr), v.line));
     } else {
       one(info.leaf, v.init ? const_eval(*v.init, scope) : 0);
     }
@@ -377,12 +383,32 @@ class transformer {
   // into a simultaneous assign: a sync assign entangles supports and hurts
   // saturation, so it is reserved for semantics that truly need it.
 
+  /// DVE bytes are unsigned 8-bit: an assigned value truncates mod 256.
+  /// `((rhs % 256) + 256) % 256` normalizes the sign too; the surface's
+  /// expression layer folds it away on constants. A literal already in
+  /// range skips the wrap.
+  datum wrap_byte(datum rhs, int line) {
+    if (rhs.is_atom()) {
+      char* end = nullptr;
+      const long k = std::strtol(rhs.text().c_str(), &end, 10);
+      if (end != rhs.text().c_str() && *end == '\0' && k >= 0 && k < 256) {
+        return rhs;
+      }
+    }
+    datum m = datum::list(
+        {atom("%", line), std::move(rhs), num(256, line)}, line);
+    datum p = datum::list(
+        {atom("+", line), std::move(m), num(256, line)}, line);
+    return datum::list({atom("%", line), std::move(p), num(256, line)}, line);
+  }
+
   /// One `(:= target rhs)` form. The target resolves in \p tscope; the rhs
   /// is already translated (its scope differs at a rendezvous, where the
   /// sent value reads the sender and the variable belongs to the receiver).
   datum assign_form(const std::string& var, const expr* index,
                     const std::string& tscope, datum rhs, int line) {
     const leaf_info& v = resolve_var(tscope, var, line);
+    if (v.is_byte) rhs = wrap_byte(std::move(rhs), line);
     if (index == nullptr) {
       if (v.is_array) fail(line, "array '" + var + "' assigned bare");
       return datum::list(
