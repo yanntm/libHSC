@@ -690,7 +690,9 @@ class translator final : public name_scope {
       for (std::size_t i = 1; i < d.items().size(); ++i) {
         ops.push_back(read_evterm(d.items()[i]));
       }
-      return mgr_.operations().sum(ops);
+      // head-folded: a family of one-sided instances becomes a chain
+      // mirroring the shape, one code, O(depth) summands per level
+      return core::sum_at(mgr_, top_, ops);
     }
     if (kw == "seq") {  // reading order: the first term applies first
       code ev = core::op_table::id;
@@ -758,7 +760,7 @@ class translator final : public name_scope {
     code reachable = from ? *from : seed();
     util::stopwatch sw;
     if (naive) {
-      const code all = mgr_.operations().sum(summands);
+      const code all = core::sum_at(mgr_, top_, summands);
       for (;;) {
         const code grown =
             diagrams.join(reachable, diagrams.apply_local(all, reachable));
