@@ -40,6 +40,7 @@ if(HSC_BUILD_TESTS)
 endif()
 
 add_subdirectory(examples)
+add_subdirectory(tools)
 
 if(HSC_BUILD_BENCH)
   add_subdirectory(bench)
