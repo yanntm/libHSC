@@ -27,8 +27,10 @@ int dump_expanded(const std::string& path) {
   std::ostringstream buf;
   buf << in.rdbuf();
   try {
-    for (const hsc::surface::datum& form :
-         hsc::surface::expand(hsc::surface::parse(buf.str()))) {
+    // The dump enumerates families too: its output is the flat, diffable,
+    // runnable degeneralization.
+    for (const hsc::surface::datum& form : hsc::surface::expand(
+             hsc::surface::parse(buf.str()), /*families=*/false)) {
       hsc::surface::write(std::cout, form);
       std::cout << '\n';
     }

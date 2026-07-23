@@ -39,6 +39,15 @@ class expand_error : public std::runtime_error {
 /// `param`, no count-form `array`, no `forall` / `exists`; integer
 /// arithmetic over constants is folded, and a grounded access to a
 /// generated array is rewritten to its cell name. Throws `expand_error`.
-[[nodiscard]] std::vector<datum> expand(const std::vector<datum>& forms);
+///
+/// With \p families (the default), an event whose whole body is a single
+/// `exists` binder satisfying the uniformity certificate (spec Part II §6:
+/// index used only as an array index at a constant offset mod N, full
+/// range, one binder) is NOT enumerated: it is emitted as a
+/// `(family NAME N CLAUSE…)` form, accesses rewritten to `(at@ ARRAY δ)`,
+/// for the translator to build by recursion instead of by instance.
+/// `families = false` (the `--expand` dump) enumerates everything.
+[[nodiscard]] std::vector<datum> expand(const std::vector<datum>& forms,
+                                        bool families = true);
 
 }  // namespace hsc::surface

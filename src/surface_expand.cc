@@ -17,6 +17,7 @@
 #include "hsc/surface/expand.hh"
 
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 
@@ -100,6 +101,8 @@ branches cross(const branches& a, const branches& b) {
 
 class expander {
  public:
+  explicit expander(bool families) : families_(families) {}
+
   std::vector<datum> run(const std::vector<datum>& forms) {
     collect_names(forms);
     std::vector<datum> out;
@@ -108,6 +111,7 @@ class expander {
   }
 
  private:
+  bool families_;                            // emit certified family forms
   std::map<std::string, long long> env_;     // params and bound indexes
   std::map<std::string, long long> arrays_;  // count-form arrays: name → size
   // 2-D count-form arrays: name → {rows, cols}; cells NAME_i_j, row-major
@@ -463,6 +467,109 @@ class expander {
     return out;
   }
 
+  // ---- certified uniform families (spec Part II §6) --------------------
+
+  /// The offset a certified index expression puts on the binder: `i` is 0,
+  /// `(% (+ i K) N)` is +K, `(% (- i K) N)` is −K (K a constant, N the
+  /// binder's range), normalized to (−N/2, N/2] and bounded. Anything else
+  /// is not certified.
+  std::optional<long long> family_offset(const datum& idx, const binder& b) {
+    const datum e = expr_node(idx);  // params fold; the index passes through
+    if (e.is_atom()) {
+      return e.text() == b.name ? std::optional<long long>(0) : std::nullopt;
+    }
+    if (e.head() != "%" || e.items().size() != 3) return std::nullopt;
+    if (!is_int_atom(e.items()[2]) || int_value(e.items()[2]) != b.hi) {
+      return std::nullopt;
+    }
+    const datum& add = e.items()[1];
+    if (add.is_atom() || add.items().size() != 3) return std::nullopt;
+    const std::string& op = add.head();
+    if (op != "+" && op != "-") return std::nullopt;
+    const datum& l = add.items()[1];
+    const datum& r = add.items()[2];
+    long long k = 0;
+    if (l.is_atom() && l.text() == b.name && is_int_atom(r)) {
+      k = int_value(r);
+    } else if (op == "+" && r.is_atom() && r.text() == b.name &&
+               is_int_atom(l)) {
+      k = int_value(l);
+    } else {
+      return std::nullopt;
+    }
+    if (op == "-") k = -k;
+    k %= b.hi;                       // normalize to (−N/2, N/2]
+    if (k < 0) k += b.hi;
+    if (2 * k > b.hi) k -= b.hi;
+    constexpr long long MAX_OFFSET = 4;  // circular sets are nearest-few
+    if (k < -MAX_OFFSET || k > MAX_OFFSET) return std::nullopt;
+    return k;
+  }
+
+  /// Certify one datum of a family body: the index appears only inside a
+  /// certified access to a count-N array — rewritten `(at@ ARRAY δ)` — and
+  /// params fold. Nullopt on any violation (index as a value, a nested
+  /// binder, a grounded or foreign-array access, a 2-D access).
+  std::optional<datum> family_node(const datum& d, const binder& b) {
+    if (d.is_atom()) {
+      if (d.text() == b.name) return std::nullopt;  // index as a value
+      const auto it = env_.find(d.text());
+      if (it != env_.end()) return int_atom(it->second, d.line());
+      return d;
+    }
+    const std::string& h = d.head();
+    if (is_binder_head(h)) return std::nullopt;
+    if (h == "at") {
+      if (d.items().size() != 3 || !d.items()[1].is_atom()) return std::nullopt;
+      const auto ar = arrays_.find(d.items()[1].text());
+      if (ar == arrays_.end() || ar->second != b.hi) return std::nullopt;
+      const auto delta = family_offset(d.items()[2], b);
+      if (!delta) return std::nullopt;
+      return list_of("at@", {d.items()[1], int_atom(*delta, d.line())},
+                     d.line());
+    }
+    std::vector<datum> kids;
+    for (std::size_t i = 1; i < d.items().size(); ++i) {
+      auto k = family_node(d.items()[i], b);
+      if (!k) return std::nullopt;
+      kids.push_back(std::move(*k));
+    }
+    return list_of(h, std::move(kids), d.line());
+  }
+
+  /// Try `(event NAME (exists (i N) CLAUSE+))` as a certified uniform
+  /// family: one binder, full range [0,N), when/do clauses whose every use
+  /// of the index is a certified access. On success emits
+  /// `(family NAME N CLAUSE'…)` — never enumerated — and returns true; any
+  /// failure returns false and the caller expands as usual.
+  bool try_family(const datum& d, std::vector<datum>& out) {
+    if (!families_ || d.items().size() != 3 || !d.items()[1].is_atom()) {
+      return false;
+    }
+    const datum& ex = d.items()[2];
+    if (!ex.is_list() || ex.head() != "exists") return false;
+    binder b;
+    try {
+      b = parse_binder(ex);
+    } catch (const expand_error&) {
+      return false;
+    }
+    if (b.lo != 0 || b.hi <= 0) return false;  // C3: the full range
+    std::vector<datum> items = {datum::atom("family", d.line()), d.items()[1],
+                                int_atom(b.hi, d.line())};
+    for (std::size_t c = 2; c < ex.items().size(); ++c) {
+      const datum& cl = ex.items()[c];
+      if (!cl.is_list() || (cl.head() != "when" && cl.head() != "do")) {
+        return false;
+      }
+      auto n = family_node(cl, b);
+      if (!n) return false;
+      items.push_back(std::move(*n));
+    }
+    out.push_back(datum::list(std::move(items), d.line()));
+    return true;
+  }
+
   // ---- events and families ---------------------------------------------
 
   /// Expand the clause list of an event. `forall` splices clauses (the body
@@ -683,7 +790,7 @@ class expander {
       return;
     }
     if (h == "event") {
-      expand_event(f, out);
+      if (!try_family(f, out)) expand_event(f, out);
       return;
     }
     if (h == "alt" || h == "seq") {
@@ -808,8 +915,8 @@ class expander {
 
 }  // namespace
 
-std::vector<datum> expand(const std::vector<datum>& forms) {
-  return expander{}.run(forms);
+std::vector<datum> expand(const std::vector<datum>& forms, bool families) {
+  return expander{families}.run(forms);
 }
 
 }  // namespace hsc::surface
