@@ -97,6 +97,13 @@ SORT ::= unit | NAME
        | (pair SORT SORT)
        | (spine SORT+)             ; sugar: (pair a (pair b (… unit)))
        | (balanced SORT+)          ; sugar: split in half, left-biased
+       | (blocked [spine] G BINDER SORT+)  ; grain sugar (parametric pass):
+                                   ; the binder's instances in consecutive
+                                   ; blocks of G components, balanced over
+                                   ; balanced blocks (spine of spine blocks
+                                   ; with the keyword); last block short
+                                   ; when G ∤ range. libITS scalar-set
+                                   ; grouping as a shape constructor.
 EVTERM ::= NAME                          ; a declared event / alt / seq
        | (alt EVTERM+) | (seq EVTERM+)   ; inline composition
        | (when BEXP+) | (do ACT+)        ; anonymous filter / one clause —

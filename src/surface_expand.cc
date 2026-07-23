@@ -16,6 +16,7 @@
 
 #include "hsc/surface/expand.hh"
 
+#include <algorithm>
 #include <map>
 #include <optional>
 #include <set>
@@ -675,6 +676,7 @@ class expander {
                      sort_list(d.items().data() + 1,
                                d.items().data() + d.items().size()),
                      d.line());
+    if (h == "blocked") return blocked_node(d);
     if (h == "at") {
       datum r = at_node(d);
       if (!r.is_atom())
@@ -685,6 +687,59 @@ class expander {
       throw expand_error(d.line(), "a binder in a single sort position: use "
                                    "it inside (spine …) or (balanced …)");
     return d;
+  }
+
+  /// `(blocked [spine] G BINDER CELL+)`: the grain sugar over a component
+  /// family — the libITS scalar-set grouping as a shape constructor. The
+  /// binder's instances are cut into consecutive blocks of G; each block
+  /// is a `balanced` (default) or `spine` sort over its instances' cells,
+  /// and the blocks compose under the same style. The last block is short
+  /// when G does not divide the range — two block sorts instead of one,
+  /// both shared. Lowers to plain spine/balanced: the translator is
+  /// untouched and `--expand` shows the grouping.
+  datum blocked_node(const datum& d) {
+    std::size_t ix = 1;
+    std::string style = "balanced";
+    if (ix < d.items().size() && d.items()[ix].is_atom() &&
+        d.items()[ix].text() == "spine") {
+      style = "spine";
+      ++ix;
+    }
+    if (d.items().size() < ix + 3)
+      throw expand_error(d.line(),
+                         "blocked expects [spine] G (NAME HI) CELL+");
+    const long long grain = eval_int(d.items()[ix]);
+    if (grain <= 0) throw expand_error(d.line(), "blocked grain must be > 0");
+    // reuse the binder machinery through a synthetic forall
+    std::vector<datum> forall_items = {atom_at("forall", d)};
+    for (std::size_t i = ix + 1; i < d.items().size(); ++i)
+      forall_items.push_back(d.items()[i]);
+    const datum synth = datum::list(std::move(forall_items), d.line());
+    binder b = parse_binder(synth);
+    if (b.hi <= b.lo)
+      throw expand_error(d.line(), "blocked over an empty range");
+    bind(b);
+    std::vector<datum> blocks;
+    for (long long v = b.lo; v < b.hi; v += grain) {
+      std::vector<datum> cells;
+      for (long long i = v; i < std::min(v + grain, b.hi); ++i) {
+        set(b, i);
+        std::vector<datum> inst =
+            sort_list(synth.items().data() + 2,
+                      synth.items().data() + synth.items().size());
+        for (datum& s : inst) cells.push_back(std::move(s));
+      }
+      blocks.push_back(cells.size() == 1 ? std::move(cells[0])
+                                         : list_of(style, std::move(cells),
+                                                   d.line()));
+    }
+    unbind(b);
+    if (blocks.size() == 1) return std::move(blocks[0]);
+    return list_of(style, std::move(blocks), d.line());
+  }
+
+  static datum atom_at(const char* text, const datum& at) {
+    return datum::atom(text, at.line());
   }
 
   std::vector<datum> sort_list(const datum* first, const datum* last) {

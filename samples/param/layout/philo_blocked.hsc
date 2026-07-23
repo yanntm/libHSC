@@ -5,8 +5,10 @@
 (array st N 0 3)
 (array f N 0 2)
 (param G 16)
-(param B (/ N G))
-(shape (spine (forall (b B) (spine (forall (k G) (at st (+ (* b G) k)) (at f (+ (* b G) k)))))))
+; grain sugar: blocks of G philosophers, spine of spine blocks — the same
+; sort the nested-forall spelling built by hand, and G need not divide N
+; (the last block is short).
+(shape (blocked spine G (i N) (at st i) (at f i)))
 (init)
 (event take1
   (exists (i N)
