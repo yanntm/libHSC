@@ -108,10 +108,13 @@ comparison `x ⋈ y` (⋈ any of the six comparators): resolved by the §7 case
 `split_equiv` the head coordinate and curry the residual per class onto the
 tail. The casing is honest: no rewriting by domain knowledge (a one-safe
 `a <= b` is *not* turned into `a==0 ∨ b==1`); each head value gets its class,
-each class its restricted tail. Two limits, refused with a message: the head
-side of the cut must be a leaf (a coordinate deep in the head awaits
-`split_equiv` on diagrams), and events still take plain `ATOM`s only —
-crossing *updates* (`x := y + z`) are the next §7 step.
+each class its restricted tail. The coordinates may sit at any depth on
+either side of the cut — a coordinate below the head splits the head
+*subdiagram* (`split_equiv` on diagrams, the same act one level in), so the
+same flat-name query resolves under any shape: spine, balanced, or a
+decomposed unit tree. One limit remains, refused with a message: events
+still take plain `ATOM`s only — crossing *updates* (`x := y + z`) are the
+next §7 step.
 
 ### Queries
 
