@@ -137,6 +137,16 @@ class translator final : public name_scope {
     return d.text();
   }
 
+  /// True when \p d is an integer atom — a test, where `as_int` demands.
+  static bool is_integer(const datum& d) {
+    if (!d.is_atom() || d.text().empty()) return false;
+    std::int32_t v = 0;
+    const std::string& t = d.text();
+    const auto* end = t.data() + t.size();
+    const auto res = std::from_chars(t.data(), end, v);
+    return res.ec == std::errc{} && res.ptr == end;
+  }
+
   static std::int32_t as_int(const datum& d) {
     if (!d.is_atom()) fail(d, "expected an integer, found a list");
     const std::string& t = d.text();
@@ -970,26 +980,37 @@ class translator final : public name_scope {
     return std::nullopt;
   }
 
-  /// One query atom applied to \p src. A right-hand side naming a second leaf
-  /// is the crossing comparison, resolved by the §7 case (`select_compare`);
-  /// a constant right-hand side (or `in`) is separable, a symbolic
-  /// per-position filter.
+  /// One query atom applied to \p src. Two fast paths keep their dedicated
+  /// resolution: a leaf against a constant (or `in`) is separable, a
+  /// symbolic per-position meet (`select_where`); a leaf against a second
+  /// leaf is the crossing comparison (`select_compare`). Any other BEXP —
+  /// conjunction, disjunction, negation, arithmetic — compiles exactly as
+  /// an event guard would, a `(when ATOM)` filter applied once: separable
+  /// pieces fuse per leaf, crossing pieces become §7 case brackets.
   code apply_atom(const datum& atom, code src) {
-    if (!atom.is_list() || atom.items().size() < 3) {
-      fail(atom, "a query atom is (cmp leaf constant-or-leaf) or (in leaf K+)");
+    if (!atom.is_list() || atom.items().empty()) {
+      fail(atom, "a query atom is a boolean form over the leaves");
     }
-    const leaf_decl& x = require_leaf(atom.items()[1]);
-    const datum& rhs = atom.items()[2];
-    if (atom.items().size() == 3 && rhs.is_atom() &&
-        leaves_.contains(rhs.text())) {
+    if (atom.items().size() >= 3 && atom.items()[1].is_atom() &&
+        leaves_.contains(atom.items()[1].text())) {
+      const leaf_decl& x = leaves_.at(atom.items()[1].text());
+      const datum& rhs = atom.items()[2];
       const std::optional<cmp> op = comparator(atom.head());
-      if (!op) fail(atom, "unknown comparison '" + atom.head() + "'");
-      const leaf_decl& y = leaves_.at(rhs.text());
-      return hsc::select_compare(mgr_, *theory_, top_, src, x.index, *op,
-                                 y.index);
+      if (op && atom.items().size() == 3 && rhs.is_atom() &&
+          leaves_.contains(rhs.text())) {
+        const leaf_decl& y = leaves_.at(rhs.text());
+        return hsc::select_compare(mgr_, *theory_, top_, src, x.index, *op,
+                                   y.index);
+      }
+      if ((op && atom.items().size() == 3 && is_integer(rhs)) ||
+          atom.head() == "in") {
+        return hsc::select_where(mgr_, *theory_, top_, src, x.index,
+                                 atom_guard(atom));
+      }
     }
-    return hsc::select_where(mgr_, *theory_, top_, src, x.index,
-                             atom_guard(atom));
+    datum filter =
+        datum::list({atom_datum("when", atom), atom}, atom.line());
+    return mgr_.diagrams().apply_local(read_evterm(filter), src);
   }
 
   /// `(select NAME SOURCE ATOM+)`: filter a stored result by a conjunction of
