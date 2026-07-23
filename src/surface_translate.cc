@@ -669,6 +669,11 @@ class translator final : public name_scope {
       }
       return clause_term(compile_clause(d, acts));
     }
+    if (kw == "abort") {
+      // the zero term: no successors — nothing in an alt, death in a seq
+      if (d.items().size() != 1) fail(d, "(abort) takes no arguments");
+      return zero_term();
+    }
     if (d.items().size() < 2) fail(d, "'" + kw + "' needs event terms");
     if (kw == "alt") {
       std::vector<code> ops;

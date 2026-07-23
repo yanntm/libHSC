@@ -360,11 +360,9 @@ class expander {
       return list_of("when", bexp_list(body, end, true), d.line());
     if (h == "do") return list_of("do", act_list(body, end), d.line());
     if (h == "alt")
-      return list_of("alt", evterm_list(body + 1, end, /*seq=*/false),
-                     d.line());
+      return list_of("alt", evterm_list(body, end, /*seq=*/false), d.line());
     if (h == "seq")
-      return list_of("seq", evterm_list(body + 1, end, /*seq=*/true),
-                     d.line());
+      return list_of("seq", evterm_list(body, end, /*seq=*/true), d.line());
     if (is_binder_head(h)) {
       std::vector<datum> parts = evterm_list(&d, &d + 1, /*seq=*/h == "forall");
       if (parts.size() == 1) return std::move(parts[0]);
@@ -406,15 +404,9 @@ class expander {
       }
       unbind(b);
       if (parts.empty()) {
-        // empty forall: the identity filter; empty exists: the zero filter
-        parts.push_back(h == "forall"
-                            ? list_of("when", {}, b.line)
-                            : list_of("when",
-                                      {list_of("!=",
-                                               {int_atom(0, b.line),
-                                                int_atom(0, b.line)},
-                                               b.line)},
-                                      b.line));
+        // empty forall: the identity filter; empty exists: the zero term
+        parts.push_back(h == "forall" ? list_of("when", {}, b.line)
+                                      : list_of("abort", {}, b.line));
       }
       if (splice) {
         for (datum& p : parts) out.push_back(std::move(p));
@@ -662,6 +654,8 @@ class expander {
       return;
     }
     if (h == "init" || h == "word") {
+      if (h == "word" && (f.items().size() < 2 || !f.items()[1].is_atom()))
+        throw expand_error(f.line(), "word expects a name");
       std::vector<datum> items(f.items().begin(),
                                f.items().begin() + (h == "word" ? 2 : 1));
       const datum* rest = body + (h == "word" ? 1 : 0);
