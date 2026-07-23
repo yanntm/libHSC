@@ -41,8 +41,8 @@ else()
   message(STATUS "expat not found: the nupn2hsc / hsc-mcc tools will not be built")
 endif()
 
-# The DVE (BEEM) importer: no external dependencies, engine-free for now.
+# The DVE (BEEM) importer.
 add_executable(dve2hsc dve2hsc.cc)
-target_link_libraries(dve2hsc PRIVATE hsc::hsc)
+target_link_libraries(dve2hsc PRIVATE hsc::hsc CLI11::CLI11)
 target_compile_options(dve2hsc PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>)

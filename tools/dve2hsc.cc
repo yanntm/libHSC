@@ -6,37 +6,35 @@
 /// what was seen; `--parse-only` stops silently. Exit: 0 ok, 1 parse error,
 /// 3 transform error (a model the mapping does not cover yet).
 
-#include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
+
+#include <CLI/CLI.hpp>
 
 #include "hsc/dve/ast.hh"
 #include "hsc/dve/to_surface.hh"
 
 int main(int argc, char** argv) {
+  CLI::App app{"Import a DVE (BEEM) model into the .hsc surface"};
   std::string in, out;
   bool summary = false, parse_only = false, force_order = true;
-  constexpr const char* usage =
-      "usage: %s <in.dve> [-o out.hsc] [--order=force|decl] "
-      "[--summary|--parse-only]\n";
-  for (int i = 1; i < argc; ++i) {
-    const std::string a = argv[i];
-    if (a == "--summary") summary = true;
-    else if (a == "--parse-only") parse_only = true;
-    else if (a == "--order=force") force_order = true;
-    else if (a == "--order=decl") force_order = false;
-    else if (a == "-o" && i + 1 < argc) out = argv[++i];
-    else if (in.empty()) in = a;
-    else {
-      std::fprintf(stderr, usage, argv[0]);
-      return 2;
-    }
-  }
-  if (in.empty()) {
-    std::fprintf(stderr, usage, argv[0]);
-    return 2;
+  app.add_option("input", in, "the .dve model")->required();
+  app.add_option("-o,--output", out, "write the .hsc here (default: stdout)");
+  app.add_option("--order", force_order,
+                 "frontier layout: force (FORCE heuristic) or decl "
+                 "(declaration order)")
+      ->transform(CLI::CheckedTransformer(
+          std::map<std::string, bool>{{"force", true}, {"decl", false}}))
+      ->default_str("force");
+  app.add_flag("--summary", summary, "report what the parse saw, then stop");
+  app.add_flag("--parse-only", parse_only, "stop silently after the parse");
+  try {
+    app.parse(argc, argv);
+  } catch (const CLI::ParseError& e) {
+    return app.exit(e) == 0 ? 0 : 2;
   }
 
   std::ifstream f(in, std::ios::binary);

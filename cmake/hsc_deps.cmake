@@ -1,8 +1,9 @@
 # External dependencies, fetched into deps/ (never vendored into git).
 #
-# Policy (roadmap.md, "Dependencies policy"): google sparsehash, and nothing
-# else that is not std. doctest is the test harness; it is a test-only
-# dependency and is not fetched unless HSC_BUILD_TESTS is on.
+# Policy (roadmap.md, "Dependencies policy"): the library itself uses google
+# sparsehash and nothing else that is not std. Tooling around it may lean on
+# more: doctest is the test harness (fetched only with HSC_BUILD_TESTS),
+# CLI11 the argument parser of the command-line tools.
 
 include(FetchContent)
 
@@ -52,6 +53,15 @@ endif()
 add_library(hsc_sparsehash INTERFACE)
 add_library(hsc::sparsehash ALIAS hsc_sparsehash)
 target_include_directories(hsc_sparsehash SYSTEM INTERFACE "${sparsehash_SOURCE_DIR}/src")
+
+# --- CLI11 (command-line tools only) ------------------------------------
+
+FetchContent_Declare(cli11
+  GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+  GIT_TAG        v2.5.0
+  GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(cli11)
 
 # --- doctest (tests only) -----------------------------------------------
 
