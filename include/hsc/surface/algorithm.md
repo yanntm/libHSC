@@ -29,9 +29,11 @@ well-ordered, and the translator errors (with a line) if it is not.
 
 ```
 (leaf  NAME [LO HI])               ; a leaf ⟨A⟩ over Int; bound opt-in
+(array NAME CELL+)                 ; the named leaves, in index order, are
+                                   ; addressable as NAME[i] — placed anywhere
 (shape SORT)                       ; the top sort; every leaf used exactly once
 (init  (NAME VAL)*)                ; initial word; unlisted leaves take LO
-(event NAME (when ATOM*) (do ACT*)+)   ; several (do …): sequential steps
+(event NAME (when BEXP*) (do ACT*)+)   ; several (do …): sequential steps
 (reach NAME [saturate|naive])      ; least fixpoint of (Σ events) from init
 (select NAME SOURCE QATOM+)        ; subset of SOURCE satisfying every QATOM
 (count NAME) (nodes NAME) (print NAME)
@@ -45,10 +47,20 @@ SORT ::= unit | NAME
        | (pair SORT SORT)
        | (spine SORT+)             ; sugar: (pair a (pair b (… unit)))
        | (balanced SORT+)          ; sugar: split in half, left-biased
-ATOM ::= (CMP NAME K) | (in NAME K+)     ; CMP ∈ == != < <= > >=
-QATOM ::= ATOM | (CMP NAME NAME)         ; two leaves: the §7 crossing case
-ACT  ::= (:= NAME K) | (+= NAME K) | (-= NAME K)
+EXPR ::= INT | NAME | (at NAME EXPR)     ; an array access, any index
+       | (OP EXPR EXPR) | (~ EXPR)       ; OP ∈ + - * / % << >> & | ^
+BEXP ::= (CMP EXPR EXPR) | (in EXPR INT+)      ; CMP ∈ == != < <= > >=
+       | (and BEXP*) | (or BEXP*) | (not BEXP) | (imply BEXP BEXP)
+QATOM ::= BEXP | (CMP NAME NAME)
+ACT  ::= (:= LHS EXPR) | (+= LHS EXPR) | (-= LHS EXPR)
+LHS  ::= NAME | (at NAME EXPR)
 ```
+
+The two expression kinds coerce both ways, as in GAL: a boolean form in
+integer position reads 0/1, an integer form in boolean position reads
+`!= 0`. Expressions land in the `lia` interchange theory over frontier
+positions; an array access carries the placement of its cells in the node
+(`lia/algorithm.md`), so cells sit anywhere the shape puts them.
 
 ### Leaves and the shape
 
@@ -64,41 +76,36 @@ model's own guards (Obligation 2.7 / hazard H2): an unguarded shift under a
 closure diverges honestly — a value leaving int32 is a loud
 `overflow_error`, never a silent wrap.
 
-### An event is a product term
+### An event is a composition; its separable pieces are products
 
-Per event, for each leaf the translator builds one `int_set` local term from
-that leaf's atoms and its (at most one) action, then assembles the event with
-`core::product`. Untouched leaves get `id`, so an event touching one leaf is a
-path of the shape's depth (Thm 4.3 — skip is free, visible in the compiled
-term).
+Guards and assignments are arbitrary expressions. The compiler splits each
+event along the §6/§7 line and composes the pieces in application order:
 
-Compiling a leaf's contribution — guards are **symbolic** (`lia` expressions
-over the coordinate, evaluated on the values present; nothing precomputed):
+1. **Crossing filters first.** Every `when` form whose support is more than
+   one position (or touches an array) becomes a §7 case bracket
+   (`case_engine::make_event`, guard only) — applied before any action, so
+   every guard reads the pre-state.
+2. **One fused product.** Single-position `when` forms conjoin per leaf;
+   the first `do` clause, when separable, fuses its assignments in:
+   `apply_if(guard, rhs)` at each touched leaf (which folds to
+   assign/shift/keep where the expression is one), `keep_if(guard)` where
+   only a guard stands, `id` elsewhere. Untouched leaves cost nothing
+   (Thm 4.3 — skip is free, visible in the compiled term).
+3. **Each further `do` clause**, an atomic sequential step: a product of
+   per-leaf `apply_if` when every assignment writes one position that at
+   most itself is read; otherwise the *whole clause* becomes one case
+   bracket — its assignments stay simultaneous and its reads pre-clause.
+   Sequential composition remains the preferred encoding of dependent
+   updates; a single clause is a true synchronous multi-assign (a swap).
 
-* **guard** = conjunction over the leaf's atoms, each a `bexpr` on the
-  coordinate (`(< x K)` ⇒ `v0 < K`; `(in x K…)` ⇒ a disjunction of `==` —
-  an enumeration the model itself wrote). No atoms ⇒ `true`.
-* a guard that **folds to `false`** (contradictory constants) drops the whole
-  event; a guard that merely never holds in practice is an honest
-  never-firing term.
-* **action** (≤ 1 per leaf *per do-clause*): `:=K` ⇒ `assign_if(guard,K)`;
-  `+=K` ⇒ `shift_if(guard,K)`; `-=K` ⇒ `shift_if(guard,-K)`. No action but a
-  guard ⇒ `keep_if(guard)`. No action and no guard ⇒ `id`.
-* **several `(do …)` clauses** are atomic sequential steps: the guards and
-  the first clause fuse into one product, each later clause becomes its own
-  unguarded action product, and the event is their `op_table::compose` in
-  order. Sequential composition is the preferred encoding of dependent
-  updates — a substituted simultaneous assign entangles supports and hurts
-  saturation; a true synchronous multi-assign (a swap, SMV semantics) is
-  what a single `do` clause is for.
-
-### Separability check (the §6/§7 line)
-
-Each atom names exactly one leaf; each action's value is a constant. An atom or
-action reaching a second leaf, or an `a[i]` form, is **crossing**: the
-translator refuses it by name — "needs `split_equiv` (§7), not implemented" —
-having parsed and understood it. Disjunction across leaves is not a product
-term either; the generator expands it into several `event`s.
+A guard that **folds to `false`** (or ⊥), or a statically out-of-bounds
+access, drops the whole event; a guard that merely never holds in practice
+is an honest never-firing term. A separable event compiles exactly as it
+always did — products decompose into the F/L saturation schedule — and a
+crossing piece is an ordinary `G` event: `split_equiv` at the cut, curry
+the residual, cached by its interned term (`hsc/event.hh`). Disjunction
+across leaves is still not a product term; the generator expands it into
+several `event`s (surface `alt` is a planned combinator, not yet a form).
 
 ### reach
 
@@ -124,9 +131,8 @@ each class its restricted tail. The coordinates may sit at any depth on
 either side of the cut — a coordinate below the head splits the head
 *subdiagram* (`split_equiv` on diagrams, the same act one level in), so the
 same flat-name query resolves under any shape: spine, balanced, or a
-decomposed unit tree. One limit remains, refused with a message: events
-still take plain `ATOM`s only — crossing *updates* (`x := y + z`) are the
-next §7 step.
+decomposed unit tree. Events take the same crossing forms through the case
+engine (`hsc/event.hh`); `select` keeps its own two-leaf path for queries.
 
 ### Queries
 

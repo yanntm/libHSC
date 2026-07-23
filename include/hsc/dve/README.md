@@ -20,9 +20,11 @@ The pipeline is MDA-split like the surface, and stops at the surface's AST:
 * **M2T** — printing the datums is the `.hsc` serialization, for free.
 
 A generated model runs through `surface::translate` like any `.hsc` file.
-Today most BEEM models compile to forms the surface *refuses with a §7
-pointer* (crossing assignments, arrays): that is the point — the corpus is
-the target list for the cross-level arithmetic thread, each model turning
-green as the engine grows into it.
+Crossing guards and updates, arrays (placement-free, `(array NAME CELL…)`),
+and DVE byte wrapping (`((e % 256) + 256) % 256` on byte targets, emitted
+here) all compile — the separable pieces to products, the rest to §7 case
+brackets (`hsc/event.hh`). The scoreboard `samples/divine/status.tsv`
+tracks each model: run (with its state count), timeout, or the error;
+`tests/dve_sweep.sh` regenerates it.
 
 `tools/dve2hsc.cc` drives it: parse, transform, print or run.

@@ -23,11 +23,12 @@ real expression populations, and they cost neither a node nor a probe.
 
 One node layout per kind: `{kind, count, payload, operands[count]}`, the
 operands a trailing array of codes (like `int_set`). `payload` holds the
-variable index (`VAR`), the array id and its `limit` (`ARRAY`, `CONSTARRAY`
-— index out of `[0,limit)` is ⊥), or the value of a wide `CONST`.
+variable index (`VAR`) or the value of a wide `CONST`. An `ARRAY` node's
+operands are its index expression followed by the raw frontier position of
+each cell (the placement paragraph of §4).
 
 Int kinds: `CONST VAR PLUS MULT MINUS DIV MOD POW BITAND BITOR BITXOR
-BITCOMP LSHIFT RSHIFT ARRAY CONSTARRAY WRAPBOOL`. Bool kinds:
+BITCOMP LSHIFT RSHIFT ARRAY WRAPBOOL`. Bool kinds:
 `AND OR NOT EQ NEQ LT LEQ GT GEQ`. A variable is a *frontier position*; the
 named world ends at the surface.
 
@@ -48,8 +49,8 @@ applied bottom-up at each construction:
   for `AND`, `true` for `OR`) collapses the node; operands are kept
   **sorted by code**, duplicates kept for `PLUS`/`MULT` (x+x), dropped for
   `AND`/`OR` (idempotent); a single survivor is returned bare.
-* **`ARRAY` with a constant index** becomes `CONSTARRAY` (or ⊥ if out of
-  bounds).
+* **`ARRAY` with a constant index** folds to the addressed cell's variable
+  (or ⊥ if out of bounds).
 * **`NOT NOT e`** is `e`; `NOT` of a comparison is the flipped comparison
   (`NOT (x < y)` is `x >= y`), so `NOT` nodes survive only above `AND`/`OR`.
   `push_negations` drives them through (De Morgan) on demand.
@@ -68,20 +69,25 @@ bottom-up through the factories; the result is again canonical. This is the
 case bracket's residual step: split the head coordinate, substitute the
 class value, and what remains is the residual criterion for the tail.
 An assignment's right-hand side grounds the same way. `ARRAY` substitution
-reaches the *index* expression; the array cells themselves are positions
-substituted by (`var`, cell) pair.
+reaches the *index* expression only; the cell placements are data, and the
+fold to a plain variable on a grounded index is what makes cells ordinary
+coordinates afterwards.
 
 `support(e)` reports the positions an expression reads — what decides at
 which cut a criterion crosses. `first_subexpr` peels the innermost nested
 expression (an `ARRAY` index) so indirection resolves innermost-first:
 `tab[tab[x]]` curries `x`, then the inner access, then the outer.
 
-By convention the array id **is the frontier position of cell 0**, so
-`id + index` addresses a cell as a position. `array_refs` reports every
-array mention (a resolved `CELL` carries its index, an unresolved `ARRAY`
-carries -1); `shift_positions` re-roots an expression across a cut by
-shifting scalar positions and array ids together, so cells move with their
-array.
+An `ARRAY` node **carries its placement**: operand 0 is the index
+expression, operands 1… the frontier position of each cell in index order —
+spread or permuted freely, nothing assumes adjacency, and the positions are
+raw data every walker skips (only the index is an expression). A constant
+index folds to the cell's variable (⊥ out of bounds), so a variable is the
+degenerate array access and a held node always has an open index.
+`array_positions` reports the cells a criterion is pinned above while its
+index is open; `shift_positions` re-roots by shifting scalar positions and
+cell placements together. Sharing between isomorphic components survives
+exactly up to that translation: same relative layout, same code.
 
 ## 5. What is deliberately absent
 
