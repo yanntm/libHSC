@@ -1,7 +1,8 @@
 # surface — grammar and compile map
 
-Two passes. §1 is the parser's whole world (syntax); §2 is the translator's
-(meaning). They share only the `datum` tree.
+Three passes. §1 is the parser's whole world (syntax); §1b the parametric
+expander's (a `datum → datum` rewrite); §2 the translator's (meaning). They
+share only the `datum` tree.
 
 ## 1. Syntax (T2M): text → `datum`
 
@@ -17,6 +18,45 @@ ATOM  ::= SYMBOL | INT
 
 That is the entire parser contract. Everything below is the translator reading
 structure into these trees.
+
+## 1b. The parametric pass (`expand.hh`)
+
+Between parser and translator, `expand` rewrites parametric forms away; the
+translator never sees them. It is the identity on binder-free input.
+
+```
+(param NAME EXPR)            ; compile-time integer, usable where INT stands;
+                             ; consumed by the pass
+(array NAME COUNT [LO HI])   ; COUNT folds to an INT: lowers to the leaves
+                             ; NAME_0 … NAME_{COUNT-1} plus the explicit-cell
+                             ; (array …) grouping them
+(forall (I HI) DATUM+)       ; a binder generates a list in place, I over
+(forall (I LO HI) DATUM+)    ; [LO,HI); bounds fold to INTs and may use
+(exists (I …) DATUM+)        ; enclosing binders (dependent ranges)
+```
+
+A binder carries no semantics: the position of the generated list decides
+its meaning, as for explicit lists. Each context has a conjunctive and a
+disjunctive combinator; `forall` takes the first, `exists` the second — a
+splice where the context's combinator matches, a wrapped node where not:
+seq/alt in EVTERM positions, and/or in BEXP positions, clause splice in an
+event body (`forall`) versus an event *family* (`exists` lifts: one plain
+event per index value, named `NAME_v`, each entering the default system
+sum), action splice inside one `do` clause (`forall` only — the clause
+stays one simultaneous multi-assign), sort splice under `spine`/`balanced`,
+pair splice in `init`/`word`, form splice at top level (`forall` only).
+Empty ranges: identity `(when)` for `forall`, `(abort)` for `exists`, in
+wrap positions; nothing under a splice.
+
+Substitution grounds in-scope names to integer atoms (name capture is
+refused: params and indexes may not collide with any declared name);
+constant arithmetic folds bottom-up, so `(% (+ i 1) N)` becomes a literal;
+a grounded index into a *generated* array becomes its cell atom `NAME_K`
+(out of range is refused — the bound is known), which is what lets
+generated cells stand in `shape` and pair positions. Everything else —
+degenerate guards folding to false, dynamic indices, ⊥ — keeps its
+existing translator semantics. Spec and context table:
+`research_notes/hsc_parametric.md`.
 
 ## 2. Meaning (M2M): forms → operations
 
@@ -61,6 +101,8 @@ EVTERM ::= NAME                          ; a declared event / alt / seq
        | (alt EVTERM+) | (seq EVTERM+)   ; inline composition
        | (when BEXP+) | (do ACT+)        ; anonymous filter / one clause —
                                          ; a guarded command is their seq
+       | (abort)                         ; the zero term: no successors —
+                                         ; nothing in an alt, death in a seq
 EXPR ::= INT | NAME | (at NAME EXPR)     ; an array access, any index
        | (OP EXPR EXPR) | (~ EXPR)       ; OP ∈ + - * / % << >> & | ^
 BEXP ::= (CMP EXPR EXPR) | (in EXPR INT+)      ; CMP ∈ == != < <= > >=

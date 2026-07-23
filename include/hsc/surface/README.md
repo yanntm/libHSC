@@ -1,23 +1,27 @@
 # `surface/` — a file surface for the calculus
 
 Runs a model from a file instead of a `.cc`. The surface is an SMT-flavoured
-s-expression syntax; the input is **generated and trusted** (its complexity —
-templates, parameters, instance arrays — is resolved upstream, exactly as GAL's
-front end resolves them before the engine sees anything). What reaches here is
-small: integer leaves (Int by type, a finite domain opt-in), a shape, and
-separable events with symbolic guards.
+s-expression syntax. Templates, parameters and instance arrays are resolved
+by the surface's own parametric pass (`expand.hh`) before meaning is
+assigned — what reaches the translator is small: integer leaves (Int by
+type, a finite domain opt-in), a shape, and events with symbolic guards.
 
-## Two modules, not one
+## Three modules, not one
 
 The pipeline is split along the MDA seam, and the split is load-bearing: a
-parser turns text into a tree, a translator gives that tree meaning. Future
-passes (typing, desugaring, shape rewriting) intercede *between* them without
-either module knowing.
+parser turns text into a tree, passes rewrite the tree, a translator gives
+the tree meaning. Neither endpoint knows which passes intercede.
 
 * `sexpr.hh` + `src/surface_parser.cc` — **T2M: text → AST.** A hand-written
   recursive reader for s-expressions. Its only job is nesting and tokens; it
   knows nothing of `hsc::core`. The AST is the s-expression tree itself (a
   `datum`): homoiconic, so no separate typed tree is minted here.
+
+* `expand.hh` + `src/surface_expand.cc` — **the parametric pass, datum →
+  datum.** `param`, count-form `array`, and the binders `forall` / `exists`,
+  expanded by position through each context's native combinator (seq/and
+  for `forall`, alt/or/event-family for `exists`). Identity on binder-free
+  input; `hscrun --expand` dumps its output as runnable flat `.hsc`.
 
 * `translate.hh` + `src/surface_translate.cc` — **M2M: AST → operations.** A
   separate pass that walks the `datum` forms and drives a `core::manager`:
@@ -30,22 +34,13 @@ carries a source line so the translator can report errors in the user's terms.
 
 ## Scope
 
-The separable Presburger fragment (§6) — "everything that does not need
-`split_equiv`". A guard is a conjunction of per-leaf comparisons; an action is a
-constant assign or a constant shift on one leaf. This is enough for Hanoi,
-philosophers, and 1-safe Petri / NUPN nets.
+Guards and actions are arbitrary expressions over the leaves, arrays
+included. The compiler splits each event along the §6/§7 seam: separable
+pieces become per-leaf products (the F/L saturation schedule), crossing
+pieces become §7 case brackets (`split_equiv` at the cut). In `select`
+queries each atom is pinned to one leaf or relates two leaves
+(`select_where` / `select_compare`); a predicate crossing more leaves than
+that is expressed as a `(when …)` filter term and applied with `apply`.
 
-In `select` queries over a stored result, an atom relating two leaves
-(`(< a c)`, any comparator) is in scope: it is the first §7 case, resolved by
-`split_equiv` at the cut separating the two positions (`hsc/query.hh`).
-
-Refused, with a pointer to §7 (parsed and understood, then declined — a staged
-feature, not a syntax error):
-
-* an *event* atom relating two leaves, or arithmetic on the right-hand side
-  (`(< a (+ b c))`),
-* an action whose value reads another leaf (`(:= x (+ y z))`),
-* arrays and `a[i]` dereference — that is the SMT *array* theory, not
-  Presburger, and it is what forces `split_equiv`.
-
-See `algorithm.md` for the grammar and the compile map.
+See `algorithm.md` for the grammar, the parametric pass, and the compile
+map.
