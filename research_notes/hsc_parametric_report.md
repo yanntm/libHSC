@@ -84,17 +84,22 @@ Scaling the balanced variant (same file, N raised):
   doubling of N: the substrate's interning collapses identical balanced
   sub-blocks, as designed. Extrapolated, the reachable set of 2^100
   philosophers is a few hundred nodes.
-- **The operation side is Θ(N) by construction, twice over.** (1) The
-  expander unrolls: 3 templates become 3N flat events — a 2^100-instance
-  expansion is text, impossible. (2) The compiled terms do not share
-  across instances: op terms sit at 6 per philosopher exactly (98304 + ε
-  at N=16384), because every term addresses *absolute* frontier
-  positions — `take1_17` and `take1_18` are distinct interned codes
-  differing only by a translation, and interning cannot see conjugacy.
-  Note the seed of the fix already exists: `read_when` shifts a
-  single-leaf guard to position 0 before interning, which is why the
-  guard *bexprs* are shared; the products and case brackets above them
-  are not.
+- **The operation side is Θ(N) — but for a sharper reason than first
+  written here.** The residual operations *do* share across instances:
+  the engine re-roots on descent (`make_event` recurses with
+  `shift_positions`; apply's residuals are rebuilt interned), so the
+  term philo 14/15 sees at its subtree is the *same code* philo 18/19
+  sees. Verified by a single-family probe (take1 only, balanced): op
+  terms are 2079 at N=1024 and 4130 at N=2048 — that is 2N + ~30, where
+  the ~30 N-independent codes are the shared operations and the 2N is
+  wrapper chains: each instance still needs its path of
+  `node(·,id)` / `node(id,·)` wrappers saying *where*, and the distinct
+  wrapper codes over all N paths number exactly 2N−1 per family (one
+  per subtree×offset pair; 3 families ≈ 6N, matching 98335 vs predicted
+  98301 at N=16384 to within 34). The Θ(N) is pure **site
+  enumeration**, not a failure of term sharing. (And the expander
+  unrolls: 3 templates become 3N events — a 2^100 expansion is text,
+  impossible, regardless.)
 - **Wall time is superlinear on top** (×4 N → ×12 time net of the
   expander), pointing at a per-event cost that grows with the frontier
   (position vectors / shape descent per term). Worth a profile before
@@ -103,19 +108,39 @@ Scaling the balanced variant (same file, N raised):
 
 ### What O(n) for 2^n needs (the SDD construction, in our terms)
 
-The sort side is ready: `shape_table::pair` interns, so the balanced sort
-over 2^n leaves is n nodes — a DAG, already. Missing, in order:
+The sort side is ready (`shape_table::pair` interns: the balanced sort
+over 2^n leaves is n nodes), and translation invariance of the
+operations is *already delivered* by the re-rooting above. What remains
+is collapsing the site enumeration, and it is a factorization, not new
+semantics. By distributivity of sum over the head application,
 
-1. **Translation-invariant event terms**: terms addressed relative to a
-   subtree root, so one code serves every block at its level.
-2. **A repetition/induction combinator over the sort DAG**: the events of
-   a block of 2^(k+1) defined from the events of its two half-blocks plus
-   an O(1) seam term (fork shared across the cut), 3 templates × n levels
-   = O(n) codes; the ring-closing seam once at the top.
-3. **Log-form cardinality** (the double is exhausted at 1e15).
+    node(A,id) ⊕ node(B,id)  ≡  node(A⊕B, id)
 
-Then saturation's existing caches close the loop: identical sub-block ×
-identical (now shared) operation = one computation. This is the
-orbit/symmetry thread of the spec's §3, promoted from "paper-sized,
-later" to *measured and motivated*: the substrate is provably ready, the
-term algebra is the gap.
+so the N wrapper chains around one shared term T fold into the
+recurrence `R(d) = node(R(d−1), id) ⊕ node(id, R(d−1))` with `R(0) = T`
+— **O(log N) codes for the whole family**. Seam events (fork shared
+across a cut) add an O(1) boundary term per level — exactly the
+circular-set CUR/NEXT shape — and the ring closes once at the root.
+Two routes to it:
+
+1. **Discovered** — a factoring smart constructor (or sum normal form)
+   on `op_table`: group summands by wrapper side, recurse. Collapses
+   even a flat file's family after enumerating it: O(N) construction
+   once, O(log N) codes retained. Fixes memory and cache locality, not
+   asymptotic time.
+2. **Declared** — the binder already knows the family is one template
+   conjugated over i; the translator builds `R(d)` directly by recursion
+   over the interned sort DAG, never enumerating: O(depth) time and
+   codes. This is the only route to 2^100, and it is where circular-set
+   style constraints (uniform CUR/NEXT access, no symmetry-breaking
+   index) become preconditions the expander can check from the binder.
+
+Engineering care, either route: the F/L saturation schedule today
+flattens `alt` into a summand list partitioned per position; it must
+learn to consume the factored form natively, so the fixpoint at a block
+caches by (shared operation, shared block) — identical everywhere,
+O(log N) distinct computations. That closing step is the classic
+hierarchical-SDD result, reconstructed inside this calculus.
+
+Also needed regardless: **log-form cardinality** (the double is
+exhausted at 1e15).

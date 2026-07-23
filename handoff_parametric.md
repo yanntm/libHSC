@@ -6,9 +6,12 @@ are done and green; the queue:
 
 M1, M2, M3 done — see the report, whose M3 section carries the headline:
 the diagram side is O(log N) on balanced shapes (+4 nodes per doubling of
-N), the operation side is Θ(N) (op terms pinned at 6 per instance, no
-cross-instance sharing — terms address absolute frontier positions).
-2^n-philosophers-in-O(n) is blocked there and only there.
+N), and the operations *already share across instances* (the case engine
+re-roots on descent; verified: op terms = 2N + ~30 per family, the ~30
+being the shared operations). The Θ(N) remainder is pure site
+enumeration — N wrapper chains around one shared term — and it folds, by
+distributivity, into a log-depth recurrence. 2^n-philosophers-in-O(n) is
+blocked there and only there.
 
 ## Engineering
 1. **Profile the superlinear translator/engine cost** (×4 N → ×12 time at
@@ -20,12 +23,16 @@ cross-instance sharing — terms address absolute frontier positions).
 3. On demand: `-DN=` CLI override of `param`.
 
 ## Theory
-1. **The 2^n construction** (promoted from "later" — now measured and
-   motivated, report M3): spec translation-invariant event terms
-   (relative addressing; `read_when`'s shift-to-0 of guard bexprs is the
-   existing seed) and a repetition/induction combinator over the interned
-   sort DAG — 3 templates × n levels = O(n) codes, an O(1) seam per
-   level. The substrate is ready; the term algebra is the gap.
+1. **The 2^n construction** (promoted from "later" — now measured, and
+   narrowed by the probe, report M3): translation invariance is done
+   (re-rooting); what needs spec is the wrapper factorization
+   `node(A,id) ⊕ node(B,id) ≡ node(A⊕B,id)` as a sum normal form or a
+   declared-family recurrence `R(d) = node(R(d−1),id) ⊕ node(id,R(d−1))`
+   built over the sort DAG from the binder — plus the schedule's
+   consumption of factored terms (fixpoint cached per shared
+   operation × shared block). Circular-set constraints (uniform
+   CUR/NEXT, no symmetry-breaking index) are the checkable precondition
+   for the declared route.
 2. Rule on the `select` seam (report finding 1) — resolved in code: select
    atoms now take any BEXP through the guard path; bless or amend the
    doc's `QATOM ::= BEXP` accordingly.
