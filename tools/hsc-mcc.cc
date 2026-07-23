@@ -13,6 +13,7 @@
 #include <string>
 
 #include "hsc/petri/PTNetLoader.h"
+#include "hsc/petri/decompose.hh"
 #include "hsc/petri/nupn.hh"
 #include "hsc/petri/to_surface.hh"
 #include "hsc/surface/sexpr.hh"
@@ -20,9 +21,11 @@
 
 int main(int argc, char** argv) {
   std::string in, exam;
+  bool decompose = false;
   for (int i = 1; i < argc; ++i) {
     const std::string a = argv[i];
     if (a == "-mcc" && i + 1 < argc) exam = argv[++i];
+    else if (a == "--decompose") decompose = true;
     else if (in.empty()) in = a;
   }
   if (in.empty() || exam.empty()) {
@@ -45,7 +48,8 @@ int main(int argc, char** argv) {
 
   SparsePetriNet<int>* net = loadXML<int>(in);
   if (!net) { std::fprintf(stderr, "failed to parse %s\n", in.c_str()); return 1; }
-  const hsc::petri::unit_tree units = hsc::petri::read_units(in);
+  const hsc::petri::unit_tree units =
+      decompose ? hsc::petri::decompose(*net) : hsc::petri::read_units(in);
 
   std::ostringstream model;
   hsc::petri::to_surface(model, *net, units, opts);

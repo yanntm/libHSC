@@ -1,24 +1,32 @@
-# Importers and generators. The NUPN importer emits `.hsc` text and does not
-# link the calculus core; it needs only expat (for PNML), so it is gated on it.
+# Importers and generators. The PNML importer and the Louvain decomposition
+# emit `.hsc` text; only hsc-mcc additionally links the calculus core. Everything
+# needs expat (PNML), so the tools are gated on it.
 
 find_package(EXPAT)
 if(EXPAT_FOUND)
-  add_executable(nupn2hsc
-    nupn2hsc.cc
+  # The import stack: PNML parsing, NUPN, emission, and the vendored Louvain.
+  # Built as one library, deliberately without our strict warnings — the
+  # vendored community-detection code is adopted, not authored here.
+  add_library(petri_import STATIC
     ${PROJECT_SOURCE_DIR}/src/petri_nupn.cc
-    ${PROJECT_SOURCE_DIR}/src/petri_to_surface.cc)
-  target_include_directories(nupn2hsc PRIVATE ${PROJECT_SOURCE_DIR}/include)
-  target_link_libraries(nupn2hsc PRIVATE EXPAT::EXPAT)
+    ${PROJECT_SOURCE_DIR}/src/petri_to_surface.cc
+    ${PROJECT_SOURCE_DIR}/src/petri_decompose.cc
+    ${PROJECT_SOURCE_DIR}/src/louvain/graph_binary.cpp
+    ${PROJECT_SOURCE_DIR}/src/louvain/quality.cpp
+    ${PROJECT_SOURCE_DIR}/src/louvain/modularity.cpp
+    ${PROJECT_SOURCE_DIR}/src/louvain/louvain.cpp
+    ${PROJECT_SOURCE_DIR}/src/louvain/community.cpp)
+  target_include_directories(petri_import PUBLIC ${PROJECT_SOURCE_DIR}/include)
+  target_link_libraries(petri_import PUBLIC EXPAT::EXPAT)
+
+  add_executable(nupn2hsc nupn2hsc.cc)
+  target_link_libraries(nupn2hsc PRIVATE petri_import)
   target_compile_options(nupn2hsc PRIVATE
     $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>)
 
-  # The MCC runner links both the importer (expat) and the calculus core.
-  add_executable(hsc-mcc
-    hsc-mcc.cc
-    ${PROJECT_SOURCE_DIR}/src/petri_nupn.cc
-    ${PROJECT_SOURCE_DIR}/src/petri_to_surface.cc)
-  target_include_directories(hsc-mcc PRIVATE ${PROJECT_SOURCE_DIR}/include)
-  target_link_libraries(hsc-mcc PRIVATE hsc::hsc EXPAT::EXPAT)
+  # The MCC runner also links the calculus core (the surface translator).
+  add_executable(hsc-mcc hsc-mcc.cc)
+  target_link_libraries(hsc-mcc PRIVATE petri_import hsc::hsc)
   target_compile_options(hsc-mcc PRIVATE
     $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>)
 
@@ -30,5 +38,5 @@ if(EXPAT_FOUND)
                -P ${CMAKE_CURRENT_SOURCE_DIR}/check_samples.cmake)
   endif()
 else()
-  message(STATUS "expat not found: the nupn2hsc importer will not be built")
+  message(STATUS "expat not found: the nupn2hsc / hsc-mcc tools will not be built")
 endif()
