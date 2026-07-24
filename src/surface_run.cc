@@ -78,6 +78,16 @@ class runner {
     const std::string& kw = f.head();
     if (kw == "xreach") return do_xreach(f);
     if (kw == "xdomains") return do_xdomains(f);
+    if (kw == "print-spec") {  // the current spec, post-chain, runnable
+      for (const datum& g : *forms_) {
+        if (g.is_list() && !g.items().empty() && g.head() == "print-spec") {
+          continue;  // not part of the spec it prints
+        }
+        write(out_, g);
+        out_ << '\n';
+      }
+      return;
+    }
     // the overlay: queries whose subject is an explicit result
     if (f.items().size() > 1 && f.items()[1].is_atom() &&
         xresults_.contains(f.items()[1].text())) {

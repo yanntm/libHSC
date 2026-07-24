@@ -17,6 +17,8 @@ target_sources(hsc PRIVATE
   surface_run.cc
   surface_rewrite.cc
   surface_hotbit.cc
+  surface_reorder.cc
+  surface_arrays.cc
   surface_xpl.cc
   surface_spec.cc
   dve_parser.cc

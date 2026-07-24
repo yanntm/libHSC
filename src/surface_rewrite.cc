@@ -275,7 +275,10 @@ std::vector<pass_def> pass_registry() {
            [](std::vector<datum> f, const datum&) {
              return elide_constants(std::move(f));
            }},
-          {"hotbit", hotbit}};
+          {"hotbit", hotbit},
+          {"reorder-force", reorder_force},
+          {"flatten", flatten},
+          {"simplify-arrays", simplify_arrays}};
 }
 
 }  // namespace hsc::surface

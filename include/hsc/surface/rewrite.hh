@@ -60,6 +60,22 @@ rewrite(std::vector<datum> forms, std::span<const pass> passes);
 [[nodiscard]] rewrite_result hotbit(std::vector<datum> forms,
                                     const datum& directive);
 
+/// \brief `(reorder-force)`: run FORCE on the spec's own event supports
+/// (one clique per event); the shape becomes the resulting flat spine.
+[[nodiscard]] rewrite_result reorder_force(std::vector<datum> forms,
+                                           const datum& directive);
+
+/// \brief `(flatten)`: the shape becomes the flat spine of the current
+/// frontier order — hierarchy deliberately erased.
+[[nodiscard]] rewrite_result flatten(std::vector<datum> forms,
+                                     const datum& directive);
+
+/// \brief `(simplify-arrays)`: an array with no dynamic access
+/// dissolves — static accesses fold to their cell names, the grouping
+/// goes, supports stop over-approximating to the whole array.
+[[nodiscard]] rewrite_result simplify_arrays(std::vector<datum> forms,
+                                             const datum& directive);
+
 /// A pass as the registry serves it: the directive form is handed
 /// through, so a pass can take arguments.
 struct pass_def {
