@@ -128,12 +128,19 @@ makes it ineligible: reported in the trace, the variable untouched.
 States map one-hot bijectively, so counts are invariant — the same
 differential as every pass.
 
-Further passes, briefly. **`reorder-force`**: FORCE (`hsc/order/`) run
-on the spec's own event supports, one clique per event; the shape
-becomes the resulting flat spine — reordering is a rewriting, and the
-pass composes with the encodings (hotbit's bits migrate to their true
-affinities). **`flatten`**: the flat spine of the current frontier —
-hierarchy deliberately erased, the a-contrario baseline.
+Further passes, briefly. **`reorder-force`**: FORCE (`hsc/order/`) at
+**every level of the shape tree, hierarchy undisturbed** — at each node
+the events project onto the children they touch (one clique per event)
+and FORCE orders the children; recursion does the levels below. A final
+**polarity** choice: FORCE's springs are reversal-blind, so the pass
+scores both orientations by the sum of event tops (an event's top is
+its outermost touched variable; deeper roots serve saturation) and
+mirrors the whole tree when the mirror wins. On a flat spine this is
+classic FORCE; after `decompose-louvain` it orders members within each
+community and communities among themselves. Composes with the encodings
+(hotbit's bits migrate to their true affinities). **`flatten`**: the
+flat spine of the current frontier — hierarchy deliberately erased, the
+a-contrario baseline; order kept.
 **`simplify-arrays`**: an array with no dynamic access (no `(at a E)`
 with a non-constant `E`, no family marker, no out-of-bounds constant)
 dissolves — static accesses fold to their cell names, the grouping goes;
@@ -146,7 +153,10 @@ co-occurrence graph (control = the guard's reads, targets = positions
 written outside the guard, weights 1/(|ctrl|·|write|) — the Petri
 importer's flow-like strategy generalized; a guard-read-and-written
 position is a source only, as there). Communities become nested
-`(balanced …)` blocks, members keep their frontier order. The runner
+`(balanced …)` blocks. **Stable with respect to the initial order**: it
+reads the frontier (as if flattened — existing hierarchy is replaced),
+members keep their relative order inside each community, and communities
+are ordered by their first member. The runner
 also serves **`(print-spec)`** — a command,
 not a pass: the current spec, post-chain, printed as runnable `.hsc`.
 
