@@ -23,4 +23,5 @@ target_sources(hsc PRIVATE
   xpl/model.cc
   xpl/fire.cc
   xpl/engine.cc
+  xpl/domains.cc
 )

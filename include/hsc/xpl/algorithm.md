@@ -119,7 +119,46 @@ engine may legitimately produce a count for the same model — where it
 folds ⊥ into a non-firing, explicit reports the model bug instead. That
 asymmetry is the feature.
 
-## 5. Search order
+## 5. Domain inference — a decoration step
+
+A static pass over the model (`domains.hh`): which variables can be
+*shown* to have a small effective domain, from the spec alone. No search
+is run.
+
+The unit of analysis is a scalar position or a whole array — declared
+arrays and every array node's cell list union-find into one unit; an
+array gets **one** domain for all its cells, never refined per cell.
+
+Per unit, an abstract value in the lattice
+
+    bot  ⊑  set(V)  (|V| ≤ cap)  ⊑  interval[lo,hi]  ⊑  top
+
+fed by the assignments that target it, each classified once:
+
+* `x := c` — the constant joins the set;
+* `x := y`, `x := (at a e)` — a **copy edge** from y's (a's) unit: the
+  source domain propagates, to a fixpoint over the edges;
+* `x := e % k` (k a constant) — the interval `[0, k)`, tagged `mod`
+  (assumes the operand nonnegative, as an index is; the tag keeps the
+  assumption visible);
+* a boolean-valued rhs — the set `{0, 1}`;
+* `havoc x lo hi` — `[lo, hi)` as a set when small, interval else;
+* anything else — top: a counter `x := x + 1` is *honestly* unbounded
+  here; this pass detects enumerated state, not bounded arithmetic.
+
+Seeds contribute their values (a never-assigned unit ends as `frozen`:
+its initial values are its whole life). Guards contribute nothing —
+no refinement by reachability, this is decoration, not verification.
+A set that outgrows the cap degrades to its interval hull; every join
+only grows, contributions are finite, so the fixpoint terminates.
+
+What the data answers: the proportion of units statically bounded, the
+size distribution of the small domains, and the **holes** — a set kept
+exactly (never widened to a hull) exposes sentinel patterns like
+`{0, 1, 2, 255}`, which an interval abstraction would silently paper
+over.
+
+## 6. Search order
 
 FIFO expansion = breadth-first: shortest witnesses first, and the natural
 seam for later strategies (guided walks, random simulation, DFS) — a
