@@ -117,7 +117,7 @@ class diagram_engine final : public support_algebra {
   /// operation table. The *saturating* closure needs to know the sort and is
   /// therefore `core::saturate` in `operation.hh`, not this.
   code term_sum(code a, code b) override;
-  code term_closure(code t) override;
+  code term_lfp(code t) override;
   [[nodiscard]] double cardinal(code c) const override;
   void print(std::ostream& os, code c) const override;
   ///@}

@@ -55,7 +55,7 @@ designed against, and we do not have one.
 ## H2 — `int_set::shift` is unbounded. *(live, unexercised)*
 
 **What breaks.** `shift(delta)` is the pushforward of `x ↦ x + delta`, with
-no domain. Under a closure — `term_closure` iterates to a fixed point — a
+no domain. Under a closure — `term_lfp` iterates to a fixed point — a
 non-zero shift never converges. **Infinite loop**, no diagnostic.
 
 **What prevents it now.** No example uses `shift`. Hanoi assigns, the

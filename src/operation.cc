@@ -154,7 +154,7 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
     support_algebra& algebra = mgr.algebra(sort);
     code fused = events.front();
     for (const code e : events.subspan(1)) fused = algebra.term_sum(fused, e);
-    return algebra.term_closure(fused);
+    return algebra.term_lfp(fused);
   }
 
   // A folded (or named) sum stands for its summands: flatten before the
@@ -168,7 +168,7 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
   std::vector<code> edge;    // L: head only  — the head terms themselves
   std::vector<code> across;  // G: both       — kept whole, chained here
   for (const code e : flat) {
-    if (e == op_table::id) continue;  // id is in every closure already
+    if (e == op_table::id) continue;  // lfp is reflexive already
     const op_term& t = ops[e];
     if (t.kind == op_kind::node) {
       const code head = t.operand(0);
@@ -199,9 +199,7 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
   if (f_part == op_table::id && l_part == op_table::id) {
     // Nothing reaches past this cut on its own: there is no schedule to
     // exploit, so say so plainly rather than build a degenerate one.
-    std::vector<code> all(flat.begin(), flat.end());
-    all.push_back(op_table::id);
-    return ops.fixpoint(ops.sum(all));
+    return ops.lfp(ops.sum(flat));
   }
 
   return ops.saturate(f_part, l_part, across);

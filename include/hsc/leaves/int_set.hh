@@ -57,7 +57,7 @@ enum class int_action : std::uint8_t {
 enum class int_shape : std::uint8_t {
   primitive,  ///< a guard, then an action
   sum,        ///< a or b
-  closure,    ///< `(a + id)*`
+  lfp,        ///< the least fixpoint `(id + a)*`
 };
 
 /// What a primitive term's guard is.
@@ -69,7 +69,7 @@ enum class int_guard : std::uint8_t {
 
 /// \brief A local term of this theory.
 ///
-/// A guard then an action, plus sum and star closure — which is the term
+/// A guard then an action, plus sum and lfp — which is the term
 /// language a theory is handed *whole*. Enough for a Petri
 /// transition (`m >= w` then `m -= w`) and a Hanoi move (`pos == a` then
 /// `pos := b`). A guard is symbolic (an interned expression, evaluated on
@@ -81,7 +81,7 @@ struct int_term {
   int_action action = int_action::keep;
   int_guard gkind = int_guard::none;
   std::int32_t arg = 0;
-  core::code a = core::none;  ///< primitive: the guard; sum/closure: operand
+  core::code a = core::none;  ///< primitive: the guard; sum/lfp: operand
   core::code b = core::none;  ///< sum: the second operand
 
   friend bool operator==(const int_term&, const int_term&) = default;
@@ -156,7 +156,7 @@ class int_set_theory final : public core::support_algebra {
 
   core::code apply_local(core::code term, core::code value) override;
   core::code term_sum(core::code a, core::code b) override;
-  core::code term_closure(core::code t) override;
+  core::code term_lfp(core::code t) override;
 
   core::code join(core::code a, core::code b) override;
   core::code meet(core::code a, core::code b) override;

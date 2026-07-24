@@ -171,18 +171,19 @@ core::code int_set_theory::term_sum(core::code a, core::code b) {
       int_term{int_shape::sum, int_action::keep, int_guard::none, 0, a, b});
 }
 
-core::code int_set_theory::term_closure(core::code t) {
-  if (t == 0) return 0;  // id* = id
+core::code int_set_theory::term_lfp(core::code t) {
+  if (t == 0) return 0;  // lfp(id) = id
   const int_term& inner = terms_[t];
-  if (inner.shape == int_shape::closure) return t;  // idempotent
+  if (inner.shape == int_shape::lfp) return t;  // idempotent
   if (inner.shape == int_shape::primitive &&
       inner.action == int_action::keep) {
-    // A pure guard only removes values, so under union it adds nothing:
-    // (g + id)* = id. Discipline 5 -- this is a cheaper bill, same meaning.
+    // A pure guard only removes values, so its accumulation adds nothing:
+    // lfp(g) = id. A sound fact about lfp — not about bare star, whose
+    // g* would be g. Cheaper bill, same meaning.
     return 0;
   }
   return terms_.get(
-      int_term{int_shape::closure, int_action::keep, int_guard::none, 0, t, 0});
+      int_term{int_shape::lfp, int_action::keep, int_guard::none, 0, t, 0});
 }
 
 core::code int_set_theory::apply_local(core::code term, core::code value) {
@@ -193,7 +194,7 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
   if (t.shape == int_shape::sum) {
     return join(apply_local(t.a, value), apply_local(t.b, value));
   }
-  if (t.shape == int_shape::closure) {
+  if (t.shape == int_shape::lfp) {
     // Naive iteration. A theory is free to fuse a closure instead; this one
     // does not try, which is what makes it the honest oracle.
     core::code x = value;

@@ -63,8 +63,13 @@ class support_algebra {
   ///@{
   /// The term acting as \p a or \p b.
   virtual code term_sum(code a, code b) = 0;
-  /// The reflexive closure `(t + id)*`, as a term.
-  virtual code term_closure(code t) = 0;
+  /// \brief The least fixpoint `lfp(t) = (id + t)*`, as a term.
+  ///
+  /// The derived form of the theory contract's pure star, offered as the
+  /// primitive so that recognizing an accumulation never requires matching
+  /// operands. Bare (non-reflexive) star is deliberately not on this
+  /// interface: nothing in the calculus asks for it yet.
+  virtual code term_lfp(code t) = 0;
   ///@}
 
   /// \brief How many elements \p c denotes.

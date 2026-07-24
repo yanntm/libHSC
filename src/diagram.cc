@@ -223,10 +223,10 @@ code diagram_engine::term_sum(code a, code b) {
   return owner_.operations().sum(a, b);
 }
 
-code diagram_engine::term_closure(code t) {
-  // The naive closure. The saturating one needs the sort, so it is
+code diagram_engine::term_lfp(code t) {
+  // The naive lfp. The saturating one needs the sort, so it is
   // core::saturate() in operation.hh.
-  return owner_.operations().fixpoint(t);
+  return owner_.operations().lfp(t);
 }
 
 code diagram_engine::do_apply(code term, code d) {
@@ -240,7 +240,7 @@ code diagram_engine::do_apply(code term, code d) {
     case op_kind::compose:
       return apply_local(t.operand(0), apply_local(t.operand(1), d));
 
-    case op_kind::fixpoint: {
+    case op_kind::lfp: {
       // Round-based iteration, kept for comparison: it rebuilds a fresh
       // object every round and so misses the memo every round.
       const code h = t.operand(0);

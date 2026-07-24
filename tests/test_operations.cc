@@ -112,11 +112,8 @@ TEST_CASE("saturation computes the same fixpoint as naive iteration") {
     const model m = random_model(mgr, theory, index, rng);
 
     core::op_table& ops = mgr.operations();
-    std::vector<core::code> reflexive = m.events;
-    reflexive.push_back(core::op_table::id);
-
     const core::code naive =
-        mgr.diagrams().apply_local(ops.fixpoint(ops.sum(reflexive)), m.start);
+        mgr.diagrams().apply_local(ops.lfp(ops.sum(m.events)), m.start);
     const core::code saturated = mgr.diagrams().apply_local(
         core::saturate(mgr, m.sort, m.events), m.start);
 
