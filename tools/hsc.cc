@@ -6,7 +6,11 @@
 /// nonzero on a parse/expand/translate error or a failed `expect` — so a
 /// model file is a self-checking test. `--expand` stops after the parametric
 /// pass and prints the expanded model as plain `.hsc` text: the
-/// degeneralization of a parametric file, itself runnable.
+/// degeneralization of a parametric file, itself runnable. `--explicit`
+/// runs the same file on the explicit engine instead: each `(reach NAME …)`
+/// becomes `(xreach NAME …)`, and the file's own `count`/`expect` read the
+/// explicit result — output lines match the symbolic run, so a corpus
+/// differential is a diff of outputs.
 
 #include <fstream>
 #include <iostream>
@@ -48,6 +52,75 @@ int dump_expanded(const std::string& path,
   return 2;
 }
 
+/// `--explicit`: `(reach NAME [saturate|naive] [from R])` becomes
+/// `(xreach NAME [from R] [cap K])`. A `reach` carrying an event term is
+/// refused: the explicit engine runs the default system.
+std::vector<hsc::surface::datum> to_explicit(
+    std::vector<hsc::surface::datum> forms, long long cap) {
+  using hsc::surface::datum;
+  std::vector<datum> out;
+  out.reserve(forms.size());
+  for (datum& f : forms) {
+    if (!f.is_list() || f.items().empty() || f.head() != "reach" ||
+        f.items().size() < 2) {
+      out.push_back(std::move(f));
+      continue;
+    }
+    std::vector<datum> items;
+    items.push_back(datum::atom("xreach", f.line()));
+    items.push_back(f.items()[1]);  // the result name
+    for (std::size_t i = 2; i < f.items().size(); ++i) {
+      const datum& d = f.items()[i];
+      if (d.is_atom() && (d.text() == "saturate" || d.text() == "naive")) {
+        continue;  // a strategy of the symbolic engine
+      }
+      if (d.is_atom() && d.text() == "from" && i + 1 < f.items().size()) {
+        items.push_back(d);
+        items.push_back(f.items()[++i]);
+        continue;
+      }
+      throw std::runtime_error(
+          "line " + std::to_string(f.line()) +
+          ": --explicit supports only the default system; this (reach …) "
+          "names an event term");
+    }
+    if (cap > 0) {
+      items.push_back(datum::atom("cap", f.line()));
+      items.push_back(datum::atom(std::to_string(cap), f.line()));
+    }
+    out.push_back(datum::list(std::move(items), f.line()));
+  }
+  return out;
+}
+
+int run_explicit(const std::string& path,
+                 const std::map<std::string, long long>& params,
+                 long long cap) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) {
+    std::cerr << "cannot open " << path << '\n';
+    return 2;
+  }
+  std::ostringstream buf;
+  buf << in.rdbuf();
+  try {
+    const std::vector<hsc::surface::datum> forms = to_explicit(
+        hsc::surface::expand(hsc::surface::parse(buf.str()),
+                             /*families=*/true, params),
+        cap);
+    return hsc::surface::translate(forms, std::cout) == 0 ? 0 : 1;
+  } catch (const hsc::surface::parse_error& e) {
+    std::cerr << path << ": parse error: " << e.what() << '\n';
+  } catch (const hsc::surface::expand_error& e) {
+    std::cerr << path << ": expand error: " << e.what() << '\n';
+  } catch (const hsc::surface::translate_error& e) {
+    std::cerr << path << ": " << e.what() << '\n';
+  } catch (const std::runtime_error& e) {
+    std::cerr << path << ": " << e.what() << '\n';
+  }
+  return 2;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -65,6 +138,16 @@ int main(int argc, char** argv) {
   app.add_flag("--expand", dump,
                "stop after the parametric pass; print the flat, runnable "
                ".hsc text");
+
+  bool use_explicit = false;
+  app.add_flag("--explicit", use_explicit,
+               "run on the explicit engine: each (reach NAME ...) becomes "
+               "(xreach NAME ...); count/expect read the explicit result");
+
+  long long cap = 0;
+  app.add_option("--cap", cap,
+                 "with --explicit: bound on stored states (default 2^20)")
+      ->check(CLI::PositiveNumber);
 
   std::vector<std::string> defines;
   app.add_option("-D", defines,
@@ -94,5 +177,6 @@ int main(int argc, char** argv) {
   }
 
   if (dump) return dump_expanded(path, params);
+  if (use_explicit) return run_explicit(path, params, cap);
   return hsc::surface::run_file(path, std::cout, std::cerr, params);
 }
