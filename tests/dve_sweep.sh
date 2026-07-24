@@ -20,6 +20,7 @@ HSCRUN=build/tools/hsc
 HSCFLAGS="${HSCFLAGS:-}"                       # e.g. --explicit
 OUT="${OUT:-examples/divine/status.tsv}"       # override to spare status.tsv
 LOG="${LOG:-tests/logs/dve_sweep.log}"
+GEN="${GEN:-1}"    # 0: reuse existing .hsc — lets parallel sweeps share them
 REV=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 ARCHIVE=examples/divine/runs/${STAMP}_${REV}${LABEL:+_$LABEL}.tsv
@@ -33,10 +34,15 @@ mkdir -p tests/logs examples/divine/hsc examples/divine/runs
 for f in examples/divine/dve/*.dve; do
   b=$(basename "$f" .dve)
   hsc=examples/divine/hsc/$b.hsc
-  if ! msg=$("$DVE2HSC" "$f" -o "$hsc" "$@" 2>&1); then
-    rm -f "$hsc"
-    printf '%s\ttransform-error\t%s\t\t\n' "$b" \
-      "$(echo "$msg" | sed 's/.*transform error: //' | head -c 100)" >> "$ARCHIVE"
+  if [ "$GEN" != 0 ]; then
+    if ! msg=$("$DVE2HSC" "$f" -o "$hsc" "$@" 2>&1); then
+      rm -f "$hsc"
+      printf '%s\ttransform-error\t%s\t\t\n' "$b" \
+        "$(echo "$msg" | sed 's/.*transform error: //' | head -c 100)" >> "$ARCHIVE"
+      continue
+    fi
+  elif [ ! -f "$hsc" ]; then
+    printf '%s\ttransform-error\tno .hsc (GEN=0)\t\t\n' "$b" >> "$ARCHIVE"
     continue
   fi
   t0=$(date +%s.%N)
