@@ -24,6 +24,7 @@
 #include <CLI/CLI.hpp>
 
 #include "hsc/surface/expand.hh"
+#include "hsc/surface/rewrite.hh"
 #include "hsc/surface/translate.hh"
 
 namespace {
@@ -115,6 +116,42 @@ std::vector<hsc::surface::datum> to_domains(
   return out;
 }
 
+/// `--rewrite`: run the default rewrite chain, print the rewritten spec
+/// as runnable .hsc text; traces go to stderr.
+int dump_rewritten(const std::string& path,
+                   const std::map<std::string, long long>& params) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) {
+    std::cerr << "cannot open " << path << '\n';
+    return 2;
+  }
+  std::ostringstream buf;
+  buf << in.rdbuf();
+  try {
+    const std::vector<hsc::surface::pass> chain = hsc::surface::default_chain();
+    auto [forms, log] = hsc::surface::rewrite(
+        hsc::surface::expand(hsc::surface::parse(buf.str()),
+                             /*families=*/true, params),
+        chain);
+    for (const hsc::surface::trace_entry& e : log) {
+      std::cerr << "rewrite " << e.pass_name
+                << (e.applied ? ": " : " (identity): ") << e.trace << '\n';
+    }
+    for (const hsc::surface::datum& form : forms) {
+      hsc::surface::write(std::cout, form);
+      std::cout << '\n';
+    }
+    return 0;
+  } catch (const hsc::surface::parse_error& e) {
+    std::cerr << path << ": parse error: " << e.what() << '\n';
+  } catch (const hsc::surface::expand_error& e) {
+    std::cerr << path << ": expand error: " << e.what() << '\n';
+  } catch (const hsc::surface::translate_error& e) {
+    std::cerr << path << ": " << e.what() << '\n';
+  }
+  return 2;
+}
+
 /// Parse, expand, rewrite by \p tf, translate. The shared scaffolding of
 /// the `--explicit` and `--domains` modes.
 int run_transformed(
@@ -168,6 +205,11 @@ int main(int argc, char** argv) {
                "run on the explicit engine: each (reach NAME ...) becomes "
                "(xreach NAME ...); count/expect read the explicit result");
 
+  bool do_rewrite = false;
+  app.add_flag("--rewrite", do_rewrite,
+               "run the rewrite chain (simplify-constants, ...); print the "
+               "rewritten spec, traces on stderr");
+
   bool use_domains = false;
   app.add_flag("--domains", use_domains,
                "domain inference only: keep the declarations, run "
@@ -206,6 +248,7 @@ int main(int argc, char** argv) {
   }
 
   if (dump) return dump_expanded(path, params);
+  if (do_rewrite) return dump_rewritten(path, params);
   if (use_domains) return run_transformed(path, params, to_domains);
   if (use_explicit) {
     return run_transformed(path, params, [cap](auto forms) {

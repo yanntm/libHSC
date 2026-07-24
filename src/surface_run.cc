@@ -14,6 +14,7 @@
 #include "surface_translator.hh"
 
 #include "hsc/surface/expand.hh"
+#include "hsc/surface/rewrite.hh"
 #include "hsc/surface/spec.hh"
 #include "hsc/surface/xpl_build.hh"
 #include "hsc/xpl/engine.hh"
@@ -27,8 +28,34 @@ class runner {
   explicit runner(std::ostream& out) : out_(out), t_(out) {}
 
   int run(const std::vector<datum>& forms) {
-    forms_ = &forms;
-    for (const datum& f : forms) route(f);
+    // rewrite directives: forms whose head names a pass of the chain
+    // ((simplify-constants) today; the vocabulary grows). Consumed here,
+    // applied in file order to the whole spec, trace printed — identity
+    // included, never silent.
+    std::vector<pass> chain;
+    std::vector<datum> work;
+    const std::vector<pass> registry = default_chain();
+    for (const datum& f : forms) {
+      const pass* hit = nullptr;
+      if (f.is_list() && !f.items().empty()) {
+        for (const pass& p : registry) {
+          if (p.name == f.head()) hit = &p;
+        }
+      }
+      if (hit) chain.push_back(*hit);
+      else work.push_back(f);
+    }
+    if (!chain.empty()) {
+      auto [rewritten, log] = rewrite(std::move(work), chain);
+      work = std::move(rewritten);
+      for (const trace_entry& e : log) {
+        out_ << "rewrite " << e.pass_name
+             << (e.applied ? ": " : " (identity): ") << e.trace << '\n';
+      }
+    }
+    owned_ = std::move(work);
+    forms_ = &owned_;
+    for (const datum& f : *forms_) route(f);
     return t_.failures() + failures_;
   }
 
@@ -210,6 +237,7 @@ class runner {
 
   std::ostream& out_;
   translator t_;
+  std::vector<datum> owned_;  ///< the forms after the rewrite chain
   const std::vector<datum>* forms_ = nullptr;
   std::optional<spec> spec_;
   lia::expr_factory ex_;
