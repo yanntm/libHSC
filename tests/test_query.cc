@@ -149,14 +149,14 @@ TEST_CASE("split_equiv on a diagram partitions it exactly") {
   const std::vector<int> sizes{3, 2, 4, 2};
   auto [sort, c] = balanced_cube(mgr, theory, leaf, sizes, 0, sizes.size());
   for (std::size_t pos = 0; pos < sizes.size(); ++pos) {
-    const auto classes = split_equiv(mgr, theory, sort, c, pos);
+    const auto classes = split_equiv(
+        mgr, theory, sort, c,
+        theory.exprs().variable(static_cast<std::uint32_t>(pos)));
     REQUIRE(classes.size() == static_cast<std::size_t>(sizes[pos]));
     core::code all = core::none;
     double total = 0;
-    std::int32_t prev = -1;
-    for (const auto& [v, piece] : classes) {
-      CHECK(v > prev);  // ascending, one class per value
-      prev = v;
+    for (const auto& [m, piece] : classes) {
+      const std::int32_t v = theory.exprs().value(m);
       total += mgr.diagrams().cardinal(piece);
       all = all == core::none ? piece : mgr.diagrams().join(all, piece);
       // each class is exactly the subset holding v at pos

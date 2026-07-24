@@ -72,15 +72,20 @@ code restrict(core::manager& mgr, leaves::int_set_theory& theory,
 }
 
 /// Partition \p c (sort \p sort) by the value at frontier position \p pos —
-/// `split_equiv` one level in. A leaf is the theory's split; a pair splits the
-/// side holding \p pos, pairs each class with the other side, and merges
-/// classes by common value across arcs. Ascending by value, like the leaf.
+/// `split_equiv` one level in, coordinate case: classes as plain values for
+/// the comparison residuals below. A bare variable never yields ⊥, so the
+/// markers convert totally.
 std::vector<std::pair<std::int32_t, code>> split_position(
     core::manager& mgr, leaves::int_set_theory& theory, shape_code sort,
     code c, std::size_t pos) {
   const core::shape_table& shapes = mgr.shapes();
   if (shapes.kind(sort) == core::shape_kind::leaf) {
-    return theory.split_equiv(c);
+    std::vector<std::pair<std::int32_t, code>> out;
+    for (const auto& [m, piece] :
+         theory.split_equiv(c, theory.exprs().variable(0))) {
+      out.emplace_back(theory.exprs().value(m), piece);
+    }
+    return out;
   }
   core::diagram_engine& diagrams = mgr.diagrams();
   const std::size_t wh = shapes.width(shapes.head(sort));
@@ -181,11 +186,72 @@ code select_where(core::manager& mgr, leaves::int_set_theory& theory,
                  [&](code leaf) { return theory.filter(leaf, guard); });
 }
 
-std::vector<std::pair<std::int32_t, code>> split_equiv(
+std::vector<std::pair<lia::iexpr, code>> split_equiv(
     core::manager& mgr, leaves::int_set_theory& theory, shape_code sort,
-    code diagram, std::size_t pos) {
+    code diagram, lia::iexpr e) {
   if (diagram == core::none) return {};
-  return split_position(mgr, theory, sort, diagram, pos);
+  lia::expr_factory& ex = theory.exprs();
+  // A ground expression is one class, marked by itself.
+  if (lia::expr_factory::is_const(e) || e == lia::iundef) {
+    return {{e, diagram}};
+  }
+
+  const core::shape_table& shapes = mgr.shapes();
+  if (shapes.kind(sort) == core::shape_kind::leaf) {
+    return theory.split_equiv(diagram, e);
+  }
+
+  core::diagram_engine& diagrams = mgr.diagrams();
+  const std::size_t wh = shapes.width(shapes.head(sort));
+  const auto sup = ex.support(e);  // ascending
+  std::vector<std::pair<lia::iexpr, code>> out;
+
+  if (!sup.empty() && sup.back() < wh) {  // wholly in the head
+    std::map<lia::iexpr, std::vector<core::arc>> classes;
+    for (const core::arc& a : diagrams.arcs(diagram)) {
+      for (const auto& [m, piece] :
+           split_equiv(mgr, theory, shapes.head(sort), a.prime, e)) {
+        classes[m].push_back({piece, a.sub});
+      }
+    }
+    for (auto& [m, rects] : classes) {
+      const code piece = diagrams.canonize(sort, rects);
+      if (piece != core::none) out.emplace_back(m, piece);
+    }
+    return out;
+  }
+  if (!sup.empty() && sup.front() >= wh) {  // wholly in the tail: re-root
+    const lia::iexpr et =
+        ex.shift_positions(e, -static_cast<std::int32_t>(wh));
+    std::map<lia::iexpr, std::vector<core::arc>> classes;
+    for (const core::arc& a : diagrams.arcs(diagram)) {
+      for (const auto& [m, piece] :
+           split_equiv(mgr, theory, shapes.tail(sort), a.sub, et)) {
+        classes[m].push_back({a.prime, piece});
+      }
+    }
+    for (auto& [m, rects] : classes) {
+      const code piece = diagrams.canonize(sort, rects);
+      if (piece != core::none) out.emplace_back(m, piece);
+    }
+    return out;
+  }
+
+  // The expression spans this cut: curry by its least coordinate, refine
+  // the class by the residual expression, merge by final marker. The
+  // markers index strictly coarser than the value tuples curried through.
+  const std::uint32_t r = sup.front();
+  std::map<lia::iexpr, code> acc;
+  for (const auto& [m0, piece0] :
+       split_equiv(mgr, theory, sort, diagram, ex.variable(r))) {
+    const lia::iexpr e2 = ex.subst(e, r, m0);
+    for (const auto& [m, piece] : split_equiv(mgr, theory, sort, piece0, e2)) {
+      auto [it, fresh] = acc.try_emplace(m, piece);
+      if (!fresh) it->second = diagrams.join(it->second, piece);
+    }
+  }
+  out.assign(acc.begin(), acc.end());
+  return out;
 }
 
 }  // namespace hsc

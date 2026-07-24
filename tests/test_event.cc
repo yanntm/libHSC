@@ -249,3 +249,47 @@ TEST_CASE("indirection: when tab[tab[x]] == 0 filter (R4 gate)") {
     CHECK(got == want);
   }
 }
+
+TEST_CASE("assertion markers: (x0 + x1) < x2 splits by the sum") {
+  rig r;
+  // x0, x1 head-side under a balanced shape: the chooser asserts the whole
+  // sum (x0 + x1) and classes are its realised values — coarser than the
+  // (x0, x1) value pairs — before the residual curries onto x2.
+  const std::vector<int> sizes{4, 4, 8};
+  for (const bool bal : {false, true}) {
+    const built b = bal ? balanced_cube(r.mgr, *r.theory, r.leaf, sizes, 0,
+                                        sizes.size())
+                        : spine_cube(r.mgr, *r.theory, r.leaf, sizes);
+    lia::expr_factory& ex = r.ex();
+    const lia::bexpr g =
+        ex.compare(lia::bkind::lt, ex.add(ex.variable(0), ex.variable(1)),
+                   ex.variable(2));
+    const core::code ev = r.cases->make_event(b.sort, g, {});
+    const core::code got = r.mgr.diagrams().apply_local(ev, b.cube);
+    const core::code want =
+        oracle(r.mgr, *r.theory, b.sort, sizes,
+               [](std::vector<int>& t) { return t[0] + t[1] < t[2]; });
+    CHECK(got == want);
+  }
+}
+
+TEST_CASE("assertion markers: ⊥ class decided by a Kleene disjunction") {
+  rig r;
+  // (4 % x0) == 2  or  x1 == 1: at x0 = 0 the left disjunct is ⊥; the ⊥
+  // marker class must survive through the disjunction, not be dropped.
+  const std::vector<int> sizes{4, 2};
+  const built b = spine_cube(r.mgr, *r.theory, r.leaf, sizes);
+  lia::expr_factory& ex = r.ex();
+  const lia::bexpr g = ex.disj(
+      ex.compare(lia::bkind::eq, ex.mod(ex.constant(4), ex.variable(0)),
+                 ex.constant(2)),
+      ex.compare(lia::bkind::eq, ex.variable(1), ex.constant(1)));
+  const core::code ev = r.cases->make_event(b.sort, g, {});
+  const core::code got = r.mgr.diagrams().apply_local(ev, b.cube);
+  const core::code want =
+      oracle(r.mgr, *r.theory, b.sort, sizes, [](std::vector<int>& t) {
+        const bool left_defined = t[0] != 0;
+        return (left_defined && 4 % t[0] == 2) || t[1] == 1;
+      });
+  CHECK(got == want);
+}

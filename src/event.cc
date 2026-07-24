@@ -29,6 +29,72 @@ bool is_array_node(const lia::expr_factory& ex, lia::iexpr e) {
   return (e & 1u) == 0 && e != 0 && ex.kind(e) == lia::ikind::array;
 }
 
+/// True when \p e is a node code (even, nonzero) — not an immediate.
+bool is_node(std::uint32_t e) { return (e & 1u) == 0 && e != 0; }
+
+/// \name The assertion chooser
+///
+/// A usable assertion subexpression for the side `[lo, hi)`: scalar support
+/// wholly inside, containing the least read \p r, no array placements.
+/// The walk returns the topmost such subterm — the maximal assertion — and
+/// a bare `variable(r)` degenerates to the coordinate split.
+///@{
+bool assertable(lia::expr_factory& ex, lia::iexpr e, std::uint32_t lo,
+                std::uint32_t hi, std::uint32_t r) {
+  if (!is_node(e)) return false;
+  if (!ex.array_positions(e).empty()) return false;
+  const auto sup = ex.support(e);
+  if (sup.empty()) return false;
+  bool has = false;
+  for (const std::uint32_t p : sup) {
+    if (p < lo || p >= hi) return false;
+    if (p == r) has = true;
+  }
+  return has;
+}
+
+lia::iexpr find_assert_b(lia::expr_factory& ex, lia::bexpr e, std::uint32_t lo,
+                         std::uint32_t hi, std::uint32_t r);
+
+lia::iexpr find_assert_i(lia::expr_factory& ex, lia::iexpr e, std::uint32_t lo,
+                         std::uint32_t hi, std::uint32_t r) {
+  if (!is_node(e)) return 0;
+  if (assertable(ex, e, lo, hi, r)) return e;
+  const lia::expr_node& n = ex.node(e);
+  switch (ex.kind(e)) {
+    case lia::ikind::array:  // only the index is an expression
+      return find_assert_i(ex, n.operands()[0], lo, hi, r);
+    case lia::ikind::wrap_bool:
+      return find_assert_b(ex, n.operands()[0], lo, hi, r);
+    default:
+      for (const std::uint32_t op : n.operands()) {
+        if (const lia::iexpr f = find_assert_i(ex, op, lo, hi, r)) return f;
+      }
+      return 0;
+  }
+}
+
+lia::iexpr find_assert_b(lia::expr_factory& ex, lia::bexpr e, std::uint32_t lo,
+                         std::uint32_t hi, std::uint32_t r) {
+  if (!is_node(e)) return 0;
+  const lia::expr_node& n = ex.bool_node(e);
+  switch (ex.bool_kind(e)) {
+    case lia::bkind::conj:
+    case lia::bkind::disj:
+    case lia::bkind::neg:
+      for (const std::uint32_t op : n.operands()) {
+        if (const lia::iexpr f = find_assert_b(ex, op, lo, hi, r)) return f;
+      }
+      return 0;
+    default:  // a comparison: its sides are the topmost iexpr candidates
+      for (const std::uint32_t op : n.operands()) {
+        if (const lia::iexpr f = find_assert_i(ex, op, lo, hi, r)) return f;
+      }
+      return 0;
+  }
+}
+///@}
+
 }  // namespace
 
 case_engine::case_engine(core::manager& mgr, leaves::int_set_theory& theory)
@@ -166,27 +232,41 @@ code case_engine::apply(code term, code d) {
   }
 
   if (r != no_read) {
-    // Curry: split the side holding r by that coordinate; per class value,
-    // substitute and hand the interned residual to the class's rectangle.
+    // Curry: split the side holding r by the maximal side-supported
+    // subexpression around it (a bare variable degenerates to the
+    // coordinate); per class marker, apply the assertion (e := m) to every
+    // expression and hand the interned residual to the class's rectangle.
     const bool in_head = r < wh;
+    const auto lo = static_cast<std::uint32_t>(in_head ? 0 : wh);
+    const auto hi = static_cast<std::uint32_t>(
+        in_head ? wh : shapes.width(sort));
+    lia::iexpr e = find_assert_b(ex, guard, lo, hi, r);
+    for (std::size_t i = 0; e == 0 && i < as.size(); ++i) {
+      e = find_assert_i(ex, as[i].rhs, lo, hi, r);
+      if (e == 0 && is_array_node(ex, as[i].lhs)) {
+        e = find_assert_i(ex, as[i].lhs, lo, hi, r);
+      }
+    }
+    if (e == 0) e = ex.variable(r);
+    const lia::iexpr e_side =
+        in_head ? e : ex.shift_positions(e, -static_cast<std::int32_t>(wh));
     code out = core::none;
     for (const core::arc& a : diagrams.arcs(d)) {
       const auto classes =
           split_equiv(mgr_, *theory_, in_head ? hsort : tsort,
-                      in_head ? a.prime : a.sub,
-                      in_head ? r : r - wh);
-      for (const auto& [v, piece] : classes) {
-        const lia::iexpr cv = ex.constant(v);
-        const lia::bexpr g = ex.subst_bool(guard, r, cv);
+                      in_head ? a.prime : a.sub, e_side);
+      for (const auto& [m, piece] : classes) {
+        const lia::bexpr g = ex.subst_subexpr_bool(guard, e, m);
         if (g == lia::bfalse || g == lia::bundef) continue;
         std::vector<assign> curried;
         curried.reserve(as.size());
         bool aborted = false;
         for (const assign& x : as) {
-          assign c{is_array_node(ex, x.lhs) ? ex.subst(x.lhs, r, cv) : x.lhs,
-                   ex.subst(x.rhs, r, cv)};
+          assign c{is_array_node(ex, x.lhs) ? ex.subst_subexpr(x.lhs, e, m)
+                                            : x.lhs,
+                   ex.subst_subexpr(x.rhs, e, m)};
           if (c.lhs == lia::iundef || c.rhs == lia::iundef) {
-            aborted = true;  // out of bounds: this class contributes 0
+            aborted = true;  // out of bounds or ⊥ value: this class is 0
             break;
           }
           curried.push_back(c);

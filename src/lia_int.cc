@@ -310,6 +310,38 @@ iexpr expr_factory::subst(iexpr e, std::uint32_t pos, iexpr v) {
   return e;
 }
 
+iexpr expr_factory::subst_subexpr(iexpr e, iexpr sub, iexpr v) {
+  if (e == sub) return v;
+  if (is_imm(e)) return e;
+  const expr_node& n = node(e);
+  switch (static_cast<ikind>(n.kind)) {
+    case ikind::constant:
+    case ikind::var:
+      return e;
+    case ikind::plus:
+    case ikind::mult: {
+      std::vector<iexpr> ops(n.operands().begin(), n.operands().end());
+      for (iexpr& op : ops) op = subst_subexpr(op, sub, v);
+      return nary(static_cast<ikind>(n.kind), ops);
+    }
+    case ikind::minus: case ikind::div: case ikind::mod: case ikind::pow:
+    case ikind::bit_and: case ikind::bit_or: case ikind::bit_xor:
+    case ikind::lshift: case ikind::rshift:
+      return binary(static_cast<ikind>(n.kind),
+                    subst_subexpr(n.operands()[0], sub, v),
+                    subst_subexpr(n.operands()[1], sub, v));
+    case ikind::bit_comp:
+      return bit_comp(subst_subexpr(n.operands()[0], sub, v));
+    case ikind::array:
+      // Cells are placement data; only the index is an expression.
+      return array(n.operands().subspan(1),
+                   subst_subexpr(n.operands()[0], sub, v));
+    case ikind::wrap_bool:
+      return wrap(subst_subexpr_bool(n.operands()[0], sub, v));
+  }
+  return e;
+}
+
 // --- evaluation ------------------------------------------------------------
 
 std::int64_t expr_factory::eval_int(iexpr e, std::span<const std::int32_t> env,

@@ -45,16 +45,20 @@ enum class cmp : std::uint8_t { lt, le, eq, ne, ge, gt };
   return false;
 }
 
-/// \brief Partition \p diagram (sort \p sort) by the value at frontier
-/// position \p pos — `split_equiv` lifted from the leaf to diagrams.
+/// \brief Partition \p diagram (sort \p sort) by the value of \p e — a
+/// scalar `lia` expression in the sort's frame, no array nodes —
+/// `split_equiv` lifted from the leaf to diagrams.
 ///
-/// One class per distinct value, ascending; each class is the subset of
-/// \p diagram holding that value at \p pos. A leaf is the theory's own split;
-/// a pair splits the side holding \p pos one level in and merges classes by
-/// common value. Exact, like the leaf: no cost knob.
-[[nodiscard]] std::vector<std::pair<std::int32_t, core::code>> split_equiv(
+/// One class per realised value; the marker is the interned constant, or ⊥
+/// where \p e is undefined. A leaf is the theory's own split; a pair whose
+/// side wholly holds `e`'s support recurses that side (re-rooted by shift);
+/// an expression spanning the internal cut is curried coordinate by
+/// coordinate and the classes merge by **final** marker — the assertion
+/// `(e := v)` indexes strictly coarser than the value tuples it curried
+/// through. A bare `variable(pos)` is the degenerate coordinate split.
+[[nodiscard]] std::vector<std::pair<lia::iexpr, core::code>> split_equiv(
     core::manager& mgr, leaves::int_set_theory& theory, core::shape_code sort,
-    core::code diagram, std::size_t pos);
+    core::code diagram, lia::iexpr e);
 
 /// \brief The subset of \p diagram (sort \p sort) whose value at frontier
 /// position \p xpos stands in relation \p op to its value at \p ypos.

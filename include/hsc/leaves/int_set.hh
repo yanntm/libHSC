@@ -108,16 +108,16 @@ class int_set_theory final : public core::support_algebra {
   /// The elements of \p c, ascending. Empty for `none`.
   [[nodiscard]] std::span<const std::int32_t> elements(core::code c) const;
 
-  /// \brief `split_equiv`: partition \p set by the value of the linear
-  /// expression `coeff*x + offset` over this leaf's coordinate `x`. Returns
-  /// `{value, sub-code}` pairs, ascending by value, one per distinct value the
-  /// expression takes — the sub-code holds the elements yielding it.
+  /// \brief `split_equiv`: partition \p set by the value of \p e, an
+  /// arbitrary scalar expression over this leaf's coordinate (`lia`
+  /// position 0, no array nodes). Returns `{marker, sub-code}` pairs, one
+  /// per distinct value realised — the marker is the interned constant, or
+  /// ⊥ where \p e is undefined (division, mod), so a Kleene connective
+  /// above can still decide the class.
   ///
-  /// Exact: one class per value, no cost knob (the added expressiveness of the crossing fragment).
-  /// The value is a code of the interchange (LIA) domain — here a plain integer.
-  /// `coeff*x + offset` is overflow-checked, loud on leaving int32 range.
-  [[nodiscard]] std::vector<std::pair<std::int32_t, core::code>> split_equiv(
-      core::code set, std::int32_t coeff = 1, std::int32_t offset = 0);
+  /// Exact: one class per realised value. Overflow is loud.
+  [[nodiscard]] std::vector<std::pair<lia::iexpr, core::code>> split_equiv(
+      core::code set, lia::iexpr e);
 
   /// \name Local terms
   ///

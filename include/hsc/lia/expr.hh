@@ -165,6 +165,15 @@ class expr_factory {
   iexpr subst(iexpr e, std::uint32_t pos, iexpr v);
   bexpr subst_bool(bexpr e, std::uint32_t pos, iexpr v);
 
+  /// \brief Assertion application: replace every occurrence of the interned
+  /// subexpression \p sub by \p v (a constant, or ⊥), renormalizing.
+  ///
+  /// The marker `(sub := v)` baked into the expression — the residual of a
+  /// class needs no assertion form of its own. Occurrences inside an array
+  /// index resolve like any other; cells stay placement data.
+  iexpr subst_subexpr(iexpr e, iexpr sub, iexpr v);
+  bexpr subst_subexpr_bool(bexpr e, iexpr sub, iexpr v);
+
   // --- evaluation ----------------------------------------------------------
 
   /// Three-valued: a guard can hold, fail, or be undefined (⊥).

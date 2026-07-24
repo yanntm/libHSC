@@ -168,6 +168,20 @@ bexpr expr_factory::subst_bool(bexpr e, std::uint32_t pos, iexpr v) {
   return nary_bool(k, ops);
 }
 
+bexpr expr_factory::subst_subexpr_bool(bexpr e, iexpr sub, iexpr v) {
+  if (is_imm(e)) return e;
+  const expr_node& n = bool_node(e);
+  const auto k = static_cast<bkind>(n.kind);
+  if (is_comparison(k)) {
+    return compare(k, subst_subexpr(n.operands()[0], sub, v),
+                   subst_subexpr(n.operands()[1], sub, v));
+  }
+  if (k == bkind::neg) return neg(subst_subexpr_bool(n.operands()[0], sub, v));
+  std::vector<bexpr> ops(n.operands().begin(), n.operands().end());
+  for (bexpr& op : ops) op = subst_subexpr_bool(op, sub, v);
+  return nary_bool(k, ops);
+}
+
 // --- evaluation ------------------------------------------------------------
 
 expr_factory::truth expr_factory::eval_bool(

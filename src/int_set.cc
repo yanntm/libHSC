@@ -264,27 +264,32 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
   return core::none;
 }
 
-std::vector<std::pair<std::int32_t, core::code>> int_set_theory::split_equiv(
-    core::code set, std::int32_t coeff, std::int32_t offset) {
-  std::vector<std::pair<std::int32_t, core::code>> classes;
+std::vector<std::pair<lia::iexpr, core::code>> int_set_theory::split_equiv(
+    core::code set, lia::iexpr e) {
+  std::vector<std::pair<lia::iexpr, core::code>> classes;
   if (set == core::none) return classes;
 
-  // Group the elements by the value coeff*x + offset. `std::map` keeps the
-  // classes ascending by value; each element list stays ascending because the
-  // input elements are, so `of_sorted` needs no re-sort.
-  std::map<std::int32_t, std::vector<std::int32_t>> by_value;
+  // Group the elements by the value of e. Element lists stay ascending
+  // because the input elements are, so `of_sorted` needs no re-sort.
+  std::map<lia::iexpr, std::vector<std::int32_t>> by_marker;
+  std::int32_t env[1];
   for (const std::int32_t x : elements(set)) {
-    std::int32_t v;
-    if (__builtin_mul_overflow(coeff, x, &v) ||
-        __builtin_add_overflow(v, offset, &v)) {
-      throw overflow_error("int32 overflow evaluating split_equiv on " +
-                           std::to_string(x));
+    env[0] = x;
+    bool undef = false;
+    const std::int64_t v = exprs_.eval_int(e, env, undef);
+    lia::iexpr marker = lia::iundef;
+    if (!undef) {
+      if (v < INT32_MIN || v > INT32_MAX) {
+        throw overflow_error("int32 overflow evaluating split_equiv on " +
+                             std::to_string(x));
+      }
+      marker = exprs_.constant(static_cast<std::int32_t>(v));
     }
-    by_value[v].push_back(x);
+    by_marker[marker].push_back(x);
   }
 
-  classes.reserve(by_value.size());
-  for (auto& [value, xs] : by_value) classes.emplace_back(value, of_sorted(xs));
+  classes.reserve(by_marker.size());
+  for (auto& [m, xs] : by_marker) classes.emplace_back(m, of_sorted(xs));
   return classes;
 }
 
