@@ -248,3 +248,33 @@ TEST_CASE("rewrite: hotbit refuses an unpinned write (no reset by default)") {
   CHECK(out.find("z refused: a write without a pinning guard") !=
         std::string::npos);
 }
+
+TEST_CASE("rewrite: decompose-louvain groups by dependency, counts hold") {
+  // two independent token rings share no events: Louvain should separate
+  // them, and the counts (20 x 20 = 400) are shape-invariant.
+  const std::string model = R"(
+(decompose-louvain)
+(leaf a 0 4)(leaf b 0 4)(leaf c 0 4)(leaf d 0 4)
+(leaf p 0 4)(leaf q 0 4)(leaf r 0 4)(leaf s 0 4)
+(shape (spine a p b q c r d s))
+(init (a 3) (p 3))
+(event ab (when (> a 0)) (do (-= a 1) (+= b 1)))
+(event bc (when (> b 0)) (do (-= b 1) (+= c 1)))
+(event cd (when (> c 0)) (do (-= c 1) (+= d 1)))
+(event da (when (> d 0)) (do (-= d 1) (+= a 1)))
+(event pq (when (> p 0)) (do (-= p 1) (+= q 1)))
+(event qr (when (> q 0)) (do (-= q 1) (+= r 1)))
+(event rs (when (> r 0)) (do (-= r 1) (+= s 1)))
+(event sp (when (> s 0)) (do (-= s 1) (+= p 1)))
+(reach R)
+(expect R 400)
+(xreach X)
+(expect X 400)
+)";
+  const auto [rc, out] = run(model);
+  CAPTURE(out);
+  CHECK(rc == 0);
+  CHECK(out.find("rewrite decompose-louvain: Louvain:") != std::string::npos);
+  CHECK(out.find("ok R == 400") != std::string::npos);
+  CHECK(out.find("ok X == 400") != std::string::npos);
+}
