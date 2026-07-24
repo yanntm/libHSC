@@ -104,6 +104,26 @@ than silent. State counts are invariant: a constant coordinate
 multiplies nothing, so `reach`/`xreach` before and after must agree —
 the differential that tests the pass.
 
+Second pass, **`hotbit`** — directive `(hotbit [MIN [MAX]])`, defaults
+3 and 16; opt-in, not in the default chain. The GAL HotBitRewriter
+re-expressed. Below MIN a variable is nearly a boolean already; above
+MAX the bit vector outgrows the win. Eligible: a scalar leaf whose
+inferred domain is exactly `{0 … K-1}` with `MIN ≤ K ≤ MAX`, and whose
+every occurrence in the spec is a
+constant comparison (`(== x c)`, `(!= x c)`, `(in x c …)`) or a constant
+write (`(:= x c)`) — process states, in practice. The encoding: K
+boolean leaves `x_0 … x_{K-1}`, exactly one set; the leaf's place in the
+shape becomes a `(balanced …)` block of its bits; comparisons become bit
+tests (an out-of-domain constant folds to the empty `(or)` / `(and)`);
+a write clears the previously set bit — pinned by a `(== x c₀)` conjunct
+of the event's own guard or by an earlier write in the same event, else
+by a full clear, K−1 literal assignments in one simultaneous clause —
+and sets the new one. Anything else touching the variable (a read as a
+value, an array index, `havoc`, a two-leaf comparison, an init event)
+makes it ineligible: reported in the trace, the variable untouched.
+States map one-hot bijectively, so counts are invariant — the same
+differential as every pass.
+
 ## 2. Meaning (M2M): forms → operations
 
 The translator walks the forms in order, maintaining: the leaf declarations, the

@@ -270,4 +270,12 @@ std::vector<pass> default_chain() {
   return {{"simplify-constants", elide_constants}};
 }
 
+std::vector<pass_def> pass_registry() {
+  return {{"simplify-constants",
+           [](std::vector<datum> f, const datum&) {
+             return elide_constants(std::move(f));
+           }},
+          {"hotbit", hotbit}};
+}
+
 }  // namespace hsc::surface

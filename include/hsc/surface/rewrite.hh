@@ -53,7 +53,25 @@ rewrite(std::vector<datum> forms, std::span<const pass> passes);
 /// `(word …)` pair binding an elided leaf drops with a trace note.
 [[nodiscard]] rewrite_result elide_constants(std::vector<datum> forms);
 
-/// The default chain, in order. Grows as passes arrive.
+/// \brief The one-hot pass (`algorithm.md` §1c): an eligible enumerated
+/// leaf trades its integer for K bits, one per value, exactly one set.
+/// \p directive is the invoking form — `(hotbit [MIN [MAX]])`, the
+/// eligibility window on domain size, defaults 3 and 16.
+[[nodiscard]] rewrite_result hotbit(std::vector<datum> forms,
+                                    const datum& directive);
+
+/// A pass as the registry serves it: the directive form is handed
+/// through, so a pass can take arguments.
+struct pass_def {
+  std::string name;
+  std::function<rewrite_result(std::vector<datum>, const datum&)> apply;
+};
+
+/// Every pass a directive can invoke, by name.
+[[nodiscard]] std::vector<pass_def> pass_registry();
+
+/// The default chain, in order — the passes `--rewrite` runs unasked.
+/// Opt-in encodings (hotbit) are not in it.
 [[nodiscard]] std::vector<pass> default_chain();
 
 }  // namespace hsc::surface

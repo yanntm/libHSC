@@ -34,16 +34,22 @@ class runner {
     // included, never silent.
     std::vector<pass> chain;
     std::vector<datum> work;
-    const std::vector<pass> registry = default_chain();
+    const std::vector<pass_def> registry = pass_registry();
     for (const datum& f : forms) {
-      const pass* hit = nullptr;
+      const pass_def* hit = nullptr;
       if (f.is_list() && !f.items().empty()) {
-        for (const pass& p : registry) {
+        for (const pass_def& p : registry) {
           if (p.name == f.head()) hit = &p;
         }
       }
-      if (hit) chain.push_back(*hit);
-      else work.push_back(f);
+      if (hit) {
+        chain.push_back({hit->name, [apply = hit->apply, directive = f](
+                                        std::vector<datum> fs) {
+                           return apply(std::move(fs), directive);
+                         }});
+      } else {
+        work.push_back(f);
+      }
     }
     if (!chain.empty()) {
       auto [rewritten, log] = rewrite(std::move(work), chain);
