@@ -17,14 +17,15 @@ LABEL="${2:-}"
 shift $(( $# > 2 ? 2 : $# ))
 DVE2HSC=build/tools/dve2hsc
 HSCRUN=build/tools/hsc
-OUT=examples/divine/status.tsv
-LOG=tests/logs/dve_sweep.log
+HSCFLAGS="${HSCFLAGS:-}"                       # e.g. --explicit
+OUT="${OUT:-examples/divine/status.tsv}"       # override to spare status.tsv
+LOG="${LOG:-tests/logs/dve_sweep.log}"
 REV=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 ARCHIVE=examples/divine/runs/${STAMP}_${REV}${LABEL:+_$LABEL}.tsv
 mkdir -p tests/logs examples/divine/hsc examples/divine/runs
 {
-  echo "# dve_sweep $STAMP rev=$REV timeout=${TMO}s dve2hsc-flags='$*'"
+  echo "# dve_sweep $STAMP rev=$REV timeout=${TMO}s dve2hsc-flags='$*' hsc-flags='$HSCFLAGS'"
   echo "# model	status	states-or-detail	nodes	seconds"
 } > "$ARCHIVE"
 : > "$LOG"
@@ -39,7 +40,7 @@ for f in examples/divine/dve/*.dve; do
     continue
   fi
   t0=$(date +%s.%N)
-  run=$(timeout "$TMO" "$HSCRUN" "$hsc" 2>&1)
+  run=$(timeout "$TMO" "$HSCRUN" $HSCFLAGS "$hsc" 2>&1)
   rc=$?
   secs=$(echo "$(date +%s.%N) $t0" | awk '{printf "%.2f", $1 - $2}')
   echo "== $b rc=$rc ${secs}s" >> "$LOG"; echo "$run" >> "$LOG"
@@ -49,6 +50,12 @@ for f in examples/divine/dve/*.dve; do
     printf '%s\trun-ok\t%s\t%s\t%s\n' "$b" "$count" "$nodes" "$secs" >> "$ARCHIVE"
   elif [ $rc -eq 124 ]; then
     printf '%s\ttimeout\t%ss\t\t%s\n' "$b" "$TMO" "$secs" >> "$ARCHIVE"
+  elif echo "$run" | grep -q "xreach CAP"; then      # explicit engine only
+    printf '%s\tcap\t\t\t%s\n' "$b" "$secs" >> "$ARCHIVE"
+  elif echo "$run" | grep -q "xreach TOP"; then      # explicit engine only
+    printf '%s\ttop\t%s\t\t%s\n' "$b" \
+      "$(echo "$run" | sed -n 's/^R xreach TOP: //p' | head -c 100)" \
+      "$secs" >> "$ARCHIVE"
   elif echo "$run" | grep -q "split_equiv"; then
     printf '%s\trefused-crossing\t%s\t\t%s\n' "$b" \
       "$(echo "$run" | head -1 | sed 's/.*: //' | head -c 100)" "$secs" >> "$ARCHIVE"
