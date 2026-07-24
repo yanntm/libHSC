@@ -8,7 +8,9 @@ Sources :
   `leaves/` (imported theories), `util/`
 * src/ : the C++ translation units
 * tests/ : doctest suite, probes, support code
-* examples/ : runnable programs, each checking itself against an oracle
+* examples/ : runnable programs, each checking itself against an oracle, and the model corpora (models/, param/, divine/, mcc/)
+* tools/ : the CLI binaries — hsc, hsc-mcc, dve2hsc, nupn2hsc
+* doc/ : the .hsc language manual
 * bench/ : benchmarks
 
 Reference code bases, read-only from this project; never edit them from here :
@@ -37,7 +39,8 @@ Data in here is traceable to git tracked machine gen artefacts and reports : it 
 4. Most have a `handoff_<thread>.md` at root: the bootstrap document, **current state only** — the TODO queue per role (theory / engineering), next action first, blockers named. Rewritten, never appended to: no dates, no attribution, no session narrative. **A completed item is flushed entirely** — its result belongs in the report, its lesson in the folder's README/algorithm.md, its history in git. The handoff does not grow; length is the signal to evict.
 
 ## Orientation (don't duplicate here — follow the pointers)
-- `README.md` — repo guide / quick start. STATUS/TODO are stale ignore.
+- `README.md` — repo guide / quick start, user scenarios.
+- `doc/hsc_manual.md` — the .hsc language, user view.
 - `include/hsc/core/algorithm.md` — the calculus as implemented: codes, shapes,
   the normal form, the canonicalizer, the set algebra.
 - `include/hsc/mem/algorithm.md` — the substrate: interning, handles, caches.
