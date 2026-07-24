@@ -35,8 +35,10 @@
 #include "hsc/leaves/int_set.hh"
 #include "hsc/query.hh"
 #include "hsc/surface/expr.hh"
+#include "hsc/surface/xpl_build.hh"
 #include "hsc/util/errors.hh"
 #include "hsc/util/timing.hh"
+#include "hsc/xpl/engine.hh"
 
 namespace hsc::surface {
 
@@ -225,6 +227,7 @@ class translator final : public name_scope {
     else if (kw == "nodes") do_nodes(form);
     else if (kw == "print") do_print(form);
     else if (kw == "expect") do_expect(form);
+    else if (kw == "xreach") do_xreach(form);
     else if (kw == "bill") do_bill(form);
     else fail(form, "unknown form '" + kw + "'");
   }
@@ -673,8 +676,14 @@ class translator final : public name_scope {
     if (!steps.empty() && steps.front().cross.empty()) {
       for (auto& [p, e] : steps.front().sep) {
         leaf_effect& g = eff[p];
-        g.has_rhs = true;
-        g.rhs0 = e.rhs0;
+        if (e.has_havoc) {  // fuse the whole action, not only an rhs
+          g.has_havoc = true;
+          g.lo = e.lo;
+          g.hi = e.hi;
+        } else {
+          g.has_rhs = true;
+          g.rhs0 = e.rhs0;
+        }
       }
       parts.push_back(separable_product_at(sort, base, eff));
       first = 1;
@@ -713,6 +722,10 @@ class translator final : public name_scope {
     if (ev == core::op_table::id) return;  // a no-op: skip in a seq,
                                            // nothing for the default ALT
     events_.push_back(ev);
+    // retained for the explicit engine: same filter as the default ALT
+    xsources_.push_back(
+        {name, form.line(),
+         std::vector<datum>(form.items().begin() + 2, form.items().end())});
   }
 
   // --- certified uniform families: the declared route ----------------------
@@ -954,6 +967,14 @@ class translator final : public name_scope {
     define_event(form, name, term);
     if (term == core::op_table::id) return;
     events_.push_back(term);
+    // retained for the explicit engine: every instance, enumerated
+    for (long long i = 0; i < n; ++i) {
+      std::vector<datum> inst;
+      inst.reserve(body.size());
+      for (const datum& cl : body) inst.push_back(instantiate(cl, i, n));
+      xsources_.push_back(
+          {name + "_" + std::to_string(i), form.line(), std::move(inst)});
+    }
   }
 
   // --- the event algebra: named terms, alt = sum, seq = compose ------------
@@ -1178,6 +1199,18 @@ class translator final : public name_scope {
   /// `(get-witness NAME)`: one state of a bound result, in word syntax —
   /// the SMT get-model analogue (nonempty is sat, this is its model).
   void do_get_witness(const datum& form) {
+    const std::string& wname = sym(arg(form, 1, "result name"));
+    if (const auto x = xresults_.find(wname); x != xresults_.end()) {
+      out_ << wname << " witness ";
+      if (x->second.states.size() == 0) {
+        out_ << "none";
+      } else {
+        const auto v = x->second.states[0];
+        print_word(std::vector<std::int32_t>(v.begin(), v.end()));
+      }
+      out_ << '\n';
+      return;
+    }
     const code c = named(arg(form, 1, "result name"));
     out_ << sym(form.items()[1]) << " witness ";
     std::vector<std::int32_t> values;
@@ -1217,12 +1250,26 @@ class translator final : public name_scope {
   /// `(get-states NAME [K])`: up to K states (default 10), one word
   /// literal per line, after a header with the exact cardinal.
   void do_get_states(const datum& form) {
-    const code c = named(arg(form, 1, "result name"));
+    const std::string& name = sym(arg(form, 1, "result name"));
     std::size_t limit = 10;
     if (form.items().size() > 2) {
       limit = static_cast<std::size_t>(as_int(form.items()[2]));
     }
-    out_ << sym(form.items()[1]) << ' ' << std::fixed << std::setprecision(0)
+    if (const auto x = xresults_.find(name); x != xresults_.end()) {
+      const auto& st = x->second.states;
+      out_ << name << ' ' << st.size() << " states, showing up to " << limit
+           << '\n';
+      std::vector<std::int32_t> w;
+      for (std::size_t i = 0; i < st.size() && i < limit; ++i) {
+        const auto v = st[static_cast<xpl::state_id>(i)];
+        w.assign(v.begin(), v.end());
+        print_word(w);
+        out_ << '\n';
+      }
+      return;
+    }
+    const code c = named(arg(form, 1, "result name"));
+    out_ << name << ' ' << std::fixed << std::setprecision(0)
          << mgr_.diagrams().cardinal(c) << " states, showing up to " << limit
          << '\n';
     std::vector<std::int32_t> acc;
@@ -1284,6 +1331,7 @@ class translator final : public name_scope {
   /// result — a general statistic (MAX_TOKEN_IN_PLACE; 1-safety is
   /// `max-value <= 1`, judged by whoever asked).
   void do_max_value(const datum& form) {
+    if (xres_unsupported(form, "max-value")) return;
     const code c = named(arg(form, 1, "result name"));
     out_ << sym(form.items()[1]) << " max-value " << max_leaf_value(c)
          << '\n';
@@ -1346,17 +1394,39 @@ class translator final : public name_scope {
   }
 
   void do_count(const datum& form) {
+    const std::string& name = sym(arg(form, 1, "result name"));
+    if (const auto x = xresults_.find(name); x != xresults_.end()) {
+      if (x->second.stats.st == xpl::explore_stats::status::ok) {
+        out_ << name << " count " << x->second.states.size() << '\n';
+      } else {
+        out_ << name << " count TOP\n";  // no number from a failed run
+        ++failures_;
+      }
+      return;
+    }
     const code c = named(arg(form, 1, "result name"));
-    out_ << sym(form.items()[1]) << " count " << std::fixed
-         << std::setprecision(0) << mgr_.diagrams().cardinal(c) << '\n';
+    out_ << name << " count " << std::fixed << std::setprecision(0)
+         << mgr_.diagrams().cardinal(c) << '\n';
+  }
+
+  /// A command with no explicit-engine meaning, pointed at an explicit
+  /// result: answer `(unsupported)` — an honest line, not a failure.
+  bool xres_unsupported(const datum& form, const char* cmd) {
+    const std::string& name = sym(arg(form, 1, "result name"));
+    if (!xresults_.contains(name)) return false;
+    out_ << name << ' ' << cmd << " (unsupported)\n";
+    return true;
   }
 
   void do_nodes(const datum& form) {
+    if (xres_unsupported(form, "nodes")) return;
     const code c = named(arg(form, 1, "result name"));
-    out_ << sym(form.items()[1]) << " nodes " << mgr_.diagrams().size(c) << '\n';
+    out_ << sym(form.items()[1]) << " nodes " << mgr_.diagrams().size(c)
+         << '\n';
   }
 
   void do_print(const datum& form) {
+    if (xres_unsupported(form, "print")) return;
     const code c = named(arg(form, 1, "result name"));
     out_ << sym(form.items()[1]) << " = ";
     mgr_.diagrams().print(out_, c);
@@ -1364,16 +1434,90 @@ class translator final : public name_scope {
   }
 
   void do_expect(const datum& form) {
+    const std::string& name = sym(arg(form, 1, "result name"));
+    if (const auto x = xresults_.find(name); x != xresults_.end()) {
+      const auto want =
+          static_cast<std::size_t>(as_int(arg(form, 2, "count")));
+      const auto& res = x->second;
+      if (res.stats.st == xpl::explore_stats::status::ok &&
+          res.states.size() == want) {
+        out_ << "ok " << name << " == " << want << '\n';
+      } else if (res.stats.st == xpl::explore_stats::status::ok) {
+        out_ << "FAIL " << name << " expected " << want << " got "
+             << res.states.size() << '\n';
+        ++failures_;
+      } else {
+        out_ << "FAIL " << name << " expected " << want << " got TOP ("
+             << res.stats.diagnostic << ")\n";
+        ++failures_;
+      }
+      return;
+    }
     const code c = named(arg(form, 1, "result name"));
     const double want = static_cast<double>(as_int(arg(form, 2, "count")));
     const double got = mgr_.diagrams().cardinal(c);
-    const std::string& name = sym(form.items()[1]);
     if (got == want) {
       out_ << "ok " << name << " == " << want << '\n';
     } else {
       out_ << "FAIL " << name << " expected " << want << " got " << got << '\n';
       ++failures_;
     }
+  }
+
+  /// `(xreach NAME [from RESULT] [cap INT])`: close a seed set under the
+  /// default system with the *explicit* engine — the model recompiled from
+  /// the retained event forms, the seeds enumerated from a bound symbolic
+  /// result (default: the init seed). The result lands in `xresults_`;
+  /// `count` / `expect` / `get-states` read it like any bound result. A
+  /// model-level error (⊥ at a decision, overflow, write conflict) makes
+  /// the result TOP: reported with its witness state, and counted failed.
+  void do_xreach(const datum& form) {
+    if (top_ == core::none) fail(form, "xreach before shape");
+    const std::string& name = sym(arg(form, 1, "result name"));
+    if (results_.contains(name) || xresults_.contains(name)) {
+      fail(form, "result '" + name + "' already bound");
+    }
+    std::optional<code> from;
+    xpl::reach_options opt;
+    for (std::size_t i = 2; i < form.items().size(); ++i) {
+      const std::string& kw = sym(form.items()[i]);
+      if (kw == "from") {
+        from = named(arg(form, ++i, "source result"));
+      } else if (kw == "cap") {
+        opt.cap = static_cast<std::size_t>(as_int(arg(form, ++i, "cap")));
+      } else {
+        fail(form.items()[i], "xreach options are: from RESULT, cap INT");
+      }
+    }
+    // compiled fresh per call: the default system as declared so far,
+    // exactly like an argument-less (reach …)
+    const xpl::model xm = build_xpl_model(order_.size(), theory_->exprs(),
+                                          *reader_, *this, xsources_);
+    std::vector<xpl::word> seeds;
+    std::vector<std::int32_t> acc;
+    std::size_t left = opt.cap + 1;
+    enum_words(top_, from ? *from : seed(), acc, left, [&] {
+      seeds.push_back(acc);
+      --left;
+    });
+    if (left == 0) fail(form, "xreach: the seed set alone exceeds the cap");
+    xpl::reach_result res = xpl::reach(xm, seeds, opt);
+    switch (res.stats.st) {
+      case xpl::explore_stats::status::ok:
+        out_ << name << " xreach " << res.states.size() << " states ("
+             << res.stats.fired << " fired)\n";
+        break;
+      case xpl::explore_stats::status::capped:
+        out_ << name << " xreach CAP: " << res.stats.diagnostic << '\n';
+        break;
+      default:  // error: TOP (reach has no visitor, it never stops early)
+        out_ << name << " xreach TOP: " << res.stats.diagnostic << " at ";
+        print_word(res.stats.witness);
+        out_ << '\n';
+        ++failures_;
+        break;
+    }
+    xresults_.emplace(name, std::move(res));
   }
 
   void do_bill(const datum&) {
@@ -1407,6 +1551,12 @@ class translator final : public name_scope {
   /// Every named term: events, alts, seqs — one namespace.
   std::unordered_map<std::string, code> named_events_;
   std::unordered_map<std::string, code> results_;
+  /// The explicit engine's view of the default system: the clause forms of
+  /// every live `(event …)`, families enumerated. Compiled per `xreach`.
+  std::vector<xpl_source> xsources_;
+  /// Explicit results, a namespace beside `results_`: `count`, `expect`
+  /// and `get-states` look here when the name is not a diagram.
+  std::unordered_map<std::string, xpl::reach_result> xresults_;
   double reach_seconds_ = 0.0;
   int failures_ = 0;
 };
