@@ -2,7 +2,8 @@
 
 Each file is one template over a size `param`, self-checking via `expect`;
 `hsc --expand FILE` prints the flat `.hsc` it denotes. The parametric
-forms are specified in `research_notes/hsc_parametric.md`.
+forms are documented in `doc/hsc_manual.md` (user view) and
+`include/hsc/surface/algorithm.md` (compile map).
 
 * `hanoi.hsc` — N rings, P poles. Nested `exists` (a 3-index event family),
   a dependent-range `forall` guard (`j` below `k`), the shape laid by a

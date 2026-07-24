@@ -31,7 +31,7 @@ hsc command line.
 1. Counting stays a double (user ruling: it is an order of magnitude,
    not a number to decide with). No exact/log-form cardinality work.
 2. Scalarset discipline / orbit tags (quotient reduction) remain
-   deferred as spec §3 says.
+   deferred (design sketch in the retired spec, git history).
 
 ## Blockers
 
