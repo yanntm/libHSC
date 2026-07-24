@@ -225,3 +225,26 @@ TEST_CASE("rewrite: print-spec emits the post-chain spec") {
   CHECK(out.find("(leaf c") == std::string::npos);   // elided
   CHECK(out.find("print-spec") == std::string::npos);  // not self-echoed
 }
+
+TEST_CASE("rewrite: hotbit refuses an unpinned write (no reset by default)") {
+  // z's writes are not pinned by any guard: encoding would need a K-wide
+  // reset — refused under the automaton discipline.
+  const std::string model = R"(
+(hotbit 3 16)
+(leaf z 0 8)
+(leaf g 0 2)
+(shape (spine z g))
+(init)
+(event flip (when (== g 0)) (do (:= g 1) (:= z 2)))
+(event flop (when (== g 1)) (do (:= g 0) (:= z 0)))
+(event mid  (when (== z 2)) (do (:= z 1)))
+(reach R)
+(expect R 3)
+)";
+  const auto [rc, out] = run(model);
+  CAPTURE(out);
+  CHECK(rc == 0);
+  CHECK(out.find("(identity)") != std::string::npos);
+  CHECK(out.find("z refused: a write without a pinning guard") !=
+        std::string::npos);
+}

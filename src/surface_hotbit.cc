@@ -126,10 +126,52 @@ class hotbitter {
   void scan_evterm(const datum& d) {
     if (!d.is_list() || d.items().empty()) return;
     const std::string& h = d.head();
-    if (h == "when" || h == "do") return scan_clause(d);
+    if (h == "do") {
+      // an inline clause has no pinning guard: a candidate write here
+      // would need a reset — refused under the automaton discipline
+      for (std::size_t i = 1; i < d.items().size(); ++i) {
+        const datum& a = d.items()[i];
+        if (a.is_list() && a.items().size() >= 2 && a.items()[1].is_atom() &&
+            candidate(a.items()[1].text())) {
+          refuse(a.items()[1].text(), "written in an inline term (no pin)");
+        }
+      }
+      return scan_clause(d);
+    }
+    if (h == "when") return scan_clause(d);
     if (h == "alt" || h == "seq") {
       for (std::size_t i = 1; i < d.items().size(); ++i) {
         scan_evterm(d.items()[i]);
+      }
+    }
+  }
+
+  /// The automaton-state discipline: every write of a candidate must be
+  /// pinned — the event's guard imposes exactly one prior value, or an
+  /// earlier write in the same event does. An unpinned write would need
+  /// a K-wide reset: refused by default.
+  void scan_pins(std::span<const datum> clauses) {
+    std::map<std::string, std::int32_t> pin;
+    for (const datum& c : clauses) {
+      if (c.is_list() && !c.items().empty() && c.head() == "when") {
+        collect_pins(c, pin);
+      }
+    }
+    for (const datum& c : clauses) {
+      if (!c.is_list() || c.items().empty() || c.head() != "do") continue;
+      for (std::size_t i = 1; i < c.items().size(); ++i) {
+        const datum& a = c.items()[i];
+        std::int32_t v = 0;
+        if (a.is_list() && a.items().size() == 3 && a.head() == ":=" &&
+            a.items()[1].is_atom() && candidate(a.items()[1].text()) &&
+            is_int(a.items()[2], v)) {
+          const std::string& x = a.items()[1].text();
+          if (!pin.contains(x)) {
+            refuse(x, "a write without a pinning guard (would need a reset)");
+          } else {
+            pin[x] = v;
+          }
+        }
       }
     }
   }
@@ -376,10 +418,12 @@ rewrite_result hotbit(std::vector<datum> forms, const datum& directive) {
       for (std::size_t i = 2; i < f.items().size(); ++i) {
         hb.scan_clause(f.items()[i]);
       }
+      hb.scan_pins(std::span(f.items()).subspan(2));
     } else if (h == "family") {
       for (std::size_t i = 3; i < f.items().size(); ++i) {
         hb.scan_clause(f.items()[i]);
       }
+      hb.scan_pins(std::span(f.items()).subspan(3));
     } else if (h == "alt" || h == "seq") {
       for (std::size_t i = 2; i < f.items().size(); ++i) {
         hb.scan_evterm(f.items()[i]);

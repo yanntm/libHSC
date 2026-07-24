@@ -111,14 +111,18 @@ MAX the bit vector outgrows the win. Eligible: a scalar leaf whose
 inferred domain is exactly `{0 … K-1}` with `MIN ≤ K ≤ MAX`, and whose
 every occurrence in the spec is a
 constant comparison (`(== x c)`, `(!= x c)`, `(in x c …)`) or a constant
-write (`(:= x c)`) — process states, in practice. The encoding: K
+write (`(:= x c)`) — and every write **pinned**: the event's guard
+imposes exactly one prior value (one `(== x c₀)` conjunct), or an
+earlier write in the same event does. An unpinned write would need a
+K-wide reset — a clique that would also mislead `reorder-force` — and
+refuses the variable by default. What survives is an actual automaton
+state, essentially. The encoding: K
 boolean leaves `x_0 … x_{K-1}`, exactly one set; the leaf's place in the
 shape becomes a `(balanced …)` block of its bits; comparisons become bit
 tests (an out-of-domain constant folds to the empty `(or)` / `(and)`);
-a write clears the previously set bit — pinned by a `(== x c₀)` conjunct
-of the event's own guard or by an earlier write in the same event, else
-by a full clear, K−1 literal assignments in one simultaneous clause —
-and sets the new one. Anything else touching the variable (a read as a
+a write clears the pinned bit and sets the new one — two cell writes
+for a state move, none when the value is rewritten (the full-clear code
+path survives only as a backstop; eligibility forbids reaching it). Anything else touching the variable (a read as a
 value, an array index, `havoc`, a two-leaf comparison, an init event)
 makes it ineligible: reported in the trace, the variable untouched.
 States map one-hot bijectively, so counts are invariant — the same
