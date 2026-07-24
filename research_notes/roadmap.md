@@ -69,7 +69,7 @@ terms and a nested diagram reading operation terms are the same code path.
 |---|---|
 | Substrate | hashing with a non-commutative combiner; `intern<T>` probing by view, trailing arrays, iterative mark & sweep, generation tags; weak/strong/certificate handles; a fixed-capacity LRU operation cache, everything intrusive; meters on every table and cache |
 | Calculus | shapes; the three-map support contract (join, meet, relative difference — emptiness and equality free from interning); the normal form; the one canonicalizer; the set algebra over it; internalisation exercised from the first line |
-| Operations | `id`, `node`, `∘`, `Σ`, naive `∗`, and the F/L/G saturation schedule, hierarchical by construction |
+| Operations | `id`, `node`, `∘`, `Σ`, naive `lfp`, and the F/L/G saturation schedule, hierarchical by construction |
 | Crossing fragment | the case bracket (`hsc/event.hh`, `hsc/query.hh`): crossing guards, updates and comparisons by `split_equiv` at the cut, curried residuals, interned and cached; `tab[tab[x]]` resolves at the surface |
 | Theories | `int_set`, the enumeration-honest reference; `lia`, the interchange theory (expressions, currying, residuals, arrays carrying their placement) |
 | Surface | the `.hsc` s-expression language: declarations, events, the event algebra, the state layer, queries; the parametric pass (`param`/`array`/`forall`/`exists`, certified uniform families) |
