@@ -51,6 +51,7 @@ Data in here is traceable to git tracked machine gen artefacts and reports : it 
 
 
 Discipline (mandatory)
+- Do not spawn agents.
 - One commit per file by preference if editing an existing file. Especially if its core.
   Bulk commits of several files ok in one logical commit. Single commit for moved code, new datasets...
 - Use "git commit -F - heredoc" with a terse message to commit
