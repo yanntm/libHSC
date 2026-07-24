@@ -136,3 +136,92 @@ TEST_CASE("rewrite: hotbit refuses a value read, loudly") {
   CHECK(out.find("(identity)") != std::string::npos);
   CHECK(out.find("s refused: read as a value") != std::string::npos);
 }
+
+TEST_CASE("rewrite: simplify-arrays dissolves static-only groupings") {
+  const std::string model = R"(
+(simplify-arrays)
+(leaf t0 0 3)
+(leaf t1 0 3)
+(leaf i 0 2)
+(array t t0 t1)
+(shape (spine t0 t1 i))
+(init)
+(event a (when (== (at t 0) 0)) (do (:= (at t 0) 1)))
+(event b (when (== (at t 0) 1) (== i 0)) (do (:= (at t 1) 2) (:= i 1)))
+(reach R)
+(expect R 3)
+(xreach X)
+(expect X 3)
+)";
+  const auto [rc, out] = run(model);
+  CAPTURE(out);
+  CHECK(rc == 0);
+  CHECK(out.find("1 array dissolved") != std::string::npos);
+  CHECK(out.find("ok R == 3") != std::string::npos);
+  CHECK(out.find("ok X == 3") != std::string::npos);
+}
+
+TEST_CASE("rewrite: simplify-arrays keeps dynamically accessed arrays") {
+  const std::string model = R"(
+(simplify-arrays)
+(leaf t0 0 3)
+(leaf t1 0 3)
+(leaf i 0 2)
+(array t t0 t1)
+(shape (spine t0 t1 i))
+(init)
+(event a (when (== (at t i) 0)) (do (:= (at t i) 1) (:= i 1)))
+(reach R)
+(expect R 3)
+)";
+  const auto [rc, out] = run(model);
+  CAPTURE(out);
+  CHECK(rc == 0);
+  CHECK(out.find("(identity)") != std::string::npos);
+  CHECK(out.find("dynamic") != std::string::npos);
+}
+
+TEST_CASE("rewrite: reorder-force and flatten keep counts") {
+  const std::string model = R"(
+(reorder-force)
+(leaf a 0 4)(leaf b 0 4)(leaf c 0 4)(leaf d 0 4)
+(shape (balanced a b c d))
+(init (a 3))
+(event ab (when (> a 0)) (do (-= a 1) (+= b 1)))
+(event bc (when (> b 0)) (do (-= b 1) (+= c 1)))
+(event cd (when (> c 0)) (do (-= c 1) (+= d 1)))
+(event da (when (> d 0)) (do (-= d 1) (+= a 1)))
+(reach R)
+(expect R 20)
+(xreach X)
+(expect X 20)
+)";
+  const auto [rc, out] = run(model);
+  CAPTURE(out);
+  CHECK(rc == 0);  // whatever FORCE decides, counts hold on both engines
+  const auto [rc2, out2] = run("(flatten)" + model.substr(16));
+  CAPTURE(out2);
+  CHECK(rc2 == 0);
+  CHECK(out2.find("flat spine") != std::string::npos);
+}
+
+TEST_CASE("rewrite: print-spec emits the post-chain spec") {
+  const std::string model = R"(
+(simplify-constants)
+(leaf c 0 5)
+(leaf x 0 5)
+(shape (spine c x))
+(init (c 3))
+(event a (when (== x 0) (> c 2)) (do (:= x c)))
+(event b (when (== x 3)) (do (:= x 0)))
+(print-spec)
+(reach R)
+(expect R 2)
+)";
+  const auto [rc, out] = run(model);
+  CAPTURE(out);
+  CHECK(rc == 0);
+  CHECK(out.find("(leaf x") != std::string::npos);
+  CHECK(out.find("(leaf c") == std::string::npos);   // elided
+  CHECK(out.find("print-spec") == std::string::npos);  // not self-echoed
+}
