@@ -71,6 +71,39 @@ The `HSC_FAMILY` environment variable selects the route — `check`
 as the saturate/naive differential; `declared` trusts the certificate;
 `unfold` always enumerates.
 
+## 1c. The rewrite chain (`rewrite.hh`)
+
+Optional `datum → datum` passes between the parametric pass and the
+translator — the seam where a spec is simplified *as a spec*. A transform
+takes the forms and returns the rewritten forms **plus a trace**: which
+pass ran, whether it applied at all (identity is reported, never silent),
+and free text of what it did — the format will tighten later; provenance
+is the contract, not yet its shape. A chain runs passes in order and
+collects the per-pass records.
+
+**Semantic neutrality is the defining property**: a pass changes how the
+spec is written, never what it denotes — a reordering, a regrouping, an
+elision of what provably cannot vary. The codebase already instantiates
+the concept: the parametric pass is a rewrite (postcondition:
+binder-free), the FORCE ordering and the Louvain unit-tree derivation are
+the same move made upstream in the importers — spec rewriting, not
+engine work. They migrate into the chain as it matures. A pass may
+**assume a form** of its input (binder-free, shape declared, families
+enumerated …); assumptions are stated per pass and are part of its
+contract — for now in its documentation, later perhaps checked.
+
+First pass, **`elide-constants`**: a scalar leaf whose inferred domain
+(`hsc/xpl/domains.hh`, run declarations-only) is a single value is a
+constant — every read folds to the value, every write of it is dropped,
+the leaf leaves the declarations, the shape (its position collapses), the
+init. Arrays are not elided: one domain per array is the inference's
+grain, and a frozen array with distinct cells is not a single constant.
+A `(word …)` pair binding an elided leaf is dropped **with a trace
+note** — the one place the rewrite could change meaning, flagged rather
+than silent. State counts are invariant: a constant coordinate
+multiplies nothing, so `reach`/`xreach` before and after must agree —
+the differential that tests the pass.
+
 ## 2. Meaning (M2M): forms → operations
 
 The translator walks the forms in order, maintaining: the leaf declarations, the

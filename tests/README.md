@@ -46,6 +46,9 @@ values.
   zero names its witness), Kleene absorption in guards, and the state
   store's dedup across a rehash.
 
+* `test_rewrite.cc` — the rewrite chain: constant elision preserves
+  counts on both engines, the in-file directive, identity reported.
+
 * `test_stats.cc`, `test_timing.cc` — meters and clocks.
 
 * `dve_sweep.sh` — not a ctest: regenerates `examples/divine/hsc/` from the

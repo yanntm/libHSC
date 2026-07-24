@@ -230,6 +230,7 @@ certificate; `unfold` always enumerates.
 (expect NAME N)              ; assert count == N; nonzero exit on miss
 (states [NAME])              ; the count in MCC output format
 (xreach NAME [from RESULT] [cap INT])  ; the explicit engine, §8b
+(simplify-constants)         ; rewrite directive: elide constant leaves, §8c
 (bill)                       ; meters: nodes, terms, caches, time
 ```
 
@@ -272,6 +273,22 @@ is false at `i = 0`, not an error.
 each `(reach NAME …)` becomes `(xreach NAME …)`, and the file's own
 `count`/`expect` lines then read the explicit result — output lines match
 the symbolic run, so a corpus differential is a diff of outputs.
+
+## 8c. The rewrite chain
+
+A **rewrite directive** anywhere in the file opts the spec into a
+semantically neutral simplification, applied to the whole spec before
+translation; a one-line trace reports what was done (identity included).
+`(simplify-constants)` elides every scalar leaf whose inferred domain
+(§8b's machinery) is a single value: reads fold to the value, writes
+drop, the leaf leaves the shape. Counts are invariant — the differential
+`reach`/`xreach` before and after is the pass's own test. The vocabulary
+will grow (reordering, regrouping …).
+
+`hsc --rewrite model.hsc` runs the chain on any file and prints the
+rewritten spec as runnable `.hsc` text (traces on stderr);
+`hsc --domains model.hsc` prints the inferred domains without running
+anything.
 
 ## 9. Errors, honestly
 
