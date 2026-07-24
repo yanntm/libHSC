@@ -125,7 +125,7 @@ TEST_CASE("every comparator, every position pair, balanced shapes") {
   // 4 leaves: pair(pair(l,l), pair(l,l)) — the head of the top cut is a pair,
   // so a crossing comparison must split a subdiagram, not a leaf. 5 leaves:
   // pair(pair(pair(l,l),l), pair(l,l)) — a depth-3 head.
-  for (const std::vector<int> sizes :
+  for (const std::vector<int>& sizes :
        {std::vector<int>{3, 2, 3, 2}, std::vector<int>{2, 3, 2, 3, 2}}) {
     auto [sort, c] =
         balanced_cube(mgr, theory, leaf, sizes, 0, sizes.size());
