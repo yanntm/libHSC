@@ -105,6 +105,15 @@ well-ordered, and the translator errors (with a line) if it is not.
 (expect NAME N)                    ; assert cardinal == N; nonzero exit on miss
 (bill)                             ; meters: nodes, terms, caches, time
 (states [NAME])                    ; cardinal, MCC format; no arg: default reach
+(xreach NAME [from RESULT] [cap INT])
+                                   ; the explicit engine (hsc/xpl/): close a
+                                   ; seed set under the default system by
+                                   ; state enumeration; seeds from a bound
+                                   ; result (default: the seed). count /
+                                   ; expect / get-states / get-witness read
+                                   ; the result; diagram-only commands
+                                   ; answer (unsupported). Runtime errors
+                                   ; make it TOP, witnessed, expects fail.
 
 SORT ::= unit | NAME
        | (pair SORT SORT)

@@ -40,6 +40,12 @@ values.
   the factory normal form, ⊥ propagation, overflow-loud folds, currying
   residuals, the `tab[tab[x]]` resolution chain.
 
+* `test_xpl.cc` — the explicit engine through the surface: flat models
+  where `xreach` and the symbolic `reach` must agree (ring, a flat binary
+  counter, havoc, sequential clauses), the TOP discipline (division by
+  zero names its witness), Kleene absorption in guards, and the state
+  store's dedup across a rehash.
+
 * `test_stats.cc`, `test_timing.cc` — meters and clocks.
 
 * `dve_sweep.sh` — not a ctest: regenerates `examples/divine/hsc/` from the

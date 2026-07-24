@@ -15,7 +15,11 @@ By package:
 * query — `query.cc`: cross-level criteria over diagrams — `split_equiv`
   on diagrams, `select_compare`, the separable per-position filters.
 * surface — `surface_parser.cc` (T2M), `surface_translate.cc` (M2M): the
-  `.hsc` file surface.
+  `.hsc` file surface. `surface_xpl.cc`: event forms → the explicit model
+  (the `xreach` bridge).
+* xpl — `xpl/eval.cc`, `xpl/model.cc`, `xpl/fire.cc`, `xpl/engine.cc`: the
+  explicit engine — concrete evaluation, supports, the term interpreter,
+  visitor-driven BFS (see `include/hsc/xpl/`).
 * petri — `petri_nupn.cc`, `petri_to_surface.cc`, `petri_decompose.cc`,
   and the vendored `louvain/`: PNML/NUPN import and unit-tree decomposition.
 * dve — `dve_parser.cc` (T2M), `dve_to_surface.cc` (M2M + M2T): the BEEM

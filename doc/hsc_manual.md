@@ -229,6 +229,7 @@ certificate; `unfold` always enumerates.
 (get-states NAME [K])        ; up to K states (default 10), one per line
 (expect NAME N)              ; assert count == N; nonzero exit on miss
 (states [NAME])              ; the count in MCC output format
+(xreach NAME [from RESULT] [cap INT])  ; the explicit engine, §8b
 (bill)                       ; meters: nodes, terms, caches, time
 ```
 
@@ -243,6 +244,34 @@ differential oracle in tests.
 leaves (`(< a c)`) and quantified crossers resolve through the case
 engine, whatever the shape. Results bind to names and compose: `reach`
 from a `select`, `apply` to a `word`, `select` of a `select`.
+
+## 8b. The explicit engine
+
+`(xreach NAME [from RESULT] [cap INT])` closes a seed set under the
+default system by enumerating **concrete states one at a time** — the
+explicit complement to the symbolic `reach`, same answer, different
+strengths: exact counts on small instances, runnable witnesses, and loud
+precise errors where the symbolic engine folds silently. Seeds come from a
+bound result (`from` a `word`, a `select`, a witness — any diagram,
+enumerated) or default to the init seed.
+
+The result binds like any other: `count`, `expect`, `get-states` and
+`get-witness` read it; commands that only mean something on a diagram
+(`nodes`, `print`, `select`, `max-value`) answer `(unsupported)` or refuse.
+The `cap` (default 2^20 stored states) is an honest refusal, never a
+silent truncation.
+
+A model-level runtime error — division by zero, an out-of-bounds access,
+overflow, two writes to one cell in one clause — makes the result **TOP**:
+reported with the event, the cause, and the offending state as a runnable
+`(word …)`; every `expect` against a TOP fails. Inside a guard, ⊥ is
+three-valued as in the symbolic engine: `(and (> i 0) (== (at tab i) …))`
+is false at `i = 0`, not an error.
+
+`hsc --explicit model.hsc` runs an unmodified file on the explicit engine:
+each `(reach NAME …)` becomes `(xreach NAME …)`, and the file's own
+`count`/`expect` lines then read the explicit result — output lines match
+the symbolic run, so a corpus differential is a diff of outputs.
 
 ## 9. Errors, honestly
 

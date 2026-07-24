@@ -15,8 +15,12 @@ Layer order, each folder knowing only the ones above it in this list:
 * `query.hh` — cross-level criteria over diagrams: `split_equiv` lifted to
   diagrams, `select_compare` (the crossing case), the per-position filters. Sits
   above `core/` and `leaves/`.
+* `xpl/` — the explicit engine: concrete states, the term interpreter,
+  visitor-driven exploration. Depends on `lia/`, `util/` and the sparse
+  containers vendored under `petri/`; **never sees a diagram**.
 * `surface/` — the `.hsc` file surface: s-expression parser (T2M) and
   translator (M2M). The only layer that gives text operational meaning.
+  Also the bridge to `xpl/` (`xpl_build.hh`, the `xreach` command).
 * `petri/` — PNML/NUPN import and Louvain decomposition, emitting surface
   text.
 * `dve/` — the DVE (BEEM) front end: parser to a DVE model (T2M), transform
