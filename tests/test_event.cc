@@ -1,5 +1,5 @@
 /// \file test_event.cc
-/// \brief The §7 case bracket (`hsc/event.hh`) against brute-force oracles:
+/// \brief The case bracket (`hsc/event.hh`) against brute-force oracles:
 /// crossing filters, crossing updates, simultaneous writes, array
 /// indirection with out-of-bounds abort — on spine and balanced shapes.
 

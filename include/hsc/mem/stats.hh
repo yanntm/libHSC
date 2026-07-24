@@ -1,7 +1,7 @@
 /// \file stats.hh
 /// \brief Meters. Nothing is added to mem/ without one.
 ///
-/// The invoice of the calculus (hsc_core §12.5) is assembled from these. A
+/// The invoice of the calculus is assembled from these. A
 /// statistics struct is a plain aggregate that can describe itself as a list
 /// of named fields; the printers below turn any such list into either
 /// key:value lines (for reading) or a CSV row (for the report artefacts).

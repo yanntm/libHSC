@@ -1,11 +1,10 @@
 /// \file support.hh
-/// \brief The support algebra a sort exports (§2.1), at tier G.
+/// \brief The support algebra a sort exports.
 ///
-/// Tier G is the working tier: joins, meets, and **relative** differences.
-/// There is no top and no complement, and no construction in libHSC forms
-/// one. Tiers E and J also owe decidable equality and emptiness; interning
-/// discharges both for free, so what an implementor actually writes is three
-/// operations.
+/// The contract is joins, meets, and **relative** differences. There is no
+/// top and no complement, and no construction in libHSC forms one. Decidable
+/// equality and emptiness are also owed, but interning discharges both for
+/// free, so what an implementor actually writes is three operations.
 #pragma once
 
 #include <iosfwd>
@@ -22,8 +21,7 @@ namespace hsc::core {
 /// Shapes are data, so the dispatch is a runtime one. See `algorithm.md` §3.
 ///
 /// Diagrams implement this interface like any other theory. That is
-/// Corollary 3.6 (internalisation carries operations) made structural: there
-/// is no leaf case and node case.
+/// internalisation made structural: there is no leaf case and node case.
 class support_algebra {
  public:
   virtual ~support_algebra() = default;
@@ -42,25 +40,25 @@ class support_algebra {
   virtual code minus(code a, code b) = 0;  ///< a ∖ b, relative
   ///@}
 
-  /// \brief Apply a local term to a code (Def 2.3).
+  /// \brief Apply a local term to a code.
   ///
   /// The term is handed over **whole** — guards, assigns, composition, sum,
   /// fused as the implementor sees fit. Splitting a code, acting per piece
-  /// and re-joining is what Def 2.3 forbids doing to a theory from outside.
+  /// and re-joining is what the theory contract forbids doing from outside.
   ///
   /// Term code `0` is `id`: free, never represented, and callers are
   /// expected to short-circuit it rather than dispatch on it.
   ///
   /// Which codes are legal terms is the implementor's business: a leaf
   /// theory interprets its own term language, and the diagram engine
-  /// interprets operation terms — that is Corollary 3.6, and it is why this
+  /// interprets operation terms — that is internalisation, and it is why this
   /// method is on this interface rather than on a separate one.
   virtual code apply_local(code term, code value) = 0;
 
   /// \name Building local terms
   ///
   /// A sort must be able to combine and close terms of its own language, so
-  /// that the saturation rewrite (§6) can push a closure down to it without
+  /// that the saturation rewrite can push a closure down to it without
   /// knowing what the language is.
   ///@{
   /// The term acting as \p a or \p b.

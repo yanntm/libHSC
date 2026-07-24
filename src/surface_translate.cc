@@ -4,8 +4,8 @@
 /// The pass reads the surface's forms into engine calls: leaves become a shared
 /// int leaf sort with per-name bounds, the shape is interned, each event is
 /// compiled to one `core::product` term over the separable Presburger fragment
-/// (§6), and commands run in order. A crossing atom or action (one that would
-/// need `split_equiv`, §7) is refused by name rather than mis-compiled.
+///, and commands run in order. A crossing atom or action (one that would
+/// need `split_equiv`) is refused by name rather than mis-compiled.
 
 #include "hsc/surface/translate.hh"
 
@@ -184,7 +184,7 @@ class translator final : public name_scope {
 
   /// The value side of an atom or action must be a constant. Anything else —
   /// a list `(+ b c)` or a bare leaf name — relates a second coordinate and so
-  /// needs `split_equiv` (§7): parsed and understood, then declined.
+  /// needs `split_equiv`: parsed and understood, then declined.
   std::int32_t require_constant(const datum& d, const char* role) {
     if (d.is_atom()) {
       const std::string& t = d.text();
@@ -195,7 +195,7 @@ class translator final : public name_scope {
     }
     fail(d, std::string("crossing ") + role +
                 ": value is not a constant; relating two leaves needs "
-                "split_equiv (§7), not implemented");
+                "split_equiv, not implemented");
   }
 
   // --- form dispatch -------------------------------------------------------
@@ -399,7 +399,7 @@ class translator final : public name_scope {
 
   /// The predicate a single atom `(cmp leaf K)` or `(in leaf K…)` puts on
   /// the leaf's coordinate (`lia` position 0) — symbolic, no domain
-  /// materialized. Refuses anything relating a second leaf (§7).
+  /// materialized. Refuses anything relating a second leaf.
   lia::bexpr atom_guard(const datum& atom) {
     lia::expr_factory& ex = theory_->exprs();
     const lia::iexpr v0 = ex.variable(0);
@@ -573,7 +573,7 @@ class translator final : public name_scope {
   }
 
   /// Read when-atoms: separable single-position atoms fuse per leaf,
-  /// anything else is a crossing filter (a §7 case bracket, applied before
+  /// anything else is a crossing filter (a case bracket, applied before
   /// any action so every guard reads the pre-state). False when an atom
   /// folds dead.
   bool read_when(const datum& clause, std::map<std::size_t, leaf_effect>& eff,
@@ -715,7 +715,7 @@ class translator final : public name_scope {
     events_.push_back(ev);
   }
 
-  // --- certified uniform families: the declared route (spec Part II) -------
+  // --- certified uniform families: the declared route ----------------------
 
   /// One `(at@ ARRAY δ)` marker of a family body: a certified access to
   /// the cell of component (i+δ) mod N.
@@ -772,7 +772,7 @@ class translator final : public name_scope {
 
   using fam_memo = std::map<std::pair<core::shape_code, long long>, code>;
 
-  /// \brief The declared fold (spec Part II §7): the sum of instances
+  /// \brief The declared fold: the sum of instances
   /// \p ids — each with every cell in [lo, lo+width) — as a head-folded
   /// chain built by recursion over the sort tree, no site enumerated at
   /// shared blocks.
@@ -1306,7 +1306,7 @@ class translator final : public name_scope {
   /// leaf is the crossing comparison (`select_compare`). Any other BEXP —
   /// conjunction, disjunction, negation, arithmetic — compiles exactly as
   /// an event guard would, a `(when ATOM)` filter applied once: separable
-  /// pieces fuse per leaf, crossing pieces become §7 case brackets.
+  /// pieces fuse per leaf, crossing pieces become case brackets.
   code apply_atom(const datum& atom, code src) {
     if (!atom.is_list() || atom.items().empty()) {
       fail(atom, "a query atom is a boolean form over the leaves");

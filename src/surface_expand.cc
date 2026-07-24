@@ -477,7 +477,7 @@ class expander {
     return out;
   }
 
-  // ---- certified uniform families (spec Part II §6) --------------------
+  // ---- certified uniform families (the uniformity certificate) --------------------
 
   /// The offset a certified index expression puts on the binder: `i` is 0,
   /// `(% (+ i K) N)` is +K, `(% (- i K) N)` is −K (K a constant, N the

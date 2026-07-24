@@ -13,7 +13,7 @@ Layer order, each folder knowing only the ones above it in this list:
   over positions. Depends on `mem/` and `util/` only.
 * `leaves/` — leaf theories (`int_set`, symbolically guarded via `lia/`).
 * `query.hh` — cross-level criteria over diagrams: `split_equiv` lifted to
-  diagrams, `select_compare` (the §7 case), the per-position filters. Sits
+  diagrams, `select_compare` (the crossing case), the per-position filters. Sits
   above `core/` and `leaves/`.
 * `surface/` — the `.hsc` file surface: s-expression parser (T2M) and
   translator (M2M). The only layer that gives text operational meaning.

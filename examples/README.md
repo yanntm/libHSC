@@ -11,7 +11,7 @@ Run one directly to see its output:
 
 * `philosophers.cc` — Ex1 of the calculus. The dining philosophers state
   space built as *data*: no operations, only the set algebra over
-  Construction 3.3. The same word set is built over two shapes, balanced and
+  the canonicalizer. The same word set is built over two shapes, balanced and
   flat, and validated against `trace(Mⁿ)` computed independently by transfer
   matrix.
 
@@ -23,7 +23,7 @@ Run one directly to see its output:
   | flat `V(m) = (⟨A⟩, V(m−1))` | **2n − 2** (2046) |
 
   The balanced shape does not grow with n because a segment of length k is
-  one code wherever it sits in the ring — §2.6, a code is relative to its
+  one code wherever it sits in the ring — a code is relative to its
   position, so isomorphic positions share it. The flat shape is the classical
   degeneration and pays one level per philosopher. Same words, same counts.
 
@@ -57,7 +57,7 @@ Run one directly to see its output:
   Naive iteration needs `2^n − 1` rounds and rebuilds a fresh object in
   each, so every round misses the memo. Saturation puts the closures
   *inside* the operator term, so the memo keys on saturated nodes: one
-  application, and a node is saturated once (§6.5).
+  application, and a node is saturated once.
 
   **The shape is a compromise, not a win.** At n=16 the spine finishes in
   0.000 s and the fully balanced tree takes 0.025 s. Hanoi's events reach a

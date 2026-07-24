@@ -1,7 +1,7 @@
 # `order/` — variable-ordering heuristics
 
-The shape is a parameter of the representation, supplied from outside
-(hsc_core5 §8); this package computes good frontier orders for it. The
+The shape is a parameter of the representation, supplied from outside;
+this package computes good frontier orders for it. The
 calculus never guesses an order — a front end asks, then emits its shape.
 
 ## FORCE (`force.hh`)
@@ -19,7 +19,7 @@ which drives the same algorithm from GAL transitions. Two constraint kinds:
   the clique in the order. This is the classical FORCE hyperedge.
 * **precedence** — an asymmetric pair `before < after`: free when
   satisfied, cost the distance when violated (libITS's `QueryEdge`, added
-  there for the EquivSplit setting — our §7 case bracket). A front end
+  there for the EquivSplit setting — our case bracket). A front end
   uses it to put what an event *reads* above what the read addresses: the
   curry then grounds residuals before reaching the cells they select, so
   a split's classes stay short-lived.

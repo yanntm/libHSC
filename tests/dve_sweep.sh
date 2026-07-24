@@ -3,7 +3,7 @@
 # model: transform status, then the surface's verdict on the generated file
 # (run under a per-model timeout). Writes samples/divine/status.tsv:
 #   model <TAB> status <TAB> states-or-detail <TAB> nodes <TAB> seconds
-# status: run-ok (states, final diagram nodes), timeout, refused-§7,
+# status: run-ok (states, final diagram nodes), timeout, refused-crossing,
 # refused-other, transform-error, overflow/other-error. Every sweep is also
 # archived under samples/divine/runs/<utc>_<rev>[_<label>].tsv (a # header
 # records revision, timeout, dve2hsc flags) for post analysis; status.tsv
@@ -49,8 +49,8 @@ for f in samples/divine/dve/*.dve; do
     printf '%s\trun-ok\t%s\t%s\t%s\n' "$b" "$count" "$nodes" "$secs" >> "$ARCHIVE"
   elif [ $rc -eq 124 ]; then
     printf '%s\ttimeout\t%ss\t\t%s\n' "$b" "$TMO" "$secs" >> "$ARCHIVE"
-  elif echo "$run" | grep -q "§7"; then
-    printf '%s\trefused-§7\t%s\t\t%s\n' "$b" \
+  elif echo "$run" | grep -q "split_equiv"; then
+    printf '%s\trefused-crossing\t%s\t\t%s\n' "$b" \
       "$(echo "$run" | head -1 | sed 's/.*: //' | head -c 100)" "$secs" >> "$ARCHIVE"
   elif echo "$run" | grep -qi "overflow"; then
     printf '%s\toverflow\t\t\t%s\n' "$b" "$secs" >> "$ARCHIVE"

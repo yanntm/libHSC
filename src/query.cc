@@ -1,5 +1,5 @@
 /// \file query.cc
-/// \brief `x ⋈ y` across a cut (§7), by split_equiv on the head plus a curried
+/// \brief `x ⋈ y` across a cut, by split_equiv on the head plus a curried
 /// per-position restriction of the tail.
 
 #include "hsc/query.hh"

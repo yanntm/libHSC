@@ -43,7 +43,7 @@ class manager {
 
   /// \brief The algebra of the sort \p s: an imported theory, or diagrams.
   ///
-  /// Internalisation (Thm 3.5) is exactly this function having two branches
+  /// Internalisation is exactly this function having two branches
   /// that return the same interface.
   /// Const because it is a lookup: what it hands back is not const, since an
   /// algebra interns as it works.
@@ -60,7 +60,7 @@ class manager {
     return operations_;
   }
 
-  /// \brief The §7 case engine evaluating `op_kind::expr` terms. Registered
+  /// \brief The crossing case engine evaluating `op_kind::expr` terms. Registered
   /// by its owner (it outlives nothing here — the caller keeps it alive);
   /// applying an expr term with none registered is a logic error.
   void set_cases(case_evaluator* cases) noexcept { cases_ = cases; }

@@ -3,7 +3,7 @@
 ///
 /// The simplest thing that satisfies the tier-G contract, and deliberately so.
 /// A theory earns its keep by returning few structured codes where enumeration
-/// would return many singletons (§2.5); this one does not try, which is what
+/// would return many singletons; this one does not try, which is what
 /// makes it the permanent differential oracle for the ones that do.
 #pragma once
 
@@ -67,14 +67,14 @@ enum class int_guard : std::uint8_t {
   symbolic,  ///< `a` is a `lia::bexpr` over the coordinate (position 0)
 };
 
-/// \brief A local term of this theory (Def 2.3).
+/// \brief A local term of this theory.
 ///
 /// A guard then an action, plus sum and star closure — which is the term
-/// language Def 2.3 says a theory is handed *whole*. Enough for a Petri
+/// language a theory is handed *whole*. Enough for a Petri
 /// transition (`m >= w` then `m -= w`) and a Hanoi move (`pos == a` then
 /// `pos := b`). A guard is symbolic (an interned expression, evaluated on
 /// the values present — no domain is materialized) or an extensional set
-/// where the model genuinely enumerates. Only pushforwards appear: Def 2.2
+/// where the model genuinely enumerates. Only pushforwards appear: the theory contract
 /// exports no preimage and none is wanted.
 struct int_term {
   int_shape shape = int_shape::primitive;
@@ -108,12 +108,12 @@ class int_set_theory final : public core::support_algebra {
   /// The elements of \p c, ascending. Empty for `none`.
   [[nodiscard]] std::span<const std::int32_t> elements(core::code c) const;
 
-  /// \brief `split_equiv` (§7): partition \p set by the value of the linear
+  /// \brief `split_equiv`: partition \p set by the value of the linear
   /// expression `coeff*x + offset` over this leaf's coordinate `x`. Returns
   /// `{value, sub-code}` pairs, ascending by value, one per distinct value the
   /// expression takes — the sub-code holds the elements yielding it.
   ///
-  /// Exact: one class per value, no cost knob (the added expressiveness of §7).
+  /// Exact: one class per value, no cost knob (the added expressiveness of the crossing fragment).
   /// The value is a code of the interchange (LIA) domain — here a plain integer.
   /// `coeff*x + offset` is overflow-checked, loud on leaving int32 range.
   [[nodiscard]] std::vector<std::pair<std::int32_t, core::code>> split_equiv(

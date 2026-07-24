@@ -6,8 +6,8 @@
 /// a product term, executes the commands, and reports. It is the only part of
 /// the surface that depends on `hsc::core`.
 ///
-/// Scope is the separable Presburger fragment (§6): a crossing atom or action
-/// is refused with a pointer to §7, not silently mis-compiled.
+/// Scope is the separable Presburger fragment: a crossing atom or action
+/// is refused as crossing, not silently mis-compiled.
 #pragma once
 
 #include <iosfwd>

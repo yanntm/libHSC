@@ -1,5 +1,5 @@
 /// \file shape.hh
-/// \brief Sorts (§1): `V ::= 1 | ⟨A⟩ | (V_h , V_t)`.
+/// \brief Sorts: `V ::= 1 | ⟨A⟩ | (V_h , V_t)`.
 ///
 /// Shapes are interned trees. Three commitments they encode:
 ///

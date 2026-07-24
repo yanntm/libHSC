@@ -129,7 +129,7 @@ result solve(int n, bool balanced, strategy how) {
   std::size_t iterations = 0;
   if (how == strategy::saturated) {
     // One term, one application. Every closure sits inside it, so the memo
-    // keys on saturated nodes rather than on rounds (§6.5).
+    // keys on saturated nodes rather than on rounds.
     const core::code closure = core::saturate(mgr, sort, events);
     reachable = diagrams.apply_local(closure, reachable);
     iterations = 1;

@@ -1,26 +1,25 @@
 /// \file operation.hh
-/// \brief Operation terms (§4.1), and the saturated form of a closure (§6).
+/// \brief Operation terms, and the saturated form of a closure.
 ///
 ///     H ::= id | node(H_h, H_t) | H ∘ H | Σ H | H* | saturate(F, L, G…)
 ///
 /// The leaf case is not in this table: at a leaf sort the term is a *theory*
-/// term, read by the theory that owns the sort (Def 2.3). A term is
+/// term, read by the theory that owns the sort. A term is
 /// interpreted by whichever algebra it is handed to, exactly like a value.
 ///
 /// The term mirrors the shape tree rather than naming an absolute variable.
 /// Three consequences, all load-bearing:
 ///
 ///   **Skip is `term == id`.** `node(id, t)` transmits nothing to the head,
-///   because `id` is free and free things are not represented (discipline
-///   3). No skip oracle, no support set.
+///   because `id` is free and free things are not represented. No skip
+///   oracle, no support set.
 ///
-///   **Currification is free** (§2.6). Descending into a subtree re-roots
+///   **Currification is free**. Descending into a subtree re-roots
 ///   the term, so isomorphic positions share codes. libDDD keys a
-///   homomorphism on an absolute variable index and structurally cannot —
-///   gap D1 of the bridge document.
+///   homomorphism on an absolute variable index and structurally cannot.
 ///
-///   **The saturation split is syntactic.** Def 6.1 asks where each summand
-///   reaches relative to a cut; here `node(h,t)` answers by inspection —
+///   **The saturation split is syntactic.** Where each summand reaches
+///   relative to a cut, `node(h,t)` answers by inspection —
 ///   `h == id` is F, `t == id` is L, neither is G. libDDD computes this with
 ///   a per-variable partition cache over `skip_variable`, libsdd with a
 ///   `dynamic_cast` chain in a static rewrite pass.
@@ -43,8 +42,8 @@ enum class op_kind : std::uint8_t {
   sum,       ///< n operands, canonical (sorted, deduplicated)
   compose,   ///< 2 operands: `after ∘ before`
   fixpoint,  ///< 1 operand: `(h + id)*` by naive iteration
-  saturate,  ///< F, L, then the G operands: the schedule of §6.2
-  expr,      ///< a §7 case bracket: a guard `bexpr`, then (lhs, rhs)
+  saturate,  ///< F, L, then the G operands: the F-L-G schedule
+  expr,      ///< a case bracket: a guard `bexpr`, then (lhs, rhs)
              ///< `iexpr` pairs — opaque to core, evaluated by the case
              ///< engine registered with the manager
 };
@@ -121,7 +120,7 @@ class op_table {
     return make(op_kind::fixpoint, ops);
   }
 
-  /// \brief The schedule of §6.2: `(F + id)*`, then `(L + id)*`, then the
+  /// \brief The saturation schedule: `(F + id)*`, then `(L + id)*`, then the
   /// `G` chain, to stability.
   ///
   /// \p f and \p l are already terms *at this sort* — `node(id,F')` and
@@ -132,13 +131,13 @@ class op_table {
     return make(op_kind::saturate, scratch_);
   }
 
-  /// \brief A §7 case bracket: `when guard do lhs := rhs, …`.
+  /// \brief A case bracket: `when guard do lhs := rhs, …`.
   ///
   /// \p guard is a `lia::bexpr` code, \p assigns interleaved
   /// (lhs, rhs) `lia::iexpr` codes; every position in them is relative to
   /// the sort the term is applied at. Core stores and hashes the term but
   /// never reads the expressions — evaluation is the registered case
-  /// engine's (Def 2.6: the calculus carries the interchange theory's
+  /// engine's (the calculus carries the interchange theory's
   /// codes, the theories at the ends interpret them).
   code expr_event(code guard, std::span<const code> assigns) {
     scratch_.assign({guard});
@@ -171,7 +170,7 @@ code product(op_table& ops, const shape_table& shapes, shape_code sort,
 class manager;
 
 /// \brief The evaluator of `op_kind::expr` terms, registered with the
-/// manager by the layer that owns the §7 case bracket (`hsc/event.hh`).
+/// manager by the layer that owns the case bracket (`hsc/event.hh`).
 ///
 /// Core dispatches here from term application; the separation keeps the
 /// calculus free of any leaf theory or expression language.
@@ -202,14 +201,14 @@ code sum_at(manager& mgr, shape_code sort, std::span<const code> events);
 
 /// \brief Rewrite a set of events into the saturated closure at \p sort.
 ///
-/// The static pass of §6: partition the events by where they reach relative
+/// The static saturation pass: partition the events by where they reach relative
 /// to this cut, close F below and L on the edge — recursively, so hierarchy
-/// is automatic (§6.4) — and leave G to be chained. Bottoms out at a leaf,
-/// where the theory closes its own local term (§6.2, Def 2.3).
+/// is automatic — and leave G to be chained. Bottoms out at a leaf,
+/// where the theory closes its own local term 
 ///
 /// The result is a term; applying it is what saturates. Because the closures
 /// sit *inside* the term, memoisation keys on saturated nodes rather than on
-/// rounds — §6.5, and the whole point.
+/// rounds — and that is the whole point.
 code saturate(manager& mgr, shape_code sort, std::span<const code> events);
 
 }  // namespace hsc::core

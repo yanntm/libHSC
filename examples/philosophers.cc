@@ -58,7 +58,7 @@ struct segment {
 ///
 /// Both halves of a segment have the same shape *and the same table*: a
 /// segment of length k does not know where in the ring it sits. That is
-/// §2.6 — a code is relative to its position, so isomorphic positions share
+/// a code is relative to its position, so isomorphic positions share
 /// it — and it is why the node count below does not grow with n.
 segment balanced(core::manager& mgr, leaves::int_set_theory& theory,
                  core::theory_index index, int n) {

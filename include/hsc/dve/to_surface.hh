@@ -6,7 +6,7 @@
 /// `P_` naming, `P_state` control leaves by declaration index, constants
 /// folded, effect lists parallelized by forward substitution, channel
 /// rendezvous fused per (send, recv) pair. The output is the same tree
-/// `.hsc` files parse to; whether a form is §6, §7 or refused is the
+/// `.hsc` files parse to; whether a form is separable, crossing, or refused is the
 /// surface's judgement, not this layer's.
 #pragma once
 

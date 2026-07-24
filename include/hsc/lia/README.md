@@ -1,7 +1,7 @@
 # `lia/` — the interchange theory of linear integer arithmetic
 
 Interned integer and boolean expressions over *positions* — the language in
-which cross-level criteria and updates (§7) are written, curried, and cached.
+which cross-level criteria and updates are written, curried, and cached.
 A `split_equiv` label, a residual after substitution, a guard on a term: all
 are codes of this package.
 

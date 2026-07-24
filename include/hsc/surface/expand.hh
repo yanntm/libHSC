@@ -42,8 +42,7 @@ class expand_error : public std::runtime_error {
 /// generated array is rewritten to its cell name. Throws `expand_error`.
 ///
 /// With \p families (the default), an event whose whole body is a single
-/// `exists` binder satisfying the uniformity certificate (spec Part II §6:
-/// index used only as an array index at a constant offset mod N, full
+/// `exists` binder satisfying the uniformity certificate (index used only as an array index at a constant offset mod N, full
 /// range, one binder) is NOT enumerated: it is emitted as a
 /// `(family NAME N CLAUSE…)` form, accesses rewritten to `(at@ ARRAY δ)`,
 /// for the translator to build by recursion instead of by instance.

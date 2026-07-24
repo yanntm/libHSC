@@ -1,51 +1,49 @@
 # `core/` — algorithms
 
-Abstract description of the calculus as implemented. Section marks are to
-`research_notes/hsc_core4.md`.
+Abstract description of the calculus as implemented. Self-contained: every
+definition the code relies on is stated here, in the code's own vocabulary.
 
 ## 1. Codes
 
 Everything a computation touches is a **code**: a 32-bit id into an intern
-table (§0, "codes are the citizens"). Code `0` is **absence** — the adjoined
-`0` of discipline 1. It is never stored, never traversed, never an arc.
-Because it is absence:
+table. Code `0` is **absence** — the pointed discipline's adjoined empty
+element, present in every algebra. It is never stored, never traversed,
+never an arc. Because it is absence:
 
 * emptiness is `c == 0` — free, no virtual call, no theory involved;
 * equality is `a == b` — free, hash-consing has already done the work.
 
-So the support-algebra contract (§2.1, tier G) reduces to exactly **three**
+So the support-algebra contract reduces to exactly **three**
 operations that anyone must actually implement: join, meet, relative
-difference. Tiers E and J's remaining obligations are discharged by interning.
+difference. Equality and emptiness, also owed, are discharged by interning.
 
 ## 2. Shapes
 
     shape ::= unit | leaf(theory) | pair(head, tail)
 
 Interned, so `(V₁,(V₂,V₃))` and `((V₁,V₂),V₃)` are different codes: no
-associativity, which is what "hierarchical" means (§1, second structural
-commitment). No names — a position is a path, and two equal subterms are one
-object under hashing.
+associativity, which is what "hierarchical" means. No names — a position is
+a path, and two equal subterms are one object under hashing.
 
 ## 3. The support algebra, and why it is type-erased
 
 A head position's primes live in *some* algebra: a leaf theory's, or — when
-the head is itself composite — the diagram algebra (Theorem 3.5,
-internalisation). One node's canonization must call meet and minus on its
-primes without knowing which of those it is. That is a runtime question: the
-shape says, and shapes are data.
+the head is itself composite — the diagram algebra. This is
+**internalisation**: the diagrams of a sort themselves satisfy the support
+contract, so a composite sort imports exactly like a leaf. One node's
+canonization must call meet and minus on its primes without knowing which of
+those it is. That is a runtime question: the shape says, and shapes are data.
 
 So `support_algebra` is an abstract class with three virtuals, and the
 registry maps a shape code to the algebra of that sort. The cost is one
 indirect call per meet — against a meet that is either a vector intersection
-or a recursive diagram descent, both orders of magnitude larger. G4's
-monomorphization is a separate, later mechanism reserved for the declared
-fast path (M6), not something the general path is bent around now.
+or a recursive diagram descent, both orders of magnitude larger.
 
-Diagrams implement the same interface as any leaf theory. That is Corollary
-3.6 made structural rather than remembered: there is no "leaf case" and "node
-case".
+Diagrams implement the same interface as any leaf theory. That is
+internalisation made structural rather than remembered: there is no "leaf
+case" and "node case".
 
-## 4. The normal form (Theorem 3.1)
+## 4. The normal form (the canonical decomposition)
 
 A nonzero diagram at sort `(V_h, V_t)` is a finite nonempty set of arcs
 
@@ -57,12 +55,12 @@ subject to the degeneracy ledger:
 |---|---|---|
 | no zero subs | padding | an arc with `sub == 0` is never written |
 | no zero primes | phantom classes | an arc with `prime == 0` is never written |
-| **(D)** primes pairwise disjoint | overlap | Construction 3.3 maintains it |
+| **(D)** primes pairwise disjoint | overlap | the canonicalizer (§5) maintains it |
 | **(F)** subs pairwise distinct | refinement | the final regroup by sub |
 
 Stored as a node: `sort`, `arity`, and a trailing array of `(prime, sub)`
 pairs **sorted by prime code**. The sort is in the node because codes are
-position-relative (§2.6): the same arc list under two different sorts means
+position-relative: the same arc list under two different sorts means
 two different things, and the primes would be codes in two different algebras.
 Sorting the arcs is what makes the interned representation canonical, so
 equality of diagrams is equality of ids.
@@ -70,7 +68,7 @@ equality of diagrams is equality of ids.
 `0` is absence, and the terminal is the unique node of sort `unit` with no
 arcs. Hence emptiness and the terminal test are both integer comparisons.
 
-## 5. Construction 3.3 — the one canonicalizer
+## 5. The one canonicalizer
 
 Everything that builds a diagram funnels through this. Input: any finite bag
 of rectangles `(P, S)`, overlapping and repeating freely. Output: the unique
@@ -103,11 +101,11 @@ their *sum*, so where two heads overlap the tails add. That union is a
 diagram union at the tail sort, which is itself a canonization — the mutual
 recursion that makes this one algorithm rather than two.
 
-**The all-negative cell never appears.** Construction 3.3's note: the cell
-whose expression would need a top has section `0`, and the pointed discipline
-deletes it before it is written. Concretely, `rest` is carried by *relative*
-difference only; no complement is ever formed, so tier G suffices and no
-theory is ever asked for a top.
+**The all-negative cell never appears.** The cell whose expression would
+need a top has section `0`, and the pointed discipline deletes it before it
+is written. Concretely, `rest` is carried by *relative* difference only; no
+complement is ever formed, so the three-map contract suffices and no theory
+is ever asked for a top.
 
 Every prime written is a nonempty meet or a nonempty relative difference of
 primes already present — which is the invariant that keeps (D).

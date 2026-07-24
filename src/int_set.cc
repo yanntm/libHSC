@@ -195,7 +195,7 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
   }
   if (t.shape == int_shape::closure) {
     // Naive iteration. A theory is free to fuse a closure instead; this one
-    // does not try, which is what makes it the honest oracle (§2.5).
+    // does not try, which is what makes it the honest oracle.
     core::code x = value;
     for (;;) {
       const core::code y = join(x, apply_local(t.a, x));

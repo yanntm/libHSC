@@ -1,12 +1,12 @@
 /// \file query.hh
-/// \brief Cross-level comparison of two coordinates, first shape of the §7
+/// \brief Cross-level comparison of two coordinates, first shape of the
 /// case bracket.
 ///
 /// `x ⋈ y` (⋈ one of < ≤ = ≠ ≥ >) relating two frontier positions across a
 /// cut. At the cut that separates them, `split_equiv` the head coordinate and,
 /// per class, curry the residual (`v ⋈ y`, or `x ⋈ v`) onto the tail as a
 /// plain per-position restriction. This lives above `core` and `leaves`
-/// because §7 is exactly the seam where the calculus consults a leaf theory's
+/// because the crossing fragment is exactly the seam where the calculus consults a leaf theory's
 /// `split_equiv`; for now the leaf is `int_set` concretely (the general
 /// interface is a later step).
 #pragma once

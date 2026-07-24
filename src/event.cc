@@ -1,5 +1,5 @@
 /// \file event.cc
-/// \brief The §7 case bracket: build (push-down) and apply (currying).
+/// \brief The case bracket: build (push-down) and apply (currying).
 /// The algorithm is the file comment of `hsc/event.hh`.
 
 #include "hsc/event.hh"

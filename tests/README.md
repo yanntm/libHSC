@@ -43,5 +43,5 @@ values.
 * `test_stats.cc`, `test_timing.cc` — meters and clocks.
 
 * `dve_sweep.sh` — not a ctest: regenerates `samples/divine/hsc/` from the
-  DVE corpus and classifies every model (run / refused-§7 / refused-other /
+  DVE corpus and classifies every model (run / refused-crossing / refused-other /
   timeout) into `samples/divine/status.tsv`; logs under `tests/logs/`.

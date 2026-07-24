@@ -56,7 +56,7 @@ refused (the corpus never uses them meaningfully).
   arithmetic term in boolean position is `(!= e 0)`; `=>`/`imply` expands to
   `(or (not a) b)`. Guards stay expression trees in the emitted forms —
   disjunction, arithmetic, crossing atoms are printed as written and it is
-  the *surface's* business to accept (§6), case (§7), or refuse them.
+  the *surface's* business to accept, case, or refuse them.
 * **Channels** (rendezvous, `system async`): every (send, recv) transition
   pair on a channel fuses into one event — both state atoms and guards
   conjoined, then the composed steps in reference order: sender effects,

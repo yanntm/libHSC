@@ -1,5 +1,5 @@
 /// \file test_split_equiv.cc
-/// \brief The leaf-level `split_equiv` (§7): partition a code by an expression's
+/// \brief The leaf-level `split_equiv`: partition a code by an expression's
 /// value. The first step of the cross-level arithmetic path.
 
 #include <doctest/doctest.h>

@@ -13,7 +13,7 @@ namespace hsc::core {
 /// A canonical name. Which algebra it names is decided by the shape.
 using code = std::uint32_t;
 
-/// \brief Absence: the adjoined `0` of discipline 1.
+/// \brief Absence: the pointed discipline's adjoined `0`.
 ///
 /// A legal *answer*, never a legal *letter*. Nothing canonical stores,
 /// traverses or points to it — which is what makes emptiness a comparison

@@ -1,11 +1,11 @@
 /// \file event.hh
-/// \brief The §7 case bracket as an event: crossing criteria and updates.
+/// \brief The case bracket as an event: crossing criteria and updates.
 ///
 /// An event is `when g do lhs_i := rhs_i` — `g` a `lia::bexpr`, both sides
 /// of each assignment `lia::iexpr`s over frontier positions (an `lhs` is a
 /// variable, or an array whose index is still an expression). The
-/// separable fragment (§6) compiles to product terms elsewhere; this engine
-/// owns what does not factor, by the operational model of the §7 bracket:
+/// separable fragment compiles to product terms elsewhere; this engine
+/// owns what does not factor, by the operational model of the bracket:
 ///
 /// * **Build (`make_event`) pushes the term down.** At each sort, the
 ///   positions the event touches (reads: guard and rhs supports, array
@@ -36,7 +36,7 @@
 ///   touch; an index that resolves out of bounds is ⊥ — the event aborts,
 ///   contributing absence, never a clamp.
 ///
-/// This lives above `core` and `leaves` like `query.hh`: §7 is the seam
+/// This lives above `core` and `leaves` like `query.hh`: the crossing fragment is the seam
 /// where the calculus consults a leaf theory's `split_equiv`; core carries
 /// the expression codes without reading them and dispatches here through
 /// `core::case_evaluator`.
@@ -58,7 +58,7 @@ class int_set_theory;
 
 namespace hsc {
 
-/// \brief Builder and evaluator of §7 crossing events.
+/// \brief Builder and evaluator of crossing events.
 class case_engine final : public core::case_evaluator {
  public:
   /// Registers itself with \p mgr as the `op_kind::expr` evaluator; the

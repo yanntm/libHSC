@@ -1,5 +1,5 @@
 /// \file diagram.cc
-/// \brief Construction 3.3 and the set algebra over it.
+/// \brief The canonicalizer and the set algebra over it.
 ///
 /// Re-expressed from libDDD's SDED (`ddd/SDED.cpp`: `_SDED_Add::eval`,
 /// `_SDED_Mult::eval`, `_SDED_Minus::eval`, `square_union`), which is the
@@ -215,7 +215,7 @@ code diagram_engine::apply_local(code term, code value) {
 
 /// \brief Evaluate one operation term against one diagram.
 ///
-/// The whole local fragment of §4.1. `node(h,t)` maps every arc through the
+/// The whole local fragment of the term algebra. `node(h,t)` maps every arc through the
 /// head and tail algebras and re-canonicalises; which algebra interprets `h`
 /// is settled by the shape, so a leaf theory and a nested diagram are the
 /// same case (Cor. 3.6).
@@ -242,7 +242,7 @@ code diagram_engine::do_apply(code term, code d) {
 
     case op_kind::fixpoint: {
       // Round-based iteration, kept for comparison: it rebuilds a fresh
-      // object every round and so misses the memo every round (§6.5).
+      // object every round and so misses the memo every round.
       const code h = t.operand(0);
       code x = d;
       for (;;) {
@@ -253,7 +253,7 @@ code diagram_engine::do_apply(code term, code d) {
     }
 
     case op_kind::saturate: {
-      // The schedule of §6.2, as libsdd's _saturation_fixpoint::operator()
+      // The F-L-G schedule, as libsdd's _saturation_fixpoint::operator()
       // and libDDD's Fixpoint::eval both run it: settle everything below,
       // then the edge, then chain the crossing events, until nothing moves.
       // F and L are already closures, built by the rewrite; the recursion
@@ -275,7 +275,7 @@ code diagram_engine::do_apply(code term, code d) {
     }
 
     case op_kind::expr:
-      // A §7 case bracket: opaque to core, the registered engine's job.
+      // A case bracket: opaque to core, the registered engine's job.
       assert(owner_.cases() != nullptr && "expr term with no case engine");
       return owner_.cases()->apply(term, d);
 

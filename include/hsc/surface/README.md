@@ -35,9 +35,9 @@ carries a source line so the translator can report errors in the user's terms.
 ## Scope
 
 Guards and actions are arbitrary expressions over the leaves, arrays
-included. The compiler splits each event along the §6/§7 seam: separable
+included. The compiler splits each event along the separable/crossing seam: separable
 pieces become per-leaf products (the F/L saturation schedule), crossing
-pieces become §7 case brackets (`split_equiv` at the cut). In `select`
+pieces become case brackets (`split_equiv` at the cut). In `select`
 queries each atom is pinned to one leaf or relates two leaves
 (`select_where` / `select_compare`); a predicate crossing more leaves than
 that is expressed as a `(when …)` filter term and applied with `apply`.

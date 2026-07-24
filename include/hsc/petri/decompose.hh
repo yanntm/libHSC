@@ -7,7 +7,7 @@
 /// touches both). The graph build follows PetriSpot/gal's `GraphBuilder`; the
 /// Louvain method is ours (the Java shells out to an external binary). The
 /// result is an ordinary `unit_tree`, so the rest of the chain is unchanged and
-/// HSC never learns a decomposition happened — §8's shape choice, upstream.
+/// HSC never learns a decomposition happened — the shape choice, made upstream.
 #pragma once
 
 #include "hsc/petri/SparsePetriNet.h"

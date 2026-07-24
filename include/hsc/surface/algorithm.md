@@ -55,8 +55,7 @@ a grounded index into a *generated* array becomes its cell atom `NAME_K`
 (out of range is refused — the bound is known), which is what lets
 generated cells stand in `shape` and pair positions. Everything else —
 degenerate guards folding to false, dynamic indices, ⊥ — keeps its
-existing translator semantics. Spec and context table:
-`research_notes/hsc_parametric.md`.
+existing translator semantics.
 
 ## 2. Meaning (M2M): forms → operations
 
@@ -141,17 +140,17 @@ clamp and never silently enters a guard. `shape` interns the sort tree via
 `shape_table::pair`; `spine` and `balanced` are desugared here, not in the
 parser. The left-to-right leaf order of the shape is the frontier; each
 `NAME` resolves to its frontier index. What keeps an orbit finite is the
-model's own guards (Obligation 2.7 / hazard H2): an unguarded shift under a
+model's own guards (hazard H2): an unguarded shift under a
 closure diverges honestly — a value leaving int32 is a loud
 `overflow_error`, never a silent wrap.
 
 ### An event is a composition; its separable pieces are products
 
 Guards and assignments are arbitrary expressions. The compiler splits each
-event along the §6/§7 line and composes the pieces in application order:
+event along the separable/crossing line and composes the pieces in application order:
 
 1. **Crossing filters first.** Every `when` form whose support is more than
-   one position (or touches an array) becomes a §7 case bracket
+   one position (or touches an array) becomes a case bracket
    (`case_engine::make_event`, guard only) — applied before any action, so
    every guard reads the pre-state.
 2. **One fused product.** Single-position `when` forms conjoin per leaf;
@@ -159,7 +158,7 @@ event along the §6/§7 line and composes the pieces in application order:
    `apply_if(guard, rhs)` at each touched leaf (which folds to
    assign/shift/keep where the expression is one), `keep_if(guard)` where
    only a guard stands, `id` elsewhere. Untouched leaves cost nothing
-   (Thm 4.3 — skip is free, visible in the compiled term).
+   (skip is free, visible in the compiled term).
 3. **Each further `do` clause**, an atomic sequential step: a product of
    per-leaf `apply_if` when every assignment writes one position that at
    most itself is read; otherwise the *whole clause* becomes one case
@@ -189,8 +188,7 @@ composition; queries (`states`, `deadlock`, …) run the default system.
 
 `(reach R)` sums the events (`op_table::sum`) and computes the least fixpoint of
 `X ↦ X ∪ H·X` from `init`. `saturate` (default) uses `core::saturate`; `naive`
-iterates `apply_local` to a fixed point. Both denote the same diagram
-(Prop 5.3), so `naive` is the differential oracle for `saturate`. `expect`
+iterates `apply_local` to a fixed point. Both denote the same diagram, so `naive` is the differential oracle for `saturate`. `expect`
 turns a file into a self-checking oracle.
 
 ### select
@@ -200,7 +198,7 @@ conjunction of query atoms, applied left to right, and stores the subset under
 `NAME`. A `QATOM` with a constant right-hand side (or `in`) is separable: a
 descent to that frontier position and a meet with the atom's set
 (`select_in`). A right-hand side naming a second leaf is the crossing
-comparison `x ⋈ y` (⋈ any of the six comparators): resolved by the §7 case
+comparison `x ⋈ y` (⋈ any of the six comparators): resolved by the crossing case
 (`select_compare`, `hsc/query.hh`) — at the cut separating the two positions,
 `split_equiv` the head coordinate and curry the residual per class onto the
 tail. The casing is honest: no rewriting by domain knowledge (a one-safe

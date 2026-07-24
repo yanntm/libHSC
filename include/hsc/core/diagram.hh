@@ -1,9 +1,9 @@
 /// \file diagram.hh
-/// \brief Diagrams (§3): the normal form, and Construction 3.3 that builds it.
+/// \brief Diagrams: the normal form, and the canonicalizer that builds it.
 ///
 /// One diagram type, not two. A prime over a composite head *is* a diagram
-/// over that head (Theorem 3.5), so `diagram_engine` implements
-/// `support_algebra` like any leaf theory — Corollary 3.6 made structural.
+/// over that head (internalisation), so `diagram_engine` implements
+/// `support_algebra` like any leaf theory — internalisation made structural.
 ///
 /// See `algorithm.md` §4–§7.
 #pragma once
@@ -34,7 +34,7 @@ struct arc {
 
 /// \brief A node: its sort, then its arcs in the same allocation.
 ///
-/// The sort is stored because codes are position-relative (§2.6): the same
+/// The sort is stored because codes are position-relative: the same
 /// arc list under two sorts means two different things, and its primes would
 /// be codes in two different algebras. Arcs are kept sorted by prime, which
 /// is what makes the interned representation canonical — so equality of
@@ -95,7 +95,7 @@ class diagram_engine final : public support_algebra {
   /// The terminal: the unique node of sort `1`, with no arcs.
   [[nodiscard]] code one() const noexcept { return one_; }
 
-  /// \brief Construction 3.3: the one canonicalizer.
+  /// \brief The one canonicalizer.
   ///
   /// Takes any finite bag of rectangles — overlapping, repeating, containing
   /// zeros — at sort \p sort, and returns the unique normal form. Every
@@ -105,13 +105,13 @@ class diagram_engine final : public support_algebra {
   /// \brief The diagram `P ⊗ S` at sort \p sort: one rectangle.
   code rectangle(shape_code sort, code prime, code sub);
 
-  /// \name The support algebra (§2.1, tier G)
+  /// \name The support algebra
   ///@{
   code join(code a, code b) override;
   code meet(code a, code b) override;
   code minus(code a, code b) override;
   /// Apply an operation term (see `operation.hh`) to a diagram. This is the
-  /// diagram theory answering Def 2.3 for itself — Corollary 3.6.
+  /// diagram theory reading its own local terms — internalisation.
   code apply_local(code term, code value) override;
   /// Terms at a composite sort are operation terms, so these delegate to the
   /// operation table. The *saturating* closure needs to know the sort and is

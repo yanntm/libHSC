@@ -79,7 +79,7 @@ code product(op_table& ops, const shape_table& shapes, shape_code sort,
   return product_at(ops, shapes, sort, by_leaf, next);
 }
 
-// --- the saturation rewrite (§6) ------------------------------------------
+// --- the saturation rewrite ------------------------------------------
 
 namespace {
 
@@ -149,7 +149,7 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
   op_table& ops = mgr.operations();
 
   // Bottom of the recursion: a leaf closes its own maximal local term
-  // (§6.2, Def 2.3). The theory decides how — fusing it, or iterating.
+  //  The theory decides how — fusing it, or iterating.
   if (shapes.kind(sort) != shape_kind::pair) {
     support_algebra& algebra = mgr.algebra(sort);
     code fused = events.front();
@@ -162,7 +162,7 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
   std::vector<code> flat;
   for (const code e : events) flatten_into(ops, e, flat);
 
-  // Definition 6.1: split by where each summand reaches relative to this cut.
+  // Split by where each summand reaches relative to this cut.
   // Our terms mirror the shape, so this is inspection, not an oracle.
   std::vector<code> below;   // F: tail only  — the tail terms themselves
   std::vector<code> edge;    // L: head only  — the head terms themselves
@@ -185,7 +185,7 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
     across.push_back(e);
   }
 
-  // F and L are closed recursively, which is the whole of §6.4: the two
+  // F and L are closed recursively, so hierarchy is automatic: the two
   // child saturations are this same procedure one level in.
   const code f_part =
       below.empty()

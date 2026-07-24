@@ -1,5 +1,5 @@
 /// \file test_query.cc
-/// \brief `x ⋈ y` across a cut (§7) against a brute-force oracle, for every
+/// \brief `x ⋈ y` across a cut against a brute-force oracle, for every
 /// comparator. The first cross-level criterion resolving on the real engine.
 
 #include <doctest/doctest.h>

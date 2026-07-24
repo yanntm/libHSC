@@ -45,4 +45,4 @@ is **not** vendored.
 The leaf domain is `[0, bound)`, `bound = max(2, max initial marking + 1)` — a
 1-safe NUPN needs only `2`. A non-safe net that grows a place past the bound is
 outside this iteration (`--bound` raises it); convergence of an unbounded place
-under closure is the net's responsibility (Obligation 2.7 / hazard H2).
+under closure is the net's responsibility (hazard H2).
