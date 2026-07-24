@@ -9,8 +9,10 @@
 
 namespace hsc::order {
 
-/// Variables one event touches, to be kept close. Cost: the span of the
-/// members in the order, times the weight.
+/// Variables one event touches, to be kept close. Cost: the tops-biased
+/// span `hi − 2·lo` times the weight — the composite heuristic's
+/// `2·max − min` mirrored to this frontier's orientation; the clique is
+/// pulled tight and its top pulled deep.
 struct clique {
   std::vector<std::uint32_t> vars;
   float weight = 1.0f;

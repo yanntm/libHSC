@@ -1,11 +1,12 @@
 /// \file surface_reorder.cc
 /// \brief Shape passes. `(reorder-force)` — FORCE at every level of the
 /// shape tree, hierarchy undisturbed: at each node the events project
-/// onto the children they touch and FORCE orders the children; a final
-/// polarity choice keeps the orientation whose event tops sit deepest.
-/// `(flatten)` — the spine of the current frontier order, hierarchy
-/// deliberately erased. Reordering is a rewriting, and semantically
-/// neutral: any shape over the same leaves denotes the same states.
+/// onto the children they touch and FORCE orders the children; the
+/// tops bias lives inside FORCE's own cost (`order/force.cc`), per
+/// constraint, per level. `(flatten)` — the spine of the current
+/// frontier order, hierarchy deliberately erased. Reordering is a
+/// rewriting, and semantically neutral: any shape over the same leaves
+/// denotes the same states.
 
 #include <algorithm>
 #include <limits>
@@ -107,42 +108,6 @@ std::size_t reorder(snode& n, const xpl::model& m,
   return moved;
 }
 
-void mirror(snode& n) {
-  std::reverse(n.kids.begin(), n.kids.end());
-  for (snode& k : n.kids) mirror(k);
-}
-
-/// Σ over events of the depth of the event's top (its outermost touched
-/// rank): larger = events rooted deeper = better for saturation. The
-/// reversed orientation scores as Σ (n-1 - deepest rank).
-std::pair<long long, long long> top_sums(const snode& root,
-                                         const xpl::model& m) {
-  std::vector<std::uint32_t> order;
-  frontier(root, order);
-  std::vector<std::uint32_t> rank(m.arity, 0);
-  for (std::uint32_t r = 0; r < order.size(); ++r) rank[order[r]] = r;
-  long long fwd = 0;
-  long long rev = 0;
-  const long long n = static_cast<long long>(order.size());
-  for (const xpl::event& e : m.events) {
-    long long lo = n;
-    long long hi = -1;
-    const auto span = [&](const SparseBoolArray& sba) {
-      for (std::size_t i = 0; i < sba.size(); ++i) {
-        const long long r = rank[sba.keyAt(i)];
-        lo = std::min(lo, r);
-        hi = std::max(hi, r);
-      }
-    };
-    span(e.reads);
-    span(e.writes);
-    if (hi < 0) continue;
-    fwd += lo;
-    rev += n - 1 - hi;
-  }
-  return {fwd, rev};
-}
-
 }  // namespace
 
 rewrite_result reorder_force(std::vector<datum> forms, const datum&) {
@@ -153,29 +118,19 @@ rewrite_result reorder_force(std::vector<datum> forms, const datum&) {
   const xpl::model m =
       build_xpl_model(s.order().size(), ex, reader, s, s.events());
   std::size_t moved = 0;
-  bool flipped = false;
-  long long fwd = 0;
-  long long rev = 0;
   for (datum& f : forms) {
     if (!f.is_list() || f.items().empty() || f.head() != "shape") continue;
     snode root = parse_sort(f.items()[1], s);
     std::vector<int> child_of(s.order().size(), -1);
     moved = reorder(root, m, child_of);
-    std::tie(fwd, rev) = top_sums(root, m);
-    if (rev > fwd) {  // the mirror roots the events deeper
-      mirror(root);
-      flipped = true;
-    }
     f = datum::list({f.items()[0], unparse(root)}, f.line());
   }
-  if (moved == 0 && !flipped) {
+  if (moved == 0) {
     return {std::move(forms), false, "FORCE keeps the order at every level"};
   }
   std::ostringstream trace;
   trace << "FORCE reordered " << moved << " shape node"
-        << (moved == 1 ? "" : "s") << ", hierarchy kept; polarity "
-        << (flipped ? "flipped" : "kept") << " (top depth " << fwd << " vs "
-        << rev << " mirrored)";
+        << (moved == 1 ? "" : "s") << ", hierarchy kept";
   return {std::move(forms), true, trace.str()};
 }
 

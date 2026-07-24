@@ -11,7 +11,14 @@ namespace hsc::order {
 
 namespace {
 
-/// Summed cost of the current ranks: clique span + violated precedences.
+/// Summed cost of the current ranks: tops-biased clique span + violated
+/// precedences. The clique term is the composite heuristic's
+/// `2·max − min` (libITS `CompositeVarOrderHeuristic`, `CLocalityEdge`)
+/// mirrored to this frontier's orientation — position 0 is the root-most
+/// head here, ranks are bottom-up there — hence `hi − 2·lo`: the span,
+/// plus a pull of the clique's top toward the deep end, where saturation
+/// roots events cheaply. Same optima as theirs (per-clique constant
+/// apart). The movement stays center-of-gravity; the bias selects.
 double total_cost(std::span<const clique> cliques,
                   std::span<const precedence> precedences,
                   const std::vector<float>& rank) {
@@ -24,7 +31,7 @@ double total_cost(std::span<const clique> cliques,
       lo = std::min(lo, rank[v]);
       hi = std::max(hi, rank[v]);
     }
-    cost += static_cast<double>(c.weight) * (hi - lo);
+    cost += static_cast<double>(c.weight) * (hi - 2 * lo);
   }
   for (const precedence& p : precedences) {
     const float d = rank[p.before] - rank[p.after];

@@ -131,12 +131,13 @@ differential as every pass.
 Further passes, briefly. **`reorder-force`**: FORCE (`hsc/order/`) at
 **every level of the shape tree, hierarchy undisturbed** — at each node
 the events project onto the children they touch (one clique per event)
-and FORCE orders the children; recursion does the levels below. A final
-**polarity** choice: FORCE's springs are reversal-blind, so the pass
-scores both orientations by the sum of event tops (an event's top is
-its outermost touched variable; deeper roots serve saturation) and
-mirrors the whole tree when the mirror wins. On a flat spine this is
-classic FORCE; after `decompose-louvain` it orders members within each
+and FORCE orders the children; recursion does the levels below. The
+tops bias is **inside FORCE's own cost, per constraint, per level** —
+the composite heuristic's `2·max − min` (libITS
+`CompositeVarOrderHeuristic`) mirrored to our orientation: each clique
+pays its span plus a pull of its top toward the deep end, where
+saturation roots events cheaply. On a flat spine this is classic FORCE;
+after `decompose-louvain` it orders members within each
 community and communities among themselves. Composes with the encodings
 (hotbit's bits migrate to their true affinities). **`flatten`**: the
 flat spine of the current frontier — hierarchy deliberately erased, the
