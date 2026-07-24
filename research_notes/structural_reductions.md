@@ -192,6 +192,51 @@ effects ↦ the two freebies above, replaced by the explicit mover
 discharges. Every check is a support intersection or an
 atom-vs-constant-write comparison.
 
+## The Lipton dictionary (Laarman's characterization)
+
+Laarman's stubborn TR makes the Lipton frame explicit and dynamic; our
+handshake is its static, spec-level instance. The L1–L4 dictionary:
+
+* **L1** (pre-phase right movers) ↦ t₁ moved right: silence covers the
+  effects, (6a) covers the guard.
+* **L2** (post-phase left movers) ↦ t₂ moved left: (6b) covers the
+  guard, (6b′) covers the effects.
+* **L3** (transactions don't block) ↦ dropped for projected
+  reachability, exactly as TR "prunes irrelevant deadlocks" — the
+  free-agglomeration move. Laarman needs only a weakened L3 (every
+  post-state reaches an external state, enforced by making bottom-SCC
+  roots external); we need none, because the silent producer makes the
+  stranded intermediate projection-invisible.
+* **L4** (pre must not disable φ, post must not enable φ) ↦ x ∉ V for
+  pre; writes(t₂) ∩ V = ∅ for post. TR splits visibility into
+  enabling-in-pre / disabling-in-post where POR must take the union —
+  one more reason the two reductions don't subsume each other.
+
+Three structural facts from his comparison worth keeping:
+
+* **POR cannot use right-commutativity** (a →-stubborn set is an
+  invalid POR: two locks look independent and a deadlock is missed);
+  TR can, in the pre-phase. So agglomeration and stubborn-set POR are
+  genuinely complementary — TR flattens long sequential blocks (2ᵖ vs
+  n·p states on p independent threads of length n), POR wins on massive
+  parallelism. Run agglomeration first, POR on the residual.
+* **Dynamic movers are per-state stubborn closures**: Mᵢ→(σ,α,σ′)
+  demands a semi-stubborn B with B ∩ en(σ) = {α} — "no enabled remote
+  action interferes from here on", predicted via NES closure over
+  disabled actions. Our (6a)/(6b′) are the whole-spec (all-states)
+  approximation of the same checks; a per-state refinement in the
+  explicit engine is a possible later upgrade, and his monotonicity
+  lemmas (moverhood survives remote steps) are what a correctness proof
+  would lean on. Optimal per-state TR is polynomial (deletion algorithm
+  with the thread's actions pinned) where minimal stubborn sets are
+  NP-complete — the tractable side of the spectrum.
+* **STR is process-bound; process-less STR is named an open problem.**
+  Our handshake is exactly a process-less transaction: the sequential
+  skeleton comes not from a program counter but from the variable's
+  automaton discipline — x's value chain *is* the thread. That framing
+  positions the hsc contribution against his open problem and deserves
+  a place in any paper version.
+
 ## POR in the explicit engine
 
 Independence `e₁ ⊥ e₂` ⟺ writes(e₁) ∩ (reads(e₂) ∪ writes(e₂)) = ∅ (and
@@ -200,10 +245,7 @@ symmetrically) — exact on post-chain specs, since `simplify-constants` /
 The same relation discharges (6b′). Value refinement gives the
 enabling/disabling split per guard atom — the same classification as
 (6a). Stubborn-set closure is var-mediated through `readers(p)` — no
-event×event matrix, honoring the standing constraint. Laarman shows TR
-and stubborn-set POR can share exactly this dynamic commutativity, and
-that TR additionally removes the intermediate states POR must keep —
-our agglomeration is the static end of that spectrum. Entry point:
+event×event matrix, honoring the standing constraint. Entry point:
 **deadlock detection with stubborn sets** (simplest conditions, no
 visibility, no ignoring problem; preserved-deadlock guarantee testable
 exhaustively on small instances; the engine's visitor already supports
