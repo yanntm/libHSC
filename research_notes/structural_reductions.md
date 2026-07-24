@@ -40,6 +40,30 @@ since x==m arises only as an intermediate). A recorded-inverse pass
 would restore an *exact-count* differential — a far stronger oracle than
 projection comparison. Not v1, but the design should not preclude it.
 
+**Amat's refinement (polyhedral abstraction) — three ideas to steal.**
+(1) *E-transform the property, not just the state space*: with
+(N₁,m₁) ⊳_E (N₂,m₂), checking invariant F on N₁ reduces to checking
+∃x⃗. Ẽ(x⃗,y⃗) ∧ F(x⃗) on N₂ — the query is rewritten through the
+reduction. Consequence: the support need not be fixed a priori; even an
+*observed* variable may be reduced as long as its relation is captured
+in E (their explicit contrast with cone-of-influence slicing). For us:
+V = free variables of the query is the v1 contract, but the mature form
+carries a constraint system alongside the rewritten spec and rewrites
+queries through it. (2) *Equivalence as a congruence*: E-abstraction is
+preserved by chaining (E ∧ E′, fresh-variable hygiene), synchronous
+product, and relabeling/hiding — so each rule is proved once as a tiny
+local axiom and applied inside any context. Observation-sequence
+equality (silent τ vs labeled transitions) is what buys the congruence;
+it is exactly our hidden-effect / stutter distinction, formalized. This
+fits the rewrite chain's provenance contract: the per-pass trace's
+mature shape *is* the constraint system E, and pass composition is
+Theorem "chaining". (3) Their E stays conjunctive-linear because place
+agglomeration keeps sums (a = p + q, all token distributions reachable).
+Our (x,m) handshake is lossy on states, so our inverse map is not
+linear — but it is still QF-LIA as a disjunction with substitutions:
+reach_orig(s) ⟺ reach_red(s) ∨ (∃t₁ ∈ P: s = s'[x↦m] ∧ reach_red(s')
+∧ g₁(s')). The E-transform machinery carries over unchanged.
+
 ## Agglomeration as a handshake on (x, m)
 
 A candidate is a hidden variable x with a mediating value m — "place p"
@@ -201,5 +225,8 @@ strategy earns its place there.
   whole silent paths); the recorded-inverse counting oracle (above); the
   symbolic projection oracle (existential quantification over a frontier
   position); partial agglomeration (fuse only the conforming subset of
-  P × C, keep the rest — the 22-rule system shows it pays); Amat's
-  E-abstraction as the shape a provenance trace should take.
+  P × C, keep the rest — the 22-rule system shows it pays); query
+  rewriting through the recorded constraints (the E-transform) instead
+  of a fixed V — subsumes the projection and counting oracles at once;
+  certifying rule correctness mechanically (Amat names it open even for
+  nets; our two-engine differential is the testing half).
