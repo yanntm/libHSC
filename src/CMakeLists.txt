@@ -11,6 +11,10 @@ target_sources(hsc PRIVATE
   surface_expand.cc
   surface_expr.cc
   surface_translate.cc
+  surface_events.cc
+  surface_families.cc
+  surface_query.cc
+  surface_run.cc
   surface_xpl.cc
   surface_spec.cc
   dve_parser.cc
