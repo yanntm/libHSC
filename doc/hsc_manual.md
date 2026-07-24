@@ -231,6 +231,11 @@ certificate; `unfold` always enumerates.
 (states [NAME])              ; the count in MCC output format
 (xreach NAME [from RESULT] [cap INT])  ; the explicit engine, §8b
 (simplify-constants)         ; rewrite directive: elide constant leaves, §8c
+(hotbit [MIN [MAX]])         ; directive: one-hot encode enumerated leaves, §8c
+(reorder-force)              ; directive: FORCE order from event supports, §8c
+(flatten)                    ; directive: the flat spine of the frontier, §8c
+(simplify-arrays)            ; directive: dissolve statically-accessed arrays, §8c
+(print-spec)                 ; print the current spec, post-chain, as .hsc
 (bill)                       ; meters: nodes, terms, caches, time
 ```
 
@@ -284,6 +289,14 @@ translation; a one-line trace reports what was done (identity included).
 drop, the leaf leaves the shape. Counts are invariant — the differential
 `reach`/`xreach` before and after is the pass's own test. The vocabulary
 will grow (reordering, regrouping …).
+
+`(hotbit [MIN [MAX]])` (window defaults 3 and 16) trades an eligible
+enumerated leaf — compared and written by constants only — for one
+boolean leaf per value, exactly one set. `(reorder-force)` re-runs the
+FORCE ordering on the current spec (after an encoding, the new leaves
+migrate to their true affinities). `(flatten)` erases hierarchy;
+`(simplify-arrays)` dissolves arrays that never see a dynamic index, so
+supports stop over-approximating. Every pass reports; identity included.
 
 `hsc --rewrite model.hsc` runs the chain on any file and prints the
 rewritten spec as runnable `.hsc` text (traces on stderr);

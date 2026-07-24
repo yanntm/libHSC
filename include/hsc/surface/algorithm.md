@@ -124,6 +124,22 @@ makes it ineligible: reported in the trace, the variable untouched.
 States map one-hot bijectively, so counts are invariant — the same
 differential as every pass.
 
+Further passes, briefly. **`reorder-force`**: FORCE (`hsc/order/`) run
+on the spec's own event supports, one clique per event; the shape
+becomes the resulting flat spine — reordering is a rewriting, and the
+pass composes with the encodings (hotbit's bits migrate to their true
+affinities). **`flatten`**: the flat spine of the current frontier —
+hierarchy deliberately erased, the a-contrario baseline.
+**`simplify-arrays`**: an array with no dynamic access (no `(at a E)`
+with a non-constant `E`, no family marker, no out-of-bounds constant)
+dissolves — static accesses fold to their cell names, the grouping goes;
+supports stop over-approximating to the whole array, events regain their
+true locality, and the analyses see cells one by one. Composes with
+`simplify-constants`, which grounds index expressions. Planned:
+`decompose-louvain`, the unit-tree derivation generalized out of the
+Petri importer. The runner also serves **`(print-spec)`** — a command,
+not a pass: the current spec, post-chain, printed as runnable `.hsc`.
+
 ## 2. Meaning (M2M): forms → operations
 
 The translator walks the forms in order, maintaining: the leaf declarations, the
