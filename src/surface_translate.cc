@@ -11,6 +11,7 @@
 
 #include "hsc/surface/expand.hh"
 
+#include <algorithm>
 #include <charconv>
 #include <cstdlib>
 #include <fstream>
@@ -38,6 +39,7 @@
 #include "hsc/surface/xpl_build.hh"
 #include "hsc/util/errors.hh"
 #include "hsc/util/timing.hh"
+#include "hsc/xpl/domains.hh"
 #include "hsc/xpl/engine.hh"
 
 namespace hsc::surface {
@@ -228,6 +230,7 @@ class translator final : public name_scope {
     else if (kw == "print") do_print(form);
     else if (kw == "expect") do_expect(form);
     else if (kw == "xreach") do_xreach(form);
+    else if (kw == "xdomains") do_xdomains(form);
     else if (kw == "bill") do_bill(form);
     else fail(form, "unknown form '" + kw + "'");
   }
@@ -1518,6 +1521,85 @@ class translator final : public name_scope {
         break;
     }
     xresults_.emplace(name, std::move(res));
+  }
+
+  /// `(xdomains)`: the decoration step — infer per-unit effective domains
+  /// (scalars, whole arrays) from seeds and assignments alone
+  /// (`hsc/xpl/domains.hh`), and print one `xdom` line per unit plus a
+  /// summary. Data only: nothing is tagged yet.
+  void do_xdomains(const datum& form) {
+    if (top_ == core::none) fail(form, "xdomains before shape");
+    const xpl::model xm = build_xpl_model(order_.size(), theory_->exprs(),
+                                          *reader_, *this, xsources_);
+    std::vector<xpl::word> seeds;
+    {
+      std::vector<std::int32_t> acc;
+      std::size_t left = std::size_t{1} << 20;
+      enum_words(top_, seed(), acc, left, [&] {
+        seeds.push_back(acc);
+        --left;
+      });
+      if (left == 0) fail(form, "xdomains: seed set too large to enumerate");
+    }
+    std::vector<std::vector<std::uint32_t>> groups;
+    std::map<std::vector<std::uint32_t>, std::string> group_name;
+    for (const auto& entry : arrays_) {
+      auto ps = array(entry.first);
+      std::sort(ps->begin(), ps->end());
+      group_name[*ps] = entry.first;
+      groups.push_back(std::move(*ps));
+    }
+    const auto reports = xpl::infer_domains(xm, seeds, groups);
+    std::size_t nset = 0, nint = 0, ntop = 0, nfrozen = 0;
+    for (const auto& r : reports) {
+      std::string name;
+      if (r.positions.size() == 1) {
+        name = order_[r.positions.front()];
+      } else {
+        const auto it = group_name.find(r.positions);
+        name = it != group_name.end()
+                   ? it->second
+                   : order_[r.positions.front()] + "+";  // merged beyond decl
+      }
+      const leaf_decl& d = leaves_.at(order_[r.positions.front()]);
+      out_ << "xdom " << name;
+      switch (r.k) {
+        case xpl::domain_report::kind::set: {
+          ++nset;
+          const auto lo = r.values.front();
+          const auto hi = r.values.back();
+          const std::size_t holes =
+              static_cast<std::size_t>(hi - lo + 1) - r.values.size();
+          out_ << " kind=set size=" << r.values.size() << " lo=" << lo
+               << " hi=" << hi << " holes=" << holes;
+          break;
+        }
+        case xpl::domain_report::kind::interval:
+          ++nint;
+          out_ << " kind=interval size=0 lo=" << r.lo << " hi=" << r.hi
+               << " holes=0";
+          break;
+        default:
+          ++ntop;
+          out_ << " kind=top size=0 lo=0 hi=0 holes=0";
+          break;
+      }
+      if (d.bounded) out_ << " decl=[" << d.lo << ',' << d.hi << ')';
+      else out_ << " decl=-";
+      out_ << " frozen=" << (r.assigned ? 0 : 1) << " mod=" << (r.via_mod ? 1 : 0);
+      nfrozen += r.assigned ? 0 : 1;
+      if (r.k == xpl::domain_report::kind::set && r.values.size() <= 32) {
+        out_ << " {";
+        for (std::size_t i = 0; i < r.values.size(); ++i) {
+          out_ << (i ? " " : "") << r.values[i];
+        }
+        out_ << '}';
+      }
+      out_ << '\n';
+    }
+    out_ << "xdomains units=" << reports.size() << " set=" << nset
+         << " interval=" << nint << " top=" << ntop << " frozen=" << nfrozen
+         << '\n';
   }
 
   void do_bill(const datum&) {
