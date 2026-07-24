@@ -485,6 +485,87 @@ must export `split_equiv`. There is no leaf case and node case — one
 construct, whose leaf instance is delegated and whose node instance is the
 bracket itself, one level in.
 
+**Construction 7.2 (the bracket, operationally).** Two phases, split at the
+same seam as everything else in the calculus: where the term sits, and what
+applying it does.
+
+*Build* pushes the term to its cut. At each sort, the positions the event
+touches decide. Reads are the guard's support, each right-hand side's, and
+each open index's — an access whose index is unresolved is pinned, for
+placement, above the whole span of its cells, but it *reads* only its
+index's scalars, because no cell's value can enter an expression before the
+access names its cell. Writes are the left-hand positions. All touched
+positions on one side: wrap `node(·, id)` or `node(id, ·)` and recurse
+re-rooted — the term never remembers where it came from (Definition 2.5),
+so isomorphic positions share the built code. Positions on both sides:
+intern the bracket at this sort, an ordinary `G` summand for the schedule.
+At a leaf: the theory's own guard-then-action term.
+
+*Apply* is currying, one coordinate per round. Take the least frontier
+position the term still **reads**; split the side holding it by that
+coordinate — the theory's `split_equiv` at a leaf, the bracket itself one
+level in when that side is composite (Proposition 7.1). Per class:
+substitute the class value, and one of three things happens to the
+residual. It folds to `false` or ⊥ — the class contributes nothing (an
+out-of-range access aborts here, as absence, never as a clamp). Its
+remaining support falls on one side — it re-enters §6: the rebuilt residual
+is a product term and the bracket is gone. Or it still crosses — an
+interned bracket again, one read fewer. When nothing is read the guard is
+ground, and the writes — which never drove a split — apply as constant
+assignments, each on its own side. Federation is a join over classes;
+disjointness is `split_equiv`'s contract, so the join is disjoint and the
+denoted result does not depend on which coordinate any round took.
+
+Two properties do the economic work. The residual is *rebuilt* by the
+constructor, so it is interned and normal: two classes producing the same
+residual produce the same code, its application is one cache hit, and
+degenerate residuals disappear at construction instead of being carried.
+And because build re-roots, the residual a bracket hands one component's
+subtree is the *same code* it hands every isomorphic sibling's.
+
+**Local cases, and complex ones.** The bracket has a trivial exit and a
+self-feeding general case, and both deserve names. The *local* case is a
+criterion that — at its cut, or after enough rounds of currying — touches
+one side only: it is not a case at all. Build pushes it down and it dies as
+a product of guard-then-action leaf terms, at product cost; what §6 bought
+is exactly that this exit is taken eagerly, at every level, on every
+residual. The *complex* case is indirection: `tab[i]` under an open `i`
+reads nothing of `tab` — only `i`'s scalars — so resolution is forced
+innermost-first without any policy saying so: splitting on `i` grounds the
+index, the access folds to the named cell's variable, and a read that did
+not exist before appears. Nesting iterates the same step.
+
+**The promised indirection, worked.** `when tab[tab[x]] = 0`, three cells
+and `x`, any shape. Round 1: the only read is `x`; split the side holding
+it by `x`. In the class `x = v` the inner access folds to the variable
+`tab_v`; a `v` outside `{0,1,2}` folds it to ⊥ and the class is gone.
+Round 2: the read is `tab_v`; split by it. In the class `tab_v = w` the
+outer access folds to `tab_w`, or aborts out of range. Now the criterion is
+`tab_w = 0` — one position, so the rebuild takes the local exit: a
+`keep_if` at that leaf, no third split. At most nine residuals, one per
+realised `(v, w)`, every one an interned one-position filter shared
+wherever two branches agree — and no enumeration of the array's value space
+ever happened, only of the values *realised* at the split coordinates. This
+is built, and differentially tested against brute force, simultaneous swaps
+included.
+
+**The refinement order is a cost regime.** Correctness used only disjoint
+classes and a join, so *which* open read a round takes is free — the same
+freedom Theorem 5.2 left in the schedule, and to be read the same way. The
+built engine takes the least open read, so refinement walks the frontier
+left to right and the split side alternates as the data dictates: head when
+the read sits above the cut, tail when below, neither side privileged by
+policy. Alternatives are real and untaken. Deepest-read first resolves the
+tail before the head is classed. Write-driven splitting keeps images narrow
+where the assignment lands. Bilateral splitting — both sides at once,
+classes joined pairwise — is quadratic in classes and wins exactly when
+residual classes are few. Which points at the deeper knob: today's
+reference theory indexes classes by *value*, the finest residual, with no
+cost knob; the `split_equiv` contract already permits fewer,
+residual-indexed classes (`a ≤ b` over any domain has two residuals, not
+one per value). The honest enumeration is a floor, not the intent — that
+coarsening is Open 1.
+
 **The crossing event under saturation.** An event in `G` — one that reaches
 both sides of a cut — is a case, and re-saturation is fused into its reply,
 because the reply is a morphism and morphisms compose. Whether the event
@@ -603,9 +684,13 @@ matters, though the spine may be long.
 
 ## 10. Open
 
-1. **The inseparable fragment (§7).** The bracket, its contract, its
-   residual normalisation, and its interaction with Theorem 5.2 when the
-   reply does not factor.
+1. **Residuals coarser than values (§7).** Construction 7.2 stands, but its
+   classes are value-indexed — the finest residual. The contract permits a
+   theory to return residual-indexed classes (`a ≤ b` has two, not one per
+   value); open are the normal form for residuals that makes such classes
+   recognisable, the refinement orders it unlocks (bilateral splitting pays
+   exactly then), and the interaction with Theorem 5.2 when the reply does
+   not factor.
 2. **A syntactic criterion for pre-disjointness beyond selectors.**
    Proposition 3.7 gives selectors; the general condition is that the head
    component maps disjoint codes to disjoint codes, which is a property of a
