@@ -73,6 +73,8 @@ terms and a nested diagram reading operation terms are the same code path.
 | Crossing fragment | the case bracket (`hsc/event.hh`, `hsc/query.hh`): crossing guards, updates and comparisons by `split_equiv` at the cut, curried residuals, interned and cached; `tab[tab[x]]` resolves at the surface |
 | Theories | `int_set`, the enumeration-honest reference; `lia`, the interchange theory (expressions, currying, residuals, arrays carrying their placement) |
 | Surface | the `.hsc` s-expression language: declarations, events, the event algebra, the state layer, queries; the parametric pass (`param`/`array`/`forall`/`exists`, certified uniform families) |
+| Explicit engine | `xpl/`: the term interpreter (0..many successors, no lfp), may-fire maintenance over `SparseBoolArray` supports, visitor-driven BFS, domain inference; `xreach`/`xdomains`/`--explicit`; BEEM 15s: 204 run-ok vs symbolic 177, 167/167 counts agree |
+| Rewrite chain | `surface/` directives, semantically neutral, traced, identity reported: simplify-constants, hotbit (automaton discipline), reorder-force (per level, tops-biased cost), flatten, simplify-arrays, decompose-louvain; print-spec; two-engine count differential as the standing oracle |
 | Front ends | NUPN/PNML import (`hsc-mcc`, `nupn2hsc`, Louvain decomposition); DVE/BEEM import (`dve2hsc`, 276-model corpus, differential against its-reach) |
 | Ordering | FORCE (`hsc/order/`): cliques per event, asymmetric precedences; counts invariant under reordering is a standing regression check |
 | Evidence | philosophers balanced vs flat, exact against `trace(Mⁿ)`; Hanoi 3ⁿ exact, saturation 45 603× naive at n=14; 200 random models `saturate == naive`; 168/276 BEEM agree exactly with its-reach |
