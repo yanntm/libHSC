@@ -527,11 +527,16 @@ so isomorphic positions share the built code. Positions on both sides:
 intern the bracket at this sort, an ordinary `G` summand for the schedule.
 At a leaf: the theory's own guard-then-action term.
 
-*Apply* is currying, one coordinate per round. Take the least frontier
-position the term still **reads**; split the side holding it by that
-coordinate — the theory's `split_equiv` at a leaf, the bracket itself one
-level in when that side is composite (Proposition 7.1). Per class:
-substitute the class value, and one of three things happens to the
+*Apply* is currying, one assertion per round. Take the least frontier
+position the term still **reads**, and around it the maximal
+**side-supported subexpression** `e` — support wholly within the side, no
+array nodes, a bare coordinate as the degenerate case. Split the side by
+`e`'s value — the theory's `split_equiv` at a leaf, the bracket itself one
+level in when that side is composite (Proposition 7.1); the class markers
+are the realised values, plus ⊥ where `e` is undefined, so a Kleene
+disjunction above can still decide the class. Per class: apply the
+assertion `(e := v)` — substitution of the subexpression, no assertion
+form in the residual language — and one of three things happens to the
 residual. It folds to `false` or ⊥ — the class contributes nothing (an
 out-of-range access aborts here, as absence, never as a clamp). Its
 remaining support falls on one side — it re-enters §6: the rebuilt residual
@@ -585,12 +590,15 @@ policy. Alternatives are real and untaken. Deepest-read first resolves the
 tail before the head is classed. Write-driven splitting keeps images narrow
 where the assignment lands. Bilateral splitting — both sides at once,
 classes joined pairwise — is quadratic in classes and wins exactly when
-residual classes are few. Which points at the deeper knob: today's
-reference theory indexes classes by *value*, the finest residual, with no
-cost knob; the `split_equiv` contract already permits fewer,
-residual-indexed classes (`a ≤ b` over any domain has two residuals, not
-one per value). The honest enumeration is a floor, not the intent — that
-coarsening is Open 1.
+residual classes are few. The first coarsening is built: classes are
+indexed by **assertion markers** `(e := v)` over side-supported
+subexpressions, so `(a₁ + a₂) < b` classes by the realised *sums*, not the
+value pairs, and the markers travel by re-rooting like every other
+position-relative code — never by absolute path. What no side-local
+assertion reaches is the residual coarser than any one side's values:
+`a ≤ b` over any domain has two residuals, not one per value of `a`, and
+getting *two* classes needs the bilateral split or bound-aware folding of
+the curried residuals. That remaining coarsening is Open 1.
 
 **The crossing event under saturation.** An event in `G` — one that reaches
 both sides of a cut — is a case, and re-saturation is fused into its reply,
@@ -710,13 +718,14 @@ matters, though the spine may be long.
 
 ## 10. Open
 
-1. **Residuals coarser than values (§7).** Construction 7.2 stands, but its
-   classes are value-indexed — the finest residual. The contract permits a
-   theory to return residual-indexed classes (`a ≤ b` has two, not one per
-   value); open are the normal form for residuals that makes such classes
-   recognisable, the refinement orders it unlocks (bilateral splitting pays
-   exactly then), and the interaction with Theorem 5.2 when the reply does
-   not factor.
+1. **Residuals coarser than assertions (§7).** Construction 7.2 indexes
+   classes by assertion markers `(e := v)` over side-supported
+   subexpressions — already coarser than value tuples. Open is what no
+   side-local assertion reaches: `a ≤ b` has two residuals, not one per
+   value of `a`, and realising *that* needs classes of the product
+   (bilateral splitting, which pays exactly then) or bound-aware folding
+   of curried residuals — plus the interaction with Theorem 5.2 when the
+   reply does not factor.
 2. **A syntactic criterion for pre-disjointness beyond selectors.**
    Proposition 3.7 gives selectors; the general condition is that the head
    component maps disjoint codes to disjoint codes, which is a property of a

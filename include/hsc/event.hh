@@ -18,15 +18,19 @@
 ///   (`keep_if` / `apply_if`).
 ///
 /// * **Apply (`apply`) is currying.** Pick the least frontier position the
-///   term still reads. Split the side holding it by that coordinate
+///   term still reads, and around it the **maximal side-supported
+///   subexpression** — support wholly in that side, no array nodes; a bare
+///   variable is the degenerate case. Split the side by that expression
 ///   (`split_equiv` — the theory's own split at a leaf, the bracket one
-///   level in on diagrams); per class value, substitute it into every
-///   expression and hand the residual — rebuilt by `make_event`, so it is
-///   an interned term and its application is cached — to the class's
-///   sub-diagram. When nothing is read anymore the guard is ground: `false`
-///   or ⊥ contributes nothing (abort is the algebra's 0), `true` applies
-///   the now-constant writes to each side. Federation is the join over
-///   classes: merge by common key, no other machinery.
+///   level in on diagrams); the class markers are its realised values, or
+///   ⊥ where it is undefined. Per class, the assertion `(e := m)` is
+///   applied to every expression (`subst_subexpr`) and the residual —
+///   rebuilt by `make_event`, so it is an interned term and its
+///   application is cached — goes to the class's sub-diagram. When nothing
+///   is read anymore the guard is ground: `false` or ⊥ contributes nothing
+///   (abort is the algebra's 0), `true` applies the now-constant writes to
+///   each side. Federation is the join over classes: merge by common key,
+///   no other machinery.
 ///
 /// * **An array carries its placement.** A `lia` array node holds the
 ///   frontier position of each cell — spread or permuted freely, nothing
