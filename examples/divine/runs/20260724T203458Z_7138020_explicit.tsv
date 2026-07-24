@@ -1,0 +1,278 @@
+# dve_sweep 20260724T203458Z rev=7138020 timeout=15s dve2hsc-flags='' hsc-flags='--explicit'
+# model	status	states-or-detail	nodes	seconds
+adding.1	run-ok	7372	(unsupported)	0.05
+adding.2	run-ok	836838	(unsupported)	0.42
+adding.3	run-ok	1894376	(unsupported)	1.01
+adding.4	run-ok	3370680	(unsupported)	2.23
+adding.5	run-ok	5271456	(unsupported)	3.55
+adding.6	run-ok	7609684	(unsupported)	5.56
+at.1	run-ok	39354	(unsupported)	0.08
+at.2	run-ok	49443	(unsupported)	0.08
+at.3	run-ok	1711620	(unsupported)	2.44
+at.4	run-ok	6597245	(unsupported)	11.62
+at.5	timeout	15s		15.04
+at.6	timeout	15s		15.04
+at.7	timeout	15s		15.04
+bakery.1	run-ok	1506	(unsupported)	0.03
+bakery.2	run-ok	1146	(unsupported)	0.03
+bakery.3	run-ok	32919	(unsupported)	0.07
+bakery.4	run-ok	157003	(unsupported)	0.17
+bakery.5	run-ok	7866401	(unsupported)	12.71
+bakery.6	timeout	15s		15.04
+bakery.7	timeout	15s		15.04
+bakery.8	timeout	15s		15.05
+blocks.2	run-ok	7057	(unsupported)	0.04
+blocks.3	run-ok	695418	(unsupported)	1.24
+blocks.4	timeout	15s		15.05
+bopdp.1	run-ok	12642	(unsupported)	0.05
+bopdp.2	run-ok	25685	(unsupported)	0.07
+bopdp.3	run-ok	1040953	(unsupported)	1.60
+bridge.1	run-ok	3186	(unsupported)	0.04
+bridge.2	run-ok	96923	(unsupported)	0.18
+bridge.3	run-ok	838864	(unsupported)	1.72
+brp.1	run-ok	18928	(unsupported)	0.06
+brp2.1	run-ok	42285	(unsupported)	0.09
+brp2.2	run-ok	61464	(unsupported)	0.11
+brp2.3	run-ok	40184	(unsupported)	0.08
+brp2.4	run-ok	679993	(unsupported)	0.83
+brp2.5	run-ok	298111	(unsupported)	0.37
+brp2.6	run-ok	5742313	(unsupported)	7.78
+brp.2	run-ok	29188	(unsupported)	0.07
+brp.3	run-ok	996627	(unsupported)	1.10
+brp.4	timeout	15s		15.04
+brp.5	timeout	15s		15.04
+brp.6	timeout	15s		15.04
+cambridge.1	run-ok	11339	(unsupported)	0.06
+cambridge.2	run-ok	15940	(unsupported)	0.08
+cambridge.3	run-ok	18138	(unsupported)	0.08
+cambridge.4	run-ok	60463	(unsupported)	0.17
+cambridge.5	run-ok	698912	(unsupported)	2.96
+cambridge.6	run-ok	3354295	(unsupported)	12.37
+cambridge.7	timeout	15s		15.03
+collision.1	run-ok	5593	(unsupported)	0.04
+collision.2	run-ok	12661	(unsupported)	0.05
+collision.3	run-ok	434530	(unsupported)	0.49
+collision.4	timeout	15s		15.04
+collision.5	timeout	15s		15.05
+collision.6	timeout	15s		15.05
+cyclic_scheduler.1	run-ok	4606	(unsupported)	0.05
+cyclic_scheduler.2	run-ok	3302	(unsupported)	0.04
+cyclic_scheduler.3	run-ok	229374	(unsupported)	0.72
+cyclic_scheduler.4	run-ok	473414	(unsupported)	0.80
+driving_phils.1	run-ok	14889	(unsupported)	0.05
+driving_phils.2	run-ok	33173	(unsupported)	0.07
+driving_phils.3	timeout	15s		15.05
+driving_phils.4	timeout	15s		15.06
+driving_phils.5	timeout	15s		15.06
+elevator.1	run-ok	8543	(unsupported)	0.05
+elevator2.1	run-ok	1728	(unsupported)	0.03
+elevator2.2	run-ok	179200	(unsupported)	0.28
+elevator2.3	timeout	15s		15.03
+elevator.2	run-ok	2825	(unsupported)	0.04
+elevator.3	run-ok	416935	(unsupported)	0.81
+elevator.4	run-ok	888053	(unsupported)	1.68
+elevator.5	timeout	15s		15.06
+elevator_planning.2	timeout	15s		15.04
+elevator_planning.3	run-ok	52496	(unsupported)	0.16
+exit.1	run-ok	3239334	(unsupported)	6.27
+exit.2	run-ok	33670	(unsupported)	0.10
+exit.3	run-ok	2356294	(unsupported)	5.40
+exit.4	timeout	15s		15.04
+exit.5	run-ok	833226	(unsupported)	2.13
+extinction.1	run-ok	8993	(unsupported)	0.05
+extinction.2	run-ok	10061	(unsupported)	0.06
+extinction.3	run-ok	751930	(unsupported)	1.71
+extinction.4	run-ok	2001372	(unsupported)	4.88
+firewire_link.1	run-ok	1724	(unsupported)	0.05
+firewire_link.2	run-ok	55887	(unsupported)	0.30
+firewire_link.3	timeout	15s		15.04
+firewire_link.4	run-ok	24330	(unsupported)	0.19
+firewire_link.5	timeout	15s		15.03
+firewire_link.6	timeout	15s		15.04
+firewire_link.7	run-ok	399598	(unsupported)	2.73
+firewire_tree.1	run-ok	272	(unsupported)	0.06
+firewire_tree.2	run-ok	2441	(unsupported)	0.04
+firewire_tree.3	run-ok	86556	(unsupported)	0.48
+firewire_tree.4	run-ok	169992	(unsupported)	1.14
+firewire_tree.5	timeout	15s		15.10
+fischer.1	run-ok	634	(unsupported)	0.03
+fischer.2	run-ok	21733	(unsupported)	0.06
+fischer.3	run-ok	2896705	(unsupported)	5.44
+fischer.4	run-ok	1272254	(unsupported)	2.09
+fischer.5	timeout	15s		15.04
+fischer.6	timeout	15s		15.03
+fischer.7	timeout	15s		15.04
+frogs.1	run-ok	5094	(unsupported)	0.04
+frogs.2	run-ok	18207	(unsupported)	0.06
+frogs.3	run-ok	760789	(unsupported)	0.88
+frogs.4	timeout	15s		15.04
+gear.1	run-ok	2689	(unsupported)	0.04
+gear.2	run-ok	16689	(unsupported)	0.05
+hanoi.1	run-ok	6561	(unsupported)	0.05
+hanoi.2	run-ok	531441	(unsupported)	1.25
+hanoi.3	timeout	15s		15.05
+hanoi.4	timeout	15s		15.06
+iprotocol.1	run-ok	6814	(unsupported)	0.04
+iprotocol.2	run-ok	29994	(unsupported)	0.07
+iprotocol.3	run-ok	1013456	(unsupported)	1.55
+iprotocol.4	run-ok	3290916	(unsupported)	6.03
+iprotocol.5	timeout	15s		15.05
+iprotocol.6	timeout	15s		15.05
+iprotocol.7	timeout	15s		15.05
+krebs.1	run-ok	6027	(unsupported)	0.05
+krebs.2	run-ok	62476	(unsupported)	0.16
+krebs.3	run-ok	238876	(unsupported)	0.53
+krebs.4	run-ok	1047405	(unsupported)	2.55
+lamport.1	run-ok	29242	(unsupported)	0.06
+lamport.2	run-ok	110920	(unsupported)	0.13
+lamport.3	run-ok	38067	(unsupported)	0.07
+lamport.5	run-ok	1066800	(unsupported)	1.41
+lamport.6	run-ok	8717688	(unsupported)	14.34
+lamport.7	timeout	15s		15.04
+lamport.8	timeout	15s		15.04
+lamport_nonatomic.1	run-ok	20434	(unsupported)	0.08
+lamport_nonatomic.2	run-ok	12958	(unsupported)	0.06
+lamport_nonatomic.3	run-ok	36983	(unsupported)	0.10
+lamport_nonatomic.4	run-ok	1257304	(unsupported)	3.25
+lamport_nonatomic.5	timeout	15s		15.04
+lann.1	run-ok	18424	(unsupported)	0.05
+lann.2	run-ok	12784	(unsupported)	0.05
+lann.3	run-ok	1832139	(unsupported)	3.23
+lann.4	run-ok	966855	(unsupported)	1.70
+lann.5	run-ok	993914	(unsupported)	1.86
+lann.6	timeout	15s		15.04
+lann.7	timeout	15s		15.04
+lann.8	timeout	15s		15.05
+leader_election.1	run-ok	14252	(unsupported)	0.09
+leader_election.2	run-ok	28720	(unsupported)	0.13
+leader_election.3	run-ok	101360	(unsupported)	0.52
+leader_election.4	run-ok	746240	(unsupported)	4.62
+leader_election.5	timeout	15s		15.05
+leader_election.6	timeout	15s		15.05
+leader_filters.1	run-ok	4966	(unsupported)	0.04
+leader_filters.2	run-ok	29284	(unsupported)	0.06
+leader_filters.3	run-ok	91093	(unsupported)	0.12
+leader_filters.4	run-ok	50025	(unsupported)	0.09
+leader_filters.5	run-ok	1572886	(unsupported)	2.24
+leader_filters.6	timeout	15s		15.05
+leader_filters.7	timeout	15s		15.05
+lifts.1	run-ok	2661	(unsupported)	0.04
+lifts.2	run-ok	2664	(unsupported)	0.04
+lifts.3	run-ok	30772	(unsupported)	0.11
+lifts.4	run-ok	112792	(unsupported)	0.30
+lifts.5	run-ok	191567	(unsupported)	0.49
+lifts.6	run-ok	333649	(unsupported)	0.84
+lifts.7	timeout	15s		15.04
+lifts.8	timeout	15s		15.04
+loyd.1	run-ok	720	(unsupported)	0.03
+loyd.2	run-ok	362880	(unsupported)	0.48
+loyd.3	timeout	15s		15.05
+lup.1	run-ok	1404	(unsupported)	0.04
+lup.2	run-ok	495720	(unsupported)	2.69
+lup.3	run-ok	1948617	(unsupported)	12.85
+lup.4	timeout	15s		15.01
+mcs.1	run-ok	7963	(unsupported)	0.04
+mcs.2	run-ok	1408	(unsupported)	0.03
+mcs.3	run-ok	571459	(unsupported)	0.74
+mcs.4	run-ok	16384	(unsupported)	0.05
+mcs.5	timeout	15s		15.04
+mcs.6	run-ok	332544	(unsupported)	0.45
+msmie.1	run-ok	2334	(unsupported)	0.04
+msmie.2	run-ok	10558	(unsupported)	0.05
+msmie.3	run-ok	134844	(unsupported)	0.21
+msmie.4	run-ok	7125441	(unsupported)	14.07
+needham.1	run-ok	497	(unsupported)	0.04
+needham.2	run-ok	54976	(unsupported)	0.12
+needham.3	run-ok	206925	(unsupported)	0.37
+needham.4	timeout	15s		15.04
+peg_solitaire.1	run-ok	32181	(unsupported)	0.12
+peg_solitaire.2	timeout	15s		15.07
+peg_solitaire.3	timeout	15s		15.06
+peg_solitaire.4	run-ok	873326	(unsupported)	3.09
+peg_solitaire.5	run-ok	84191	(unsupported)	0.29
+peg_solitaire.6	timeout	15s		15.06
+peterson.1	run-ok	12498	(unsupported)	0.04
+peterson.2	run-ok	124704	(unsupported)	0.16
+peterson.3	run-ok	170156	(unsupported)	0.20
+peterson.4	run-ok	1119560	(unsupported)	1.64
+peterson.5	timeout	15s		15.04
+peterson.6	timeout	15s		15.05
+peterson.7	timeout	15s		15.04
+pgm_protocol.1	run-ok	10175	(unsupported)	0.08
+pgm_protocol.2	run-ok	17096	(unsupported)	0.11
+pgm_protocol.3	run-ok	200453	(unsupported)	0.80
+pgm_protocol.4	run-ok	39832	(unsupported)	0.19
+pgm_protocol.5	run-ok	382731	(unsupported)	1.35
+pgm_protocol.6	run-ok	2659550	(unsupported)	11.20
+pgm_protocol.7	run-ok	322585	(unsupported)	1.21
+pgm_protocol.8	run-ok	3069390	(unsupported)	11.69
+phils.1	run-ok	80	(unsupported)	0.03
+phils.2	run-ok	581	(unsupported)	0.03
+phils.3	run-ok	729	(unsupported)	0.03
+phils.4	run-ok	340789	(unsupported)	0.87
+phils.5	run-ok	531440	(unsupported)	1.27
+phils.6	timeout	15s		15.04
+phils.7	timeout	15s		15.05
+phils.8	timeout	15s		15.05
+pouring.1	run-ok	503	(unsupported)	0.06
+pouring.2	run-ok	51624	(unsupported)	0.91
+production_cell.1	run-ok	14586	(unsupported)	0.05
+production_cell.2	run-ok	9003	(unsupported)	0.04
+production_cell.3	run-ok	822612	(unsupported)	1.15
+production_cell.4	run-ok	340685	(unsupported)	0.42
+production_cell.5	run-ok	4211856	(unsupported)	6.64
+production_cell.6	timeout	15s		15.05
+protocols.1	run-ok	2430	(unsupported)	0.03
+protocols.2	run-ok	11286	(unsupported)	0.04
+protocols.3	run-ok	2817	(unsupported)	0.03
+protocols.4	run-ok	439245	(unsupported)	0.48
+protocols.5	run-ok	996345	(unsupported)	1.11
+public_subscribe.1	run-ok	580	(unsupported)	0.04
+public_subscribe.2	run-ok	1846603	(unsupported)	5.24
+public_subscribe.3	run-ok	1846603	(unsupported)	5.31
+public_subscribe.4	run-ok	1846603	(unsupported)	5.52
+public_subscribe.5	timeout	15s		15.03
+reader_writer.1	run-ok	2666	(unsupported)	0.04
+reader_writer.2	run-ok	4104	(unsupported)	0.05
+reader_writer.3	run-ok	604498	(unsupported)	2.05
+resistance.1	timeout	15s		15.03
+resistance.2	timeout	15s		15.03
+rether.1	run-ok	2458	(unsupported)	0.04
+rether.2	run-ok	9278	(unsupported)	0.04
+rether.3	run-ok	305334	(unsupported)	0.40
+rether.4	run-ok	1157052	(unsupported)	1.85
+rether.5	run-ok	3017044	(unsupported)	4.85
+rether.6	run-ok	5919694	(unsupported)	10.71
+rether.7	run-ok	4789409	(unsupported)	9.20
+rushhour.1	run-ok	1048	(unsupported)	0.04
+rushhour.2	run-ok	2242	(unsupported)	0.05
+rushhour.3	run-ok	156723	(unsupported)	1.37
+rushhour.4	run-ok	327675	(unsupported)	2.93
+sokoban.1	run-ok	91453	(unsupported)	0.21
+sokoban.2	run-ok	761633	(unsupported)	1.68
+sokoban.3	timeout	15s		15.08
+sorter.1	run-ok	20544	(unsupported)	0.06
+sorter.2	run-ok	7592	(unsupported)	0.04
+sorter.3	run-ok	1288478	(unsupported)	2.38
+sorter.4	timeout	15s		15.04
+sorter.5	run-ok	296148	(unsupported)	0.52
+synapse.1	run-ok	46756	(unsupported)	0.18
+synapse.2	run-ok	61048	(unsupported)	0.19
+synapse.3	run-ok	390317	(unsupported)	1.05
+synapse.4	run-ok	2292286	(unsupported)	6.83
+synapse.5	run-ok	83263	(unsupported)	0.23
+synapse.6	run-ok	625175	(unsupported)	1.69
+synapse.7	timeout	15s		15.03
+szymanski.1	run-ok	20264	(unsupported)	0.07
+szymanski.2	run-ok	31875	(unsupported)	0.08
+szymanski.3	run-ok	1128424	(unsupported)	2.07
+szymanski.4	run-ok	2313863	(unsupported)	4.48
+szymanski.5	timeout	15s		15.04
+telephony.1	run-ok	1280	(unsupported)	0.04
+telephony.2	run-ok	51826	(unsupported)	0.13
+telephony.3	run-ok	765379	(unsupported)	1.74
+telephony.4	timeout	15s		15.03
+telephony.5	timeout	15s		15.04
+telephony.6	timeout	15s		15.04
+telephony.7	timeout	15s		15.03
+telephony.8	timeout	15s		15.04
