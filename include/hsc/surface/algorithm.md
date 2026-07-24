@@ -139,9 +139,15 @@ with a non-constant `E`, no family marker, no out-of-bounds constant)
 dissolves — static accesses fold to their cell names, the grouping goes;
 supports stop over-approximating to the whole array, events regain their
 true locality, and the analyses see cells one by one. Composes with
-`simplify-constants`, which grounds index expressions. Planned:
-`decompose-louvain`, the unit-tree derivation generalized out of the
-Petri importer. The runner also serves **`(print-spec)`** — a command,
+`simplify-constants`, which grounds index expressions.
+**`decompose-louvain`**: a hierarchical shape from the spec's own
+dependency structure — Louvain clustering over the control→write
+co-occurrence graph (control = the guard's reads, targets = positions
+written outside the guard, weights 1/(|ctrl|·|write|) — the Petri
+importer's flow-like strategy generalized; a guard-read-and-written
+position is a source only, as there). Communities become nested
+`(balanced …)` blocks, members keep their frontier order. The runner
+also serves **`(print-spec)`** — a command,
 not a pass: the current spec, post-chain, printed as runnable `.hsc`.
 
 ## 2. Meaning (M2M): forms → operations

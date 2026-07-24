@@ -235,6 +235,7 @@ certificate; `unfold` always enumerates.
 (reorder-force)              ; directive: FORCE order from event supports, §8c
 (flatten)                    ; directive: the flat spine of the frontier, §8c
 (simplify-arrays)            ; directive: dissolve statically-accessed arrays, §8c
+(decompose-louvain)          ; directive: hierarchical shape by clustering, §8c
 (print-spec)                 ; print the current spec, post-chain, as .hsc
 (bill)                       ; meters: nodes, terms, caches, time
 ```
