@@ -11,6 +11,7 @@ Sources :
 * examples/ : runnable programs, each checking itself against an oracle, and the model corpora (models/, param/, divine/, mcc/)
 * tools/ : the CLI binaries — hsc, hsc-mcc, dve2hsc, nupn2hsc
 * doc/ : the .hsc language manual
+* experiments/ : experiment descriptions and their measured records, one folder per thread
 * bench/ : benchmarks
 
 Reference code bases, read-only from this project; never edit them from here :

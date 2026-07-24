@@ -64,6 +64,7 @@ terms, saturate, query — each validated against an independent oracle.
 | `examples/` | self-checking programs and the model corpora (`models/`, `param/`, `divine/`, `mcc/`) |
 | `tests/` | doctest suite (differential: `saturate == naive`), sweep and baseline scripts |
 | `doc/` | the `.hsc` language manual |
+| `experiments/` | experiment records: what was measured, the numbers, how to reproduce |
 | `research_notes/` | the paper draft and the roadmap |
 | `bench/` | benchmarks (empty until the parity milestone) |
 
