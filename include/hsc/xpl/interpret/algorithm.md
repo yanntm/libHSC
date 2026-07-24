@@ -49,6 +49,12 @@ sugar resolved at model build.
                  against the branch; havoc(t, lo, hi) forks one branch per
                  value of [lo, hi); two writes to one position: error (§4);
                  apply the writes
+
+Havoc is not a primitive of the algebra: it *is* the `alt` of the range's
+assignments, kept as one action so the range is never materialized in the
+term — the fire-time fork is that alt taken lazily, and inside a
+simultaneous clause the alt distributes over the other assigns (which is
+what forking a branch copy does).
       seq      : the kids in order (no branches left → done)
       alt      : each kid interprets a copy of the branches; the results
                  concatenate
