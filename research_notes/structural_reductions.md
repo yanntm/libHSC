@@ -237,6 +237,70 @@ Three structural facts from his comparison worth keeping:
   positions the hsc contribution against his open problem and deserves
   a place in any paper version.
 
+## Local semantic discharge (Amat-style, minus the traceability)
+
+Every side condition — (3), (6a), (6b′) — is a ∀-statement over
+reachable states, so any **over-approximation** of reach discharges it
+soundly. We need none of Amat's exact reconstruction: the rule schema
+is proved once on paper (the mover analysis above); an instance only
+needs its hypotheses established. Escalating discharge ladder:
+
+1. **Syntactic**: support intersections + atom-vs-constant-write (v1).
+2. **Domain-refined**: the same checks against inferred value sets.
+3. **Local symbolic**: project the spec onto
+   W = supp(g₁) ∪ {x} ∪ (offending supports) — drop non-W guard
+   conjuncts, keep W-writes. Dropping conjuncts adds behavior, so the
+   small system over-approximates the real one on W; run the symbolic
+   engine on it and check the condition along in-flight windows.
+   Spurious interleavings only make the check conservative — the
+   failure mode is a refused rule, never a wrong one. This is the
+   22-rule system's SMT-backed behavioral conditions (§4.5 there),
+   transplanted to our own engine on a projected "small net".
+
+Experimental mode: gain-freedom means a wrongly-enabled agglomeration
+only *loses* projected states, which the projection differential
+catches — so optimistic-apply + oracle on small instances is a sound
+way to measure which relaxations matter before proving them.
+
+## Process discovery from the transition relation
+
+Petri theory locates processes as S-components. In guarded commands
+**every scalar variable is trivially an S-component** (it always holds
+exactly one value), so the question shifts: which variables are
+*sequencers*? The signal is the discipline the hotbit scan already
+recognizes: c read only in pinned equality atoms and written by those
+same events defines an automaton A_c (nodes = values, edges = events);
+its event group E_c is a "congruent subgroup" of the system's big alt —
+a process with program counter c. Then:
+
+* **Local variables** of (c, E_c): touched only by E_c events —
+  tensor-local, they descend into that process's subtree of the shape.
+* **Mediators**: variables write-then-tested across two groups — these
+  ARE the (x, m) agglomeration candidates. Discovery scan and candidate
+  scan are one analysis read from two sides: intra-group A_c edges are
+  sequential chains (a silent path in A_c = a chain of handshakes —
+  resolves the "multiple mediating values" question), cross-group
+  mediator edges are synchronizations (keep, or fuse when silent).
+* **Shape emission**: one subtree per process, mediators at the join;
+  quality metric = fraction of events local to one subtree — the same
+  objective reorder-force/Louvain optimize. Louvain is the undirected
+  heuristic; the control-variable scan is its directed, semantically
+  grounded refinement.
+* **Don't rediscover what importers know**: DVE has processes, NUPN has
+  units — dve2hsc/nupn2hsc should preserve them as shape; discovery is
+  for the wild case.
+* This answers Laarman's process-less-STR obstacle constructively:
+  synthesize the threads from the transition relation, then run
+  process-bound TR on them.
+
+Closing the loop with local discharge: the potential space for a
+side-condition check is the **control skeleton** — the product of the
+involved A_c automata plus mediator domains, data guards weakened away.
+Rules checked on the skeleton, applied to the full spec. Risks: guards
+mixing control and data (counters) coarsen the skeleton — domains
+mitigate; events pinned on two controllers are boundary events
+(attribute by modularity); cap the per-check symbolic cost.
+
 ## POR in the explicit engine
 
 Independence `e₁ ⊥ e₂` ⟺ writes(e₁) ∩ (reads(e₂) ∪ writes(e₂)) = ∅ (and
