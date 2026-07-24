@@ -10,7 +10,6 @@ Sources :
 * tests/ : doctest suite, probes, support code
 * examples/ : runnable programs, each checking itself against an oracle
 * bench/ : benchmarks
-* python/hsc/ : the Python prototype of the calculus
 
 Reference code bases, read-only from this project; never edit them from here :
 
@@ -42,8 +41,8 @@ Data in here is traceable to git tracked machine gen artefacts and reports : it 
 - `include/hsc/core/algorithm.md` — the calculus as implemented: codes, shapes,
   the normal form, the canonicalizer, the set algebra.
 - `include/hsc/mem/algorithm.md` — the substrate: interning, handles, caches.
-- The `hsc_core*.md` series in research_notes is the calculus; highest number is
-  current, lower numbers are history kept for the record of what moved and why.
+- `research_notes/hsc_core.md` is the calculus paper draft; superseded drafts
+  live in git history only.
 - Every folder bears some form of README.md (source map, overview of services) and/or algorithm.md
   that provides an abstract description of algo. Always read the readme before using or editing files in a folder.
   Maintain these docs in sync with code.
