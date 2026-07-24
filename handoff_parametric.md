@@ -1,7 +1,7 @@
 # handoff — parametric surface
 
-Spec: `research_notes/hsc_parametric.md` (M1–M3 done, see the report:
-`research_notes/hsc_parametric_report.md`).
+The parametric surface is implemented and validated (spec retired to git
+history; results: `research_notes/hsc_parametric_report.md`).
 
 **Symmetric encodings are implemented and validated** (no spec — direct):
 an event family whose binder is uniform (index only as an array access at

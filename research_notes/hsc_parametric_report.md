@@ -1,6 +1,7 @@
 # Parametric surface — engineering report
 
-Response to `hsc_parametric.md`. All data reproducible from the named
+Results of the parametric-surface work (its spec, `hsc_parametric.md`, is
+retired to git history — all milestones met). All data reproducible from the named
 git-tracked files with `hscrun` (`examples/hsc.cc`); every sample is
 self-checking (`expect`, exit code).
 
