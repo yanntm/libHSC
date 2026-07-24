@@ -1,7 +1,7 @@
 # `examples/param/` — parametric surface samples
 
 Each file is one template over a size `param`, self-checking via `expect`;
-`hscrun --expand FILE` prints the flat `.hsc` it denotes. The parametric
+`hsc --expand FILE` prints the flat `.hsc` it denotes. The parametric
 forms are specified in `research_notes/hsc_parametric.md`.
 
 * `hanoi.hsc` — N rings, P poles. Nested `exists` (a 3-index event family),

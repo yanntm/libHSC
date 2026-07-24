@@ -2,13 +2,13 @@
 
 Results of the parametric-surface work (its spec, `hsc_parametric.md`, is
 retired to git history — all milestones met). All data reproducible from the named
-git-tracked files with `hscrun` (`examples/hsc.cc`); every sample is
+git-tracked files with the `hsc` CLI (`tools/hsc.cc`); every sample is
 self-checking (`expect`, exit code).
 
 ## M1 — the expander: done
 
 `include/hsc/surface/expand.hh` + `src/surface_expand.cc` (~600 LOC), wired
-into `run_file`; `hscrun --expand FILE` dumps the lowering. `hsc-mcc` was
+into `run_file`; `hsc --expand FILE` dumps the lowering. `hsc-mcc` was
 left unwired on purpose: its forms come from the Petri front end, generated
 and binder-free. Gates held:
 

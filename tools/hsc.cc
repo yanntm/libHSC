@@ -1,6 +1,6 @@
 /// \file hsc.cc
-/// \brief Run a model from a `.hsc` file: parse, expand, translate, execute,
-/// report.
+/// \brief The `hsc` CLI: run a model from a `.hsc` file — parse, expand,
+/// translate, execute, report.
 ///
 /// The whole surface behind one entry point. Exit code is 0 on success,
 /// nonzero on a parse/expand/translate error or a failed `expect` — so a
@@ -13,6 +13,9 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <vector>
+
+#include <CLI/CLI.hpp>
 
 #include "hsc/surface/expand.hh"
 #include "hsc/surface/translate.hh"
@@ -48,37 +51,48 @@ int dump_expanded(const std::string& path,
 }  // namespace
 
 int main(int argc, char** argv) {
-  bool dump = false;
-  std::map<std::string, long long> params;  // -DNAME=VALUE param overrides
+  CLI::App app{
+      "hsc — run a .hsc model: parse, expand, translate, execute.\n"
+      "Exit code 0 on success, nonzero on error or a failed (expect …),\n"
+      "so a model file is a self-checking test."};
+
   std::string path;
-  for (int i = 1; i < argc; ++i) {
-    const std::string a = argv[i];
-    if (a == "--expand") {
-      dump = true;
-    } else if (a.rfind("-D", 0) == 0) {
-      const auto eq = a.find('=');
-      if (eq == std::string::npos || eq == 2) {
-        std::cerr << a << ": expected -DNAME=VALUE\n";
-        return 2;
-      }
-      try {
-        params[a.substr(2, eq - 2)] = std::stoll(a.substr(eq + 1));
-      } catch (const std::exception&) {
-        std::cerr << a << ": expected an integer value\n";
-        return 2;
-      }
-    } else if (path.empty()) {
-      path = a;
-    } else {
-      path.clear();
-      break;
+  app.add_option("model", path, "the .hsc model file")
+      ->required()
+      ->check(CLI::ExistingFile);
+
+  bool dump = false;
+  app.add_flag("--expand", dump,
+               "stop after the parametric pass; print the flat, runnable "
+               ".hsc text");
+
+  std::vector<std::string> defines;
+  app.add_option("-D", defines,
+                 "override a (param NAME …) from the command line, as "
+                 "NAME=VALUE; repeatable")
+      ->allow_extra_args(false);
+
+  try {
+    app.parse(argc, argv);
+  } catch (const CLI::ParseError& e) {
+    return app.exit(e);
+  }
+
+  std::map<std::string, long long> params;
+  for (const std::string& d : defines) {
+    const auto eq = d.find('=');
+    if (eq == std::string::npos || eq == 0) {
+      std::cerr << "-D" << d << ": expected -DNAME=VALUE\n";
+      return 2;
+    }
+    try {
+      params[d.substr(0, eq)] = std::stoll(d.substr(eq + 1));
+    } catch (const std::exception&) {
+      std::cerr << "-D" << d << ": expected an integer value\n";
+      return 2;
     }
   }
-  if (path.empty()) {
-    std::cerr << "usage: " << (argc ? argv[0] : "hsc")
-              << " [--expand] [-DNAME=VALUE…] <model.hsc>\n";
-    return 2;
-  }
+
   if (dump) return dump_expanded(path, params);
   return hsc::surface::run_file(path, std::cout, std::cerr, params);
 }

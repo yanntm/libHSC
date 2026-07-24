@@ -1,6 +1,13 @@
-# Importers and generators. The PNML importer and the Louvain decomposition
-# emit `.hsc` text; only hsc-mcc additionally links the calculus core. Everything
-# needs expat (PNML), so the tools are gated on it.
+# The CLI binaries: the `hsc` runner, the importers, the MCC answering
+# machine. Importers need expat (PNML) and are gated on it.
+
+# `hsc` — run a .hsc model. The primary entry point of the repository.
+# (Target named hsc_cli because `hsc` is the library; the binary is `hsc`.)
+add_executable(hsc_cli hsc.cc)
+set_target_properties(hsc_cli PROPERTIES OUTPUT_NAME hsc)
+target_link_libraries(hsc_cli PRIVATE hsc::hsc CLI11::CLI11)
+target_compile_options(hsc_cli PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>)
 
 find_package(EXPAT)
 if(EXPAT_FOUND)

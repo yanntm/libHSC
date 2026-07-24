@@ -21,7 +21,7 @@ the tree meaning. Neither endpoint knows which passes intercede.
   datum.** `param`, count-form `array`, and the binders `forall` / `exists`,
   expanded by position through each context's native combinator (seq/and
   for `forall`, alt/or/event-family for `exists`). Identity on binder-free
-  input; `hscrun --expand` dumps its output as runnable flat `.hsc`.
+  input; `hsc --expand` dumps its output as runnable flat `.hsc`.
 
 * `translate.hh` + `src/surface_translate.cc` — **M2M: AST → operations.** A
   separate pass that walks the `datum` forms and drives a `core::manager`:

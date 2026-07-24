@@ -19,23 +19,19 @@ if(HSC_BUILD_TESTS)
   add_test(NAME example_hanoi COMMAND hanoi)
 endif()
 
-# The file surface: a runner that parses, translates and executes a .hsc model.
-add_executable(hscrun hsc.cc)
-target_link_libraries(hscrun PRIVATE hsc::hsc)
-target_compile_options(hscrun PRIVATE
-  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>)
-
+# The .hsc models under models/ are self-checking inputs of the `hsc` CLI
+# (built in tools/ as target hsc_cli).
 if(HSC_BUILD_TESTS)
   add_test(NAME surface_hanoi3
-           COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/hanoi3.hsc)
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/hanoi3.hsc)
   add_test(NAME surface_ring4
-           COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4.hsc)
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4.hsc)
   add_test(NAME surface_ring4b
-           COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4b.hsc)
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4b.hsc)
   add_test(NAME surface_unbounded
-           COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/unbounded.hsc)
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/unbounded.hsc)
   add_test(NAME surface_states
-           COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/states.hsc)
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/states.hsc)
   add_test(NAME surface_altseq
-           COMMAND hscrun ${CMAKE_CURRENT_SOURCE_DIR}/models/altseq.hsc)
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/altseq.hsc)
 endif()

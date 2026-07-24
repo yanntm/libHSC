@@ -16,7 +16,7 @@ TMO="${1:-5}"
 LABEL="${2:-}"
 shift $(( $# > 2 ? 2 : $# ))
 DVE2HSC=build/tools/dve2hsc
-HSCRUN=build/examples/hscrun
+HSCRUN=build/tools/hsc
 OUT=examples/divine/status.tsv
 LOG=tests/logs/dve_sweep.log
 REV=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)

@@ -14,7 +14,7 @@ build. Measured (`tests/family_scaling.sh`, balanced philosophers):
 op terms 21·k − 8 at N = 2^k (vs ~6N enumerated), R nodes = 4k, reach
 ~0 s at N = 2^20; wall is dominated by the still-enumerated cell
 declarations (Θ(N), ~4 s at 2^20). `-DN=` overrides a param from the
-hscrun command line.
+hsc command line.
 
 ## Engineering queue (next action first)
 

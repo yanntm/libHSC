@@ -68,7 +68,7 @@ Run one directly to see its output:
   out of scope for the library (see `research_notes/roadmap.md`): our input
   is shaped, and deriving a shape is a spec-rewriting problem upstream.
 
-* `hsc.cc` (`hscrun`) — the file surface runner: parse and execute a `.hsc`
+* `hsc.cc` (the `hsc` CLI) — the file surface runner: parse and execute a `.hsc`
   model (see `include/hsc/surface/`). The models under `models/` are its
   self-checking inputs, each `expect`-checked against an independent oracle
   and registered with CTest:
