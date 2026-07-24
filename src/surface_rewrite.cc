@@ -278,7 +278,8 @@ std::vector<pass_def> pass_registry() {
           {"hotbit", hotbit},
           {"reorder-force", reorder_force},
           {"flatten", flatten},
-          {"simplify-arrays", simplify_arrays}};
+          {"simplify-arrays", simplify_arrays},
+          {"decompose-louvain", decompose_louvain}};
 }
 
 }  // namespace hsc::surface

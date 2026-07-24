@@ -76,6 +76,13 @@ rewrite(std::vector<datum> forms, std::span<const pass> passes);
 [[nodiscard]] rewrite_result simplify_arrays(std::vector<datum> forms,
                                              const datum& directive);
 
+/// \brief `(decompose-louvain)`: a hierarchical shape from the spec's
+/// own dependency structure — Louvain clustering over the control→write
+/// co-occurrence graph of the events; communities become nested
+/// `(balanced …)` blocks.
+[[nodiscard]] rewrite_result decompose_louvain(std::vector<datum> forms,
+                                               const datum& directive);
+
 /// A pass as the registry serves it: the directive form is handed
 /// through, so a pass can take arguments.
 struct pass_def {

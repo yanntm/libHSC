@@ -1,6 +1,17 @@
 # Non-header implementation of the library. Sources are listed explicitly:
 # globbing hides additions from CMake's dependency tracking.
 
+# The vendored Louvain method (adopted, not authored: no strict warnings),
+# shared by the Petri importer and the (decompose-louvain) rewrite pass.
+add_library(hsc_louvain STATIC
+  louvain/graph_binary.cpp
+  louvain/quality.cpp
+  louvain/modularity.cpp
+  louvain/louvain.cpp
+  louvain/community.cpp)
+target_include_directories(hsc_louvain PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(hsc PUBLIC hsc_louvain)
+
 target_sources(hsc PRIVATE
   stats.cc
   timing.cc
@@ -19,6 +30,7 @@ target_sources(hsc PRIVATE
   surface_hotbit.cc
   surface_reorder.cc
   surface_arrays.cc
+  surface_louvain.cc
   surface_xpl.cc
   surface_spec.cc
   dve_parser.cc

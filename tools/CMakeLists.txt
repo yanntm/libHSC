@@ -17,14 +17,9 @@ if(EXPAT_FOUND)
   add_library(petri_import STATIC
     ${PROJECT_SOURCE_DIR}/src/petri_nupn.cc
     ${PROJECT_SOURCE_DIR}/src/petri_to_surface.cc
-    ${PROJECT_SOURCE_DIR}/src/petri_decompose.cc
-    ${PROJECT_SOURCE_DIR}/src/louvain/graph_binary.cpp
-    ${PROJECT_SOURCE_DIR}/src/louvain/quality.cpp
-    ${PROJECT_SOURCE_DIR}/src/louvain/modularity.cpp
-    ${PROJECT_SOURCE_DIR}/src/louvain/louvain.cpp
-    ${PROJECT_SOURCE_DIR}/src/louvain/community.cpp)
+    ${PROJECT_SOURCE_DIR}/src/petri_decompose.cc)
   target_include_directories(petri_import PUBLIC ${PROJECT_SOURCE_DIR}/include)
-  target_link_libraries(petri_import PUBLIC EXPAT::EXPAT)
+  target_link_libraries(petri_import PUBLIC EXPAT::EXPAT hsc_louvain)
 
   add_executable(nupn2hsc nupn2hsc.cc)
   target_link_libraries(nupn2hsc PRIVATE petri_import)
