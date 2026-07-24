@@ -3,7 +3,7 @@
 (leaf glob_x2)
 (leaf a1_state)
 (leaf a2_state)
-(shape (spine glob_c glob_x1 glob_x2 a1_state a2_state))
+(shape (spine a1_state glob_x1 glob_c glob_x2 a2_state))
 (init (glob_c 1))
 (event a1_t1_Q_R (when (== a1_state 0) (< glob_c 300)) (do (:= a1_state 1)) (do (:= glob_x1 glob_c)))
 (event a1_t2_R_S (when (== a1_state 1)) (do (:= a1_state 2)) (do (:= glob_x1 (+ glob_x1 glob_c))))
@@ -13,3 +13,4 @@
 (event a2_t3_S_Q (when (== a2_state 2)) (do (:= a2_state 0)) (do (:= glob_c glob_x2)))
 (reach R saturate)
 (count R)
+(nodes R)
