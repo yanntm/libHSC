@@ -88,15 +88,12 @@ measurement says so, not because this file says it might.
 
 ---
 
-## H4 — Terms with no path from a test. *(closed for `compose`)*
+## H4 — Terms with no path from a test. *(standing rule)*
 
-Kept as a record: `op_kind::compose` shipped with `core: operations` and
-nothing used it until the differential test was written. Any term kind that
-no example reaches is a term kind whose semantics are a guess.
-
-**Standing rule this suggests.** A constructor in `op_table` with no path
-from an example or a differential test is not a feature, it is an untested
-assertion about what we meant.
+A constructor in `op_table` with no path from an example or a differential
+test is not a feature, it is an untested assertion about what we meant. Any
+term kind that no example reaches is a term kind whose semantics are a
+guess.
 
 ---
 

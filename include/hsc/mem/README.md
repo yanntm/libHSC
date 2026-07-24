@@ -42,12 +42,8 @@ operation terms, residuals and kernels.
   all. Adapted from libsdd (Alexandre Hamez, BSD-2) — see the file header for
   what we changed and `algorithm.md` §4 for why.
 
-## Pending (M1)
-
-* `manager.hh` — the owner of tables and caches. Arrives with `core/`: until
-  there are diagrams there is nothing for a manager to own, and an empty one
-  would be a guess. The discipline it will enforce is already in force —
-  every component here takes its context as an argument and none of them
-  reaches for global state.
+The owner of tables and caches is `core/manager.hh`, not here: `mem/` is
+policy-free substrate. Every component takes its context as an argument;
+none reaches for global state.
 
 See `algorithm.md` for the designs, which are written before the code.
