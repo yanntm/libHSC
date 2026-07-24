@@ -42,8 +42,9 @@ the reachable set.
 
 The stats carry the count, the fired-successor tally, and a status: `ok`;
 `stopped` (a visited prefix, by the visitor's verdict); `capped` — the cap
-bounds *stored states* (default 2²⁰): explicit is for small instances, and
-the cap is the honest refusal, never a silent truncation; or `error` (§4).
+bounds *stored states* (default 10⁸, a memory backstop: a few million
+states is normal fare, a driver's timeout is the practical limit), and is
+the honest refusal, never a silent truncation; or `error` (§4).
 
 ## 3. May-fire set maintenance
 

@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
 
   long long cap = 0;
   app.add_option("--cap", cap,
-                 "with --explicit: bound on stored states (default 2^20)")
+                 "with --explicit: bound on stored states (default 10^8)")
       ->check(CLI::PositiveNumber);
 
   std::vector<std::string> defines;

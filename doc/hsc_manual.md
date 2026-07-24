@@ -258,8 +258,8 @@ enumerated) or default to the init seed.
 The result binds like any other: `count`, `expect`, `get-states` and
 `get-witness` read it; commands that only mean something on a diagram
 (`nodes`, `print`, `select`, `max-value`) answer `(unsupported)` or refuse.
-The `cap` (default 2^20 stored states) is an honest refusal, never a
-silent truncation.
+The `cap` (default 10^8 stored states — a memory backstop; a few million
+states is normal fare) is an honest refusal, never a silent truncation.
 
 A model-level runtime error — division by zero, an out-of-bounds access,
 overflow, two writes to one cell in one clause — makes the result **TOP**:

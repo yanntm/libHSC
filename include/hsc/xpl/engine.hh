@@ -30,9 +30,11 @@ enum class visit : std::uint8_t { proceed, stop };
 using state_visitor = std::function<visit(state_id, state_view)>;
 
 struct reach_options {
-  /// Bound on stored states: explicit is for small instances, and the cap
-  /// is the honest refusal, never a silent truncation.
-  std::size_t cap = std::size_t{1} << 20;
+  /// Bound on stored states — the honest refusal, never a silent
+  /// truncation. The default (10⁸) is a memory backstop, not a work
+  /// bound: a few million states is normal fare for an explicit engine,
+  /// and a driver's timeout is the practical limit.
+  std::size_t cap = 100'000'000;
 };
 
 struct explore_stats {
