@@ -39,7 +39,7 @@ order, indexed bottom-up; zero as absence; id-coded interning with
 generation tags; no `top`, no `invert`, no MLHom.
 
 **Operation terms mirror the shape tree.** `H ::= id | node(H_h, H_t) | ∘ |
-Σ | ∗`, where the leaf case is a *theory* term read by the theory that owns
+Σ | lfp`, where the leaf case is a *theory* term read by the theory that owns
 the sort. A term is interpreted by whichever algebra it is handed to,
 exactly like a value. Consequences:
 
