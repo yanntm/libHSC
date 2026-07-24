@@ -30,12 +30,16 @@ surface code; nothing here includes `core/`.
 * `state.hh` — `value` (int32), `state_id`, `state_view`.
 * `store.hh` — the state store: fixed-arity rows, deduplicated,
   open-addressed; insert-if-absent is the one operation.
-* `interpret/` — the transition relation: `model.hh` (events as `lia`
-  codes over frontier positions), `eval.hh` (concrete evaluation, loud
-  errors), `fire.hh` (enabledness and successors). See
+* `interpret/` — the transition relation: `model.hh` (events as terms of
+  the event algebra — filter/update/seq/alt/abort, no lfp — over `lia`
+  codes and frontier positions), `eval.hh` (concrete evaluation, loud
+  errors), `fire.hh` (the term interpreter: one event at one state is
+  zero or more successors, zero meaning not enabled). See
   `interpret/algorithm.md`.
-* `engine.hh` — reachability: BFS with enabled-set maintenance. See
-  `algorithm.md`.
+* `engine.hh` — exploration: BFS with may-fire set maintenance,
+  visitor-driven (`explore` reports each fresh state, the client keeps
+  what it wants and may stop the run; `reach` is the keep-everything
+  wrapper). See `algorithm.md`.
 
 New capabilities (strategies, walks, on-the-fly properties) arrive as new
 submodules beside `interpret/`, not as growth of the engine.

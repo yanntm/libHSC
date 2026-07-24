@@ -11,6 +11,7 @@ target_sources(hsc PRIVATE
   surface_expand.cc
   surface_expr.cc
   surface_translate.cc
+  surface_xpl.cc
   dve_parser.cc
   dve_to_surface.cc
   lia_bool.cc
@@ -18,4 +19,8 @@ target_sources(hsc PRIVATE
   query.cc
   force.cc
   event.cc
+  xpl/eval.cc
+  xpl/model.cc
+  xpl/fire.cc
+  xpl/engine.cc
 )
