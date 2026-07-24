@@ -7,3 +7,6 @@
 
 # Diagnostic logs (kept in-folder, never committed)
 *.log
+
+# Paper library (pdf + txt extracts), fetched from the web, never committed
+/papers/
