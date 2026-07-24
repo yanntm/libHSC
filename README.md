@@ -31,7 +31,14 @@ test — exit code 0 means all expectations held.
 ./build/tools/hsc examples/models/ring4.hsc
 ./build/tools/hsc -DN=10 examples/param/philo.hsc   # parametric, N overridden
 ./build/tools/hsc --expand examples/param/hanoi.hsc # print the flat form
+./build/tools/hsc --explicit examples/models/ring4.hsc  # explicit engine
 ```
+
+The **explicit engine** (`include/hsc/xpl/`) runs the same models by
+concrete-state enumeration — `--explicit` on any file, or `(xreach …)`
+in-file — an independent oracle and debugging companion to the symbolic
+engine: exact counts on small instances, runnable witnesses, loud precise
+runtime errors.
 
 **Write a model.** The language — syntax, semantics, the parametric layer
 (`param` / `forall` / `exists`), queries — is documented in
@@ -59,7 +66,7 @@ terms, saturate, query — each validated against an independent oracle.
 
 | path | what |
 |---|---|
-| `include/hsc/`, `src/` | the library: `core/` (calculus), `mem/` (substrate), `leaves/`, `lia/`, `surface/` (the `.hsc` pipeline), `order/`, `dve/`, `petri/` |
+| `include/hsc/`, `src/` | the library: `core/` (calculus), `mem/` (substrate), `leaves/`, `lia/`, `xpl/` (the explicit engine), `surface/` (the `.hsc` pipeline), `order/`, `dve/`, `petri/` |
 | `tools/` | the CLI binaries: `hsc`, `hsc-mcc`, `dve2hsc`, `nupn2hsc` |
 | `examples/` | self-checking programs and the model corpora (`models/`, `param/`, `divine/`, `mcc/`) |
 | `tests/` | doctest suite (differential: `saturate == naive`), sweep and baseline scripts |
