@@ -89,12 +89,28 @@ algebra: relatively complemented, distributive, least element, **no top
 required**.
 
 **Definition 2.2 (local terms).** A theory exports a term algebra `𝒯` with a
-distinguished `id`, an action `· : 𝒯 × ℛ → ℛ`, a sum `+ : 𝒯² → 𝒯`, and a
-reflexive closure `(−)^* : 𝒯 → 𝒯` satisfying
+distinguished `id`, an action `· : 𝒯 × ℛ → ℛ`, a sum `+ : 𝒯² → 𝒯`, and an
+iteration `(−)^* : 𝒯 → 𝒯` satisfying
 
 ```
-id · A = A            (t + u) · A = t·A ∪ u·A            t^* · A = ⋃_{n≥0} tⁿ·A
+id · A = A        (t + u) · A = t·A ∪ u·A
+t^* · A = tⁿ·A    for the least n with tⁿ·A = tⁿ⁺¹·A
 ```
+
+Star is iteration to stability, and it is **partial**: where no such `n`
+exists the term does not denote. Accumulation is not the primitive but a
+*spelling* — the reflexive-transitive closure every fixpoint construction
+in this paper uses is the derived form
+
+```
+lfp(t) := (id + t)^*          lfp(t) · A = ⋃_{n≥0} tⁿ·A
+```
+
+whose chain is monotone by construction. An implementation is licensed to
+offer `lfp` as its own primitive, and to leave bare star unimplemented
+until a construction asks for it: recognizing an accumulation must never
+require matching `id` out of an arbitrary star operand — the legacy engine
+spends real time on exactly that recognition.
 
 The theory is handed a *maximal* term — the whole thing, guards, updates,
 composition, sum, closure — and interprets it however it likes. Splitting a
@@ -134,13 +150,19 @@ that sort is declared, and the theory over it is the interchange theory.
 Equality is always available; linear integer arithmetic is the working one.
 Types are declared; alphabets are discovered.
 
-**Obligation 2.7 (finite orbits).** For `t^*` to denote, the orbit
-`{tⁿ·A}_{n≥0}` must be finite for every code `A`. This is not implied by
-finiteness of `ℛ`'s codes: a shift on an unbounded integer domain has finite
-codes and infinite orbits. A theory owes either a declaration that its terms
-have finite orbits, or a bound. Stating this is not pedantry — it is the one
-obligation whose omission turns a closure into a non-terminating computation
-rather than a wrong answer.
+**Obligation 2.7 (stabilising chains).** `t^*` denotes only where its
+iteration stabilises, and ensuring that it does is the **client's**
+obligation — the model's, not the theory's. Each discipline carries its
+own: an inflationary chain (`lfp`) stabilises iff finitely many codes are
+ever recognised — guards are how a model buys this, and a shift on an
+unbounded domain honestly never stops; a deflationary chain (a gfp, once
+the term algebra can spell one) stabilises iff a code can be refined only
+finitely often — free over a finite carrier, false for interval codes over
+an unbounded one; and a chain that merely **oscillates** — a bare rotation
+has a period, not a limit — does not denote, and that too is the client's
+problem. Finiteness of `ℛ`'s codes implies none of the three. What the
+theory owes is loudness: a non-denoting closure must be a visible
+divergence or a loud overflow, never a clamp and never a wrong answer.
 
 ---
 
@@ -347,8 +369,12 @@ is ever an under-approximation on account of a junked class.
 
 ## 5. Closure, and saturation as an identity
 
-**Definition 5.1.** `H^*` is the least fixed point of `X ↦ X ∪ H·X`;
-equivalently `Σ_{n≥0} Hⁿ`. It is reflexive by construction.
+**Definition 5.1.** `lfp(H) · A` is the least fixed point of
+`X ↦ X ∪ H·X` above `A` — by Definition 2.2 the iteration of `id + H`,
+monotone, reflexive by construction, stabilising exactly when finitely
+many codes are recognised (Obligation 2.7). For `H ≥ id` the bare star
+agrees: `H^* = lfp(H)`, which is how it is written below — every `H` of
+this section carries its `id` explicitly.
 
 Consider a closure at a composite sort whose operand is a sum of events. By
 Definition 4.1 each product-shaped event is `h ⊗ t`, and reading the pair
@@ -360,8 +386,8 @@ L = Σ_k (l_k ⊗ id)     reaches the head only
 G = the remainder      reaches both
 ```
 
-Write `𝐅 = id ⊗ (Σ_j f_j)^*` and `𝐋 = (Σ_k l_k)^* ⊗ id`. Both are terms at
-this sort whose components are *closures one level down*.
+Write `𝐅 = id ⊗ lfp(Σ_j f_j)` and `𝐋 = lfp(Σ_k l_k) ⊗ id`. Both are terms
+at this sort whose components are *closures one level down*.
 
 **Theorem 5.2 (saturation).** With `H = id + F + L + G`,
 
@@ -389,10 +415,10 @@ individually before moving on — they are choosing among instances of Theorem
 5.2, and no such choice needs a soundness argument. That is a much better
 account than treating one arrangement as canonical.
 
-**Hierarchy is automatic.** `(Σ_j f_j)^*` is a closure at `V_t` and
-`(Σ_k l_k)^*` a closure at `V_h`, so Theorem 5.2 applies again, one level in.
-The recursion bottoms out where a theory closes its own local term
-(Definition 2.2). No annotation, no user-supplied locality, no declared
+**Hierarchy is automatic.** `lfp(Σ_j f_j)` is a closure at `V_t` and
+`lfp(Σ_k l_k)` a closure at `V_h`, so Theorem 5.2 applies again, one level in.
+The recursion bottoms out where a theory takes the lfp of its own local
+term (Definition 2.2). No annotation, no user-supplied locality, no declared
 decomposition — the split is *read off* the product structure of the terms.
 The split is also exactly the grouping Proposition 4.5 folds: `F`'s operand
 `Σ_j f_j` is the folded tail-sum, `L`'s the folded head-sum. A sum kept in
@@ -714,3 +740,16 @@ matters, though the spine may be long.
    the fold shrinks the representation of a symmetric system, an orbit
    reduction would shrink the system, and the certificate that licenses
    the one ought to license the other.
+7. **Deflationary closures, and fixpoints under constraint.** SCC queries
+   and their hulls are gfp's, and the term algebra cannot yet spell one:
+   there is no meet on terms — `(f ∩ id)` is not a term — and Definition
+   2.3 exports no preimage for the backward half. What the pure star of
+   Definition 2.2 already buys is the *constrained* fixpoint:
+   `(C ∘ (id + t))^*` filters every round through a selector `C` — a
+   spelling an accumulating star cannot express, since it re-adds the
+   unfiltered set each round. An engine may simply execute these
+   (interpret the iteration breadth-first); whether a schedule as canny
+   as Theorem 5.2's exists for them is open. So is the surface:
+   `lfp(R, seed)` and `gfp(R, seed)` over a relation term `R` are the
+   natural forms — the built `reach` is the first of them in all but
+   name.
