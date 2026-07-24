@@ -57,6 +57,20 @@ generated cells stand in `shape` and pair positions. Everything else —
 degenerate guards folding to false, dynamic indices, ⊥ — keeps its
 existing translator semantics.
 
+**Certified uniform families.** An event whose whole body is a single
+`exists` binder used *uniformly* — the index appears only as an array
+access at a constant offset mod N, the range is full, one binder — is not
+enumerated. It survives expansion as `(family NAME N CLAUSE…)` with
+accesses rewritten to `(at@ ARRAY δ)`, and the translator builds its term
+by recursion over the interned sort tree, in head-folded normal form
+(`core::sum_at`): O(log N) term codes instead of O(N). Certification is
+per binder and conservative: a dependent or partial range does not certify
+(a mutex's "all j except i" enumerates; its uniform transitions do not).
+The `HSC_FAMILY` environment variable selects the route — `check`
+(default) builds both and requires the *same code*, the same cheap witness
+as the saturate/naive differential; `declared` trusts the certificate;
+`unfold` always enumerates.
+
 ## 2. Meaning (M2M): forms → operations
 
 The translator walks the forms in order, maintaining: the leaf declarations, the
@@ -207,8 +221,11 @@ each class its restricted tail. The coordinates may sit at any depth on
 either side of the cut — a coordinate below the head splits the head
 *subdiagram* (`split_equiv` on diagrams, the same act one level in), so the
 same flat-name query resolves under any shape: spine, balanced, or a
-decomposed unit tree. Events take the same crossing forms through the case
-engine (`hsc/event.hh`); `select` keeps its own two-leaf path for queries.
+decomposed unit tree. Any other atom — a general boolean form, e.g. a
+quantified crossing disjunction — wraps as an anonymous `(when …)` filter
+and applies exactly like an event guard, through the case engine
+(`hsc/event.hh`); the two-leaf comparison keeps its own dedicated path
+(`select_compare`).
 
 ### The state layer
 
