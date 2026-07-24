@@ -14,8 +14,10 @@
 
 #include <fstream>
 #include <iostream>
+#include <functional>
 #include <map>
 #include <sstream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -93,9 +95,32 @@ std::vector<hsc::surface::datum> to_explicit(
   return out;
 }
 
-int run_explicit(const std::string& path,
-                 const std::map<std::string, long long>& params,
-                 long long cap) {
+/// `--domains`: keep only the declaration forms (leaf, array, shape,
+/// init, event, family, alt, seq), then run the domain-inference
+/// decoration — no reach of either engine.
+std::vector<hsc::surface::datum> to_domains(
+    std::vector<hsc::surface::datum> forms) {
+  using hsc::surface::datum;
+  static const std::set<std::string> kept = {
+      "leaf", "array", "shape", "init", "event", "family", "alt", "seq"};
+  std::vector<datum> out;
+  int line = 1;
+  for (datum& f : forms) {
+    if (f.is_list() && !f.items().empty() && kept.contains(f.head())) {
+      line = f.line();
+      out.push_back(std::move(f));
+    }
+  }
+  out.push_back(datum::list({datum::atom("xdomains", line)}, line));
+  return out;
+}
+
+/// Parse, expand, rewrite by \p tf, translate. The shared scaffolding of
+/// the `--explicit` and `--domains` modes.
+int run_transformed(
+    const std::string& path, const std::map<std::string, long long>& params,
+    const std::function<std::vector<hsc::surface::datum>(
+        std::vector<hsc::surface::datum>)>& tf) {
   std::ifstream in(path, std::ios::binary);
   if (!in) {
     std::cerr << "cannot open " << path << '\n';
@@ -104,10 +129,9 @@ int run_explicit(const std::string& path,
   std::ostringstream buf;
   buf << in.rdbuf();
   try {
-    const std::vector<hsc::surface::datum> forms = to_explicit(
-        hsc::surface::expand(hsc::surface::parse(buf.str()),
-                             /*families=*/true, params),
-        cap);
+    const std::vector<hsc::surface::datum> forms =
+        tf(hsc::surface::expand(hsc::surface::parse(buf.str()),
+                                /*families=*/true, params));
     return hsc::surface::translate(forms, std::cout) == 0 ? 0 : 1;
   } catch (const hsc::surface::parse_error& e) {
     std::cerr << path << ": parse error: " << e.what() << '\n';
@@ -144,6 +168,11 @@ int main(int argc, char** argv) {
                "run on the explicit engine: each (reach NAME ...) becomes "
                "(xreach NAME ...); count/expect read the explicit result");
 
+  bool use_domains = false;
+  app.add_flag("--domains", use_domains,
+               "domain inference only: keep the declarations, run "
+               "(xdomains), print one xdom line per unit");
+
   long long cap = 0;
   app.add_option("--cap", cap,
                  "with --explicit: bound on stored states (default 10^8)")
@@ -177,6 +206,11 @@ int main(int argc, char** argv) {
   }
 
   if (dump) return dump_expanded(path, params);
-  if (use_explicit) return run_explicit(path, params, cap);
+  if (use_domains) return run_transformed(path, params, to_domains);
+  if (use_explicit) {
+    return run_transformed(path, params, [cap](auto forms) {
+      return to_explicit(std::move(forms), cap);
+    });
+  }
   return hsc::surface::run_file(path, std::cout, std::cerr, params);
 }
