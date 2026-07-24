@@ -1,5 +1,5 @@
 # Sanity test: run hsc-mcc on each sample net for the three fixed examinations
-# and check the answer against the MCC 2025 oracle (samples/expected.csv).
+# and check the answer against the MCC 2025 oracle (examples/mcc/expected.csv).
 # Invoked by the `mcc_samples` ctest. -DHSC_MCC and -DSAMPLES are passed in.
 
 set(FAILED 0)

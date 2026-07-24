@@ -15,6 +15,6 @@ MODE="${2:-declared}"
 N=$((1 << K))
 START=$(date +%s.%N)
 BILL=$(HSC_FAMILY="$MODE" ./build/examples/hscrun -DN="$N" \
-  samples/param/layout/philo_balanced.hsc | grep '^bill:')
+  examples/param/layout/philo_balanced.hsc | grep '^bill:')
 END=$(date +%s.%N)
 echo "k=$K N=$N $BILL wall=$(echo "$END $START" | awk '{printf "%.2f", $1-$2}')"

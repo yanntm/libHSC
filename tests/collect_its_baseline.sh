@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run the libITS reference (~/git/libITS/bin/its-reach, DVE front end) over
-# samples/divine/dve/ and record one line per model in
+# examples/divine/dve/ and record one line per model in
 # tests/logs/its_reach_counts.tsv:  model <TAB> count | timeout | error.
 # The current authoritative oracle: tests/compare_beem_baseline.sh prefers
 # it over the historical extraction (beem_baseline_counts.tsv).
@@ -12,7 +12,7 @@ ITS=~/git/libITS/bin/its-reach
 OUT=tests/logs/its_reach_counts.tsv
 : > "$OUT"
 
-for f in samples/divine/dve/*.dve; do
+for f in examples/divine/dve/*.dve; do
   b=$(basename "$f" .dve)
   run=$(timeout "$TMO" "$ITS" -t DVE --quiet -i "$f" 2>&1)
   rc=$?

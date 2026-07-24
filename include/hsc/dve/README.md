@@ -23,7 +23,7 @@ A generated model runs through `surface::translate` like any `.hsc` file.
 Crossing guards and updates, arrays (placement-free, `(array NAME CELL…)`),
 and DVE byte wrapping (`((e % 256) + 256) % 256` on byte targets, emitted
 here) all compile — the separable pieces to products, the rest to crossing case
-brackets (`hsc/event.hh`). The scoreboard `samples/divine/status.tsv`
+brackets (`hsc/event.hh`). The scoreboard `examples/divine/status.tsv`
 tracks each model: run (with its state count), timeout, or the error;
 `tests/dve_sweep.sh` regenerates it.
 

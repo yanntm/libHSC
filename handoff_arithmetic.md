@@ -9,7 +9,7 @@ every model compiles, 168/276 run within 5s and all 168 agree exactly with
 its-reach on the same files. its-reach (15s, mature engine) solves 50 more;
 we solve none it cannot. The frontier is now engine cost, not
 expressiveness — the 108 timeouts are the work list, and
-`samples/divine/runs/` (per-model states/nodes/seconds each sweep) is the
+`examples/divine/runs/` (per-model states/nodes/seconds each sweep) is the
 instrument.
 
 ## Engineering queue (next action first)
@@ -76,7 +76,7 @@ instrument.
 ## Blockers
 
 None. The theory side may want to fold into the paper: §7 is no longer
-"remains to be built" (hsc_core5 §7 closing line), the Kleene deviation
+"remains to be built" (hsc_core.md §7 closing line), the Kleene deviation
 note, and the placement-vector array encoding.
 
 ## Explicitly not now (exists, or secondary)

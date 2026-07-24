@@ -1,4 +1,4 @@
-# samples/divine — the BEEM benchmark corpus
+# examples/divine — the BEEM benchmark corpus
 
 BEEM is Radek Pelánek's benchmark set for explicit model checkers; it is the
 standard corpus for the DVE language of DiVinE. When using these models,

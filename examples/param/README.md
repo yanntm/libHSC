@@ -1,4 +1,4 @@
-# `samples/param/` — parametric surface samples
+# `examples/param/` — parametric surface samples
 
 Each file is one template over a size `param`, self-checking via `expect`;
 `hscrun --expand FILE` prints the flat `.hsc` it denotes. The parametric

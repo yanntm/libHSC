@@ -1,11 +1,11 @@
 #!/bin/bash
-# Regenerate samples/divine/hsc/ from samples/divine/dve/ and classify every
+# Regenerate examples/divine/hsc/ from examples/divine/dve/ and classify every
 # model: transform status, then the surface's verdict on the generated file
-# (run under a per-model timeout). Writes samples/divine/status.tsv:
+# (run under a per-model timeout). Writes examples/divine/status.tsv:
 #   model <TAB> status <TAB> states-or-detail <TAB> nodes <TAB> seconds
 # status: run-ok (states, final diagram nodes), timeout, refused-crossing,
 # refused-other, transform-error, overflow/other-error. Every sweep is also
-# archived under samples/divine/runs/<utc>_<rev>[_<label>].tsv (a # header
+# archived under examples/divine/runs/<utc>_<rev>[_<label>].tsv (a # header
 # records revision, timeout, dve2hsc flags) for post analysis; status.tsv
 # is the latest view.
 # Usage: tests/dve_sweep.sh [timeout-seconds] [label] [dve2hsc flags…]
@@ -17,21 +17,21 @@ LABEL="${2:-}"
 shift $(( $# > 2 ? 2 : $# ))
 DVE2HSC=build/tools/dve2hsc
 HSCRUN=build/examples/hscrun
-OUT=samples/divine/status.tsv
+OUT=examples/divine/status.tsv
 LOG=tests/logs/dve_sweep.log
 REV=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
-ARCHIVE=samples/divine/runs/${STAMP}_${REV}${LABEL:+_$LABEL}.tsv
-mkdir -p tests/logs samples/divine/hsc samples/divine/runs
+ARCHIVE=examples/divine/runs/${STAMP}_${REV}${LABEL:+_$LABEL}.tsv
+mkdir -p tests/logs examples/divine/hsc examples/divine/runs
 {
   echo "# dve_sweep $STAMP rev=$REV timeout=${TMO}s dve2hsc-flags='$*'"
   echo "# model	status	states-or-detail	nodes	seconds"
 } > "$ARCHIVE"
 : > "$LOG"
 
-for f in samples/divine/dve/*.dve; do
+for f in examples/divine/dve/*.dve; do
   b=$(basename "$f" .dve)
-  hsc=samples/divine/hsc/$b.hsc
+  hsc=examples/divine/hsc/$b.hsc
   if ! msg=$("$DVE2HSC" "$f" -o "$hsc" "$@" 2>&1); then
     rm -f "$hsc"
     printf '%s\ttransform-error\t%s\t\t\n' "$b" \

@@ -34,7 +34,7 @@ if(EXPAT_FOUND)
     add_test(NAME mcc_samples
              COMMAND ${CMAKE_COMMAND}
                -DHSC_MCC=$<TARGET_FILE:hsc-mcc>
-               -DSAMPLES=${PROJECT_SOURCE_DIR}/samples
+               -DSAMPLES=${PROJECT_SOURCE_DIR}/examples/mcc
                -P ${CMAKE_CURRENT_SOURCE_DIR}/check_samples.cmake)
   endif()
 else()

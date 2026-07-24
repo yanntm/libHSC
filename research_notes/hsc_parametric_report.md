@@ -12,7 +12,7 @@ into `run_file`; `hscrun --expand FILE` dumps the lowering. `hsc-mcc` was
 left unwired on purpose: its forms come from the Petri front end, generated
 and binder-free. Gates held:
 
-- Identity on binder-free input: `--expand samples/divine/hsc/at.1.hsc`
+- Identity on binder-free input: `--expand examples/divine/hsc/at.1.hsc`
   reproduces the file modulo whitespace; the full doctest suite (25926
   assertions) and spot-checked divine samples pass unchanged.
 - `--expand` output of every parametric sample is itself a runnable `.hsc`
@@ -24,7 +24,7 @@ Deviation from spec, favorable: empty-`exists` wrap positions emit
 (`surface/algorithm.md` grammar updated) — replacing the planned
 `(when (!= 0 0))` spelling.
 
-## M2 — samples: done (`samples/param/`, see its README)
+## M2 — samples: done (`examples/param/`, see its README)
 
 | sample | N | count | oracle |
 |---|---|---|---|
@@ -55,7 +55,7 @@ directly, not a smaller state space. The GAL references live in
 
 ## M3 — layout experiment: run, and it diagnoses the road to 2^n
 
-Files: `samples/param/layout/philo_{spine,balanced,blocked}.hsc` — the
+Files: `examples/param/layout/philo_{spine,balanced,blocked}.hsc` — the
 identical N=256 model at three shapes (blocked: 16 blocks of 16).
 
 | layout | R nodes | total nodes | op terms |

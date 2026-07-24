@@ -1,10 +1,4 @@
-# `samples/` — test corpora
-
-`divine/` holds the BEEM (DVE) benchmark and its generated `.hsc` forms —
-see its own README, citation included. The rest of this folder is the NUPN
-set below.
-
-## A small NUPN test set
+# `examples/mcc/` — a small NUPN test set
 
 Six safe P/T nets with NUPN unit trees, from the Model Checking Contest corpus
 (`pnmcc-models-2025`, the `PT` instances), chosen small and across families. They
@@ -33,7 +27,7 @@ reads. To add a model: drop its `model.pnml` here as `<Name>.pnml` and add a row
 Run one by hand:
 
 ```
-hsc-mcc samples/Raft-PT-02.pnml -mcc StateSpace
-hsc-mcc samples/Raft-PT-02.pnml -mcc OneSafe
-hsc-mcc samples/Raft-PT-02.pnml -mcc ReachabilityDeadlock
+hsc-mcc examples/mcc/Raft-PT-02.pnml -mcc StateSpace
+hsc-mcc examples/mcc/Raft-PT-02.pnml -mcc OneSafe
+hsc-mcc examples/mcc/Raft-PT-02.pnml -mcc ReachabilityDeadlock
 ```

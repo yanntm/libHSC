@@ -1,5 +1,5 @@
 #!/bin/bash
-# Compare samples/divine/status.tsv run-ok state counts against the libITS
+# Compare examples/divine/status.tsv run-ok state counts against the libITS
 # reference. Two oracle layers, current one first:
 #   tests/logs/its_reach_counts.tsv — fresh its-reach runs on these exact
 #     files (tests/collect_its_baseline.sh); authoritative where present.
@@ -13,7 +13,7 @@ set -u
 cd "$(dirname "$0")/.."
 FRESH=tests/logs/its_reach_counts.tsv
 HIST=tests/logs/beem_baseline_counts.tsv
-STATUS=samples/divine/status.tsv
+STATUS=examples/divine/status.tsv
 
 awk -F'\t' -v fresh="$FRESH" '
   FILENAME == fresh {
