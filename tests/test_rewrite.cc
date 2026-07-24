@@ -83,3 +83,56 @@ TEST_CASE("rewrite: identity is reported, never silent") {
   CHECK(out.find("rewrite simplify-constants (identity): no constants") !=
         std::string::npos);
 }
+
+TEST_CASE("rewrite: hotbit trades an integer for one-hot bits") {
+  // s cycles over {0..4}, compared and written by constants only; y is
+  // a small bounded counter. 1 + 4*4 = 17 states, invariant under the
+  // encoding, on both engines.
+  const std::string body = R"(
+(leaf s 0 8)
+(leaf y 0 8)
+(shape (spine s y))
+(init)
+(event step0 (when (== s 0)) (do (:= s 1)))
+(event step1 (when (== s 1)) (do (:= s 2)))
+(event step2 (when (== s 2)) (do (:= s 3)))
+(event step3 (when (== s 3)) (do (:= s 4)))
+(event wrap  (when (== s 4)) (do (:= s 0) (:= y 0)))
+(event bump  (when (< y 3) (== s 1)) (do (+= y 1)))
+(reach R saturate)
+(expect R 17)
+(xreach X)
+(expect X 17)
+)";
+  const auto [rc0, out0] = run(body);
+  CAPTURE(out0);
+  CHECK(rc0 == 0);  // the un-encoded baseline
+  const auto [rc, out] = run("(hotbit 3 16)" + body);
+  CAPTURE(out);
+  CHECK(rc == 0);
+  CHECK(out.find("one-hot encoded") != std::string::npos);
+  CHECK(out.find("s: K=5") != std::string::npos);
+  CHECK(out.find("ok R == 17") != std::string::npos);
+  CHECK(out.find("ok X == 17") != std::string::npos);
+}
+
+TEST_CASE("rewrite: hotbit refuses a value read, loudly") {
+  const std::string model = R"(
+(hotbit 3 16)
+(leaf s 0 8)
+(leaf y 0 8)
+(shape (spine s y))
+(init)
+(event a (when (== s 0)) (do (:= s 1)))
+(event b (when (== s 1)) (do (:= s 2)))
+(event c (when (== s 2)) (do (:= s 0)))
+(event leak (when (== s 2)) (do (:= y s)))
+(reach R)
+(expect R 6)
+)";
+  const auto [rc, out] = run(model);
+  CAPTURE(out);
+  CHECK(rc == 0);
+  CHECK(out.find("(identity)") != std::string::npos);
+  CHECK(out.find("s refused: read as a value") != std::string::npos);
+}
