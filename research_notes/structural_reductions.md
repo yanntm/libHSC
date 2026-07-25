@@ -344,6 +344,31 @@ interaction-ready again.
   looks like a sync-level deadlock and local dead states need a local
   check — the known modular-analysis subtlety. Closure needs finite
   local spaces (domains) and a per-component cost cap.
+* **Event count — outcomes, not paths.** The Petri H×F cross-product
+  explosion is syntactic chaining. Here: blocking is non-enabledness
+  and costs zero events; and a *semantic* closure (the saturated code)
+  collapses all internal paths with the same (entry, effect) before
+  enumeration — Rule 1 (equal transitions) applied for free. The alt
+  grows with interface-distinct outcomes only. Representation fork:
+  relations form a Kleene algebra, so h ∘ (f₁ ∪ f₂) may stay factored
+  (size |H|+|F|, DAG-shared) instead of distributing to |H|·|F| flat
+  commands; a chain of k handshakes with branching b is b^k flat but
+  k·b factored. Factored events are not flat guarded commands, so rule
+  chaining must match on **summaries** — support, write-set, entry
+  pin — which compose trivially through seq/alt. Spec point: fused
+  events carry summaries; distribution to flat form only at the end,
+  under a cap.
+* **Memory abstraction — three rungs.** (1) *Exact quotient*: the
+  controller's local states fall into few weak-bisim classes over the
+  sync alphabet ("block or pass") — property-preserving, local
+  variables leave the state vector; the case to detect automatically.
+  (2) *Chaotic controller*: drop post-interaction memory, keep only
+  the class — an over-approximation, sound for proving invariants,
+  witnesses require concrete replay (the same prove/replay pairing as
+  the SMT over-approximation architecture; the first deliberately
+  one-sided reduction in this note). (3) *Keep memory* when the query
+  or downstream rules correlate through the controller — detectable
+  from V and candidate supports reaching back into its interface.
 * Paper to fetch when wanted: Christensen & Petrucci, "Modular
   Analysis of Petri Nets", The Computer Journal 43(3), 2000 (earlier
   ATPN'95 for coloured nets; Lakos–Petrucci extensions).
