@@ -396,20 +396,33 @@ interaction-ready again.
   boundaries: profile semigroups can be large — generate reachable
   profiles lazily, refine; always build the DFA, build the full
   invariant when identity / caching / definability read-offs pay.
-* **Engine: port sos_sdd to hsc** (assessed feasible, staged). The
-  libDDD Hom_Basic + libITS ExprHom machinery collapses into hsc
-  events (currying handles the data-dependent Comp reads natively);
-  Phases 0–2 become generated specs + reach; hierarchy/factored
-  products are native shapes (the SDD growth path for free); the
-  val_t cap and GC hazards dissolve. New surface needed: block
-  quantification (shared with the projection oracle), preimage events
-  for symbolic Phase 5 (deferrable — explicit fallback exists),
-  ordered shortlex walks, a stats stream. The byte-parity conformance
-  gate makes the port a 6222-language differential test of hsc's own
-  symbolic engine — and the ported constructor is the bottom layer of
-  the contract program (closure oracle, invariant builder, MAT
-  teacher). Stages: specs+reach+member/Booleans → quantification+
-  squaring+witness → symbolic Phase 5 → census sweeps.
+* **Engine port, retargeted to the TGBA entry**
+  (`sos_fromTGBA.md`; sos_sdd stays as the deterministic baseline,
+  not the port target — its results are not complete enough to judge,
+  and its hardest machinery, ExprHom Comp reads and the squaring
+  gadget, exists only because determinism forces per-state functional
+  discipline). Nondet is symbolic-native: a profile-matrix element is
+  a set of (p, marks, q) triples — a diagram over a small shape — the
+  semiring product is relational composition with ∪-accumulation on
+  mark bits, closure is a fixpoint of set operations; the
+  exact-profile variant is pure set union (antichain pruning an
+  optional compaction). The one new primitive — relational
+  composition — is shared with closure fusion and the contract
+  pipeline. Port order: (1) the **quotient module** (§4, consumes
+  opaque (S,P); under the saturation layering its precondition is
+  checkable — one module serves the TGBA entry, the det entry as
+  regression, learned tables, compositional constructions); (2) the
+  **TGBA entry** (matrices interned, closure-under-product with hash
+  dedup = interning itself; components-with-progress-marks feed it
+  directly — nondet/incomplete/multi-initial all allowed); (3) the
+  **MAT learner core to C++** (table + legality checks +
+  counterexample chains; canonicalization is module 1; teachers are
+  hsc engines behind a callback query interface, serving both AG
+  directions). Validation: the byte-equality regression — TGBA and
+  det pipelines must emit identical files on shared corpus — doubles
+  as the cross-engine differential (hsc vs libDDD baseline, census
+  scale). Honest wall: |S| in step (1) — lazy generation, on-the-fly
+  slot merging (Prop 5.1), and contract use favors small components.
 * **Caveats.** A query reaching into L blocks that component's
   collapse (others still collapse). Deadlock-over-V: internal livelock
   looks like a sync-level deadlock and local dead states need a local
