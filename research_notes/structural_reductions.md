@@ -334,11 +334,32 @@ interaction-ready again.
   ρ*, computed once and reused. The global engine fires syncs as
   big-step events; the explicit engine queries closure codes for
   concrete successors. Symbolic engine as closure oracle.
-* **Quotient refinement.** V excludes L, so local states matter only
-  through their interface futures: quotient by weak bisimulation over
-  the sync alphabet (trace equivalence is the coarsest sound choice
-  for safety). Closure shrinks runs; the quotient shrinks states.
-  Optimization, not correctness.
+* **The interface contract is a language — the fully abstract
+  quotient.** For linear-time properties (projected reachability,
+  stutter-insensitive LTL over V) trace semantics is the coarsest
+  congruence for synchronous composition: the component's exact
+  abstraction is its **interface language** L over the sync alphabet
+  ({isOpen, lock, unlock, …} — only some words legal), and the
+  replacement is the canonical recognizer of L. Nerode classes are
+  "the classes the outside queries". The recognizer is native to the
+  formalism and *born disciplined*: one fresh scalar r (domain =
+  Nerode classes), every interface event gains `r == q` /
+  `r := δ(q,e)` — pinned automaton discipline by construction, so the
+  output is hotbit-eligible, discovery-recognizable, and open to
+  further rules. Each interface event splits as label (sequencing,
+  what the recognizer constrains) × data effect on shared variables
+  (kept verbatim); internal complexity vanishes into δ. Safety needs
+  only the prefix-closed finite-word half (canonical DFA); liveness
+  content (the controller must *eventually* pass, τ^ω divergence,
+  fairness) needs the ω-language — where the canonical ω-language
+  representation (leaves/, the aut2ltl lineage) plugs in: the contract
+  becomes a canonically interned recognizer leaf. Computation: hide τ,
+  project, subset-construct (determinization states are saturated
+  codes), canonicalize. This is what assume-guarantee learns (L*) and
+  interface automata posit; we compute it exactly. Costs:
+  minimization PSPACE worst case (per component, capped; target
+  components are interface-small by intent); data-carrying interfaces
+  blow the alphabet — v1 requires a finite sync alphabet.
 * **Caveats.** A query reaching into L blocks that component's
   collapse (others still collapse). Deadlock-over-V: internal livelock
   looks like a sync-level deadlock and local dead states need a local
@@ -358,17 +379,17 @@ interaction-ready again.
   pin — which compose trivially through seq/alt. Spec point: fused
   events carry summaries; distribution to flat form only at the end,
   under a cap.
-* **Memory abstraction — three rungs.** (1) *Exact quotient*: the
-  controller's local states fall into few weak-bisim classes over the
-  sync alphabet ("block or pass") — property-preserving, local
-  variables leave the state vector; the case to detect automatically.
-  (2) *Chaotic controller*: drop post-interaction memory, keep only
-  the class — an over-approximation, sound for proving invariants,
-  witnesses require concrete replay (the same prove/replay pairing as
-  the SMT over-approximation architecture; the first deliberately
-  one-sided reduction in this note). (3) *Keep memory* when the query
-  or downstream rules correlate through the controller — detectable
-  from V and candidate supports reaching back into its interface.
+* **Memory abstraction is a lattice of languages.** Sound replacements
+  are exactly the recognizers of L′ ⊇ L, ordered by language
+  inclusion: L′ = L is the exact fully-abstract quotient above (weak
+  bisim is a finer, cheaper-to-compute over-shoot); L′ = Σ^∞ is the
+  chaotic controller — memory dropped, an over-approximation sound for
+  proving invariants, witnesses requiring concrete replay (the same
+  prove/replay pairing as the SMT over-approximation architecture; the
+  deliberately one-sided end of this note's reductions). Keep the
+  component concrete when the query or downstream rules correlate
+  through it — detectable from V and candidate supports reaching back
+  into its interface.
 * Paper to fetch when wanted: Christensen & Petrucci, "Modular
   Analysis of Petri Nets", The Computer Journal 43(3), 2000 (earlier
   ATPN'95 for coloured nets; Lakos–Petrucci extensions).
