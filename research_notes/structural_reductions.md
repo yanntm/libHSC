@@ -484,6 +484,41 @@ context, SEP is per-party, multi-party syncs factor.
 (invariants transfer, witnesses replay) — unconverged MAT hypotheses
 usable under prove/replay; convergence gives exactness.
 
+## Assume–guarantee: the learner in the loop
+
+The MAT learner for invariants (`sos_learning.md`: every hypothesis a
+well-formed invariant — no false assent, self-served legality splits,
+output-polynomial, equivalence queries ≤ class count) turns the
+collapse program into modular model checking.
+
+**Corollary (relativized substitution).** For any Env ⊇ the
+context-feasible sync-words: components agreeing on Env substitute
+soundly. *Proof*: Theorem 2's proof evaluates Pref only on feasible α. ∎
+The contract that matters is the language projected through the
+composition — restricted by the assumption, quotiented by visibility —
+and it has fewer classes than the full contract. With convergence in
+O(#classes), relativization is the complexity knob: learner cost
+tracks the interface complexity of property-in-context, not component
+size.
+
+**Dual targets.** Learn the *guarantee* (component's language; teacher
+= component alone: saturated images / profile checks; equivalence =
+product vs code-DFA or bounded testing under prove/replay). Or learn
+the *assumption* (CGP move): target = weakest safe W — membership for
+lasso w = compose the context with the Theorem 2(d) driver for w, one
+reachability run; discharge A ⊨ W component-locally as emptiness of
+A × ¬W; failed inclusion returns a word to replay (violation or
+refinement). What the canonical target adds over classical L*-AG:
+learned assumptions are byte-canonical — interned, reused across
+properties / models / corpus (assumption libraries); progress measured
+against the language's own invariant, not a teacher's acceptor; the
+ω-side native (TGBA route for nondeterministic teachers) where
+classical AG liveness was the sore point.
+
+Boundaries: circular AG rules for liveness need the usual soundness
+care (fairness-aware rules); Env must over-approximate feasibility
+(safe: any superset works, smaller Env = smaller target).
+
 ## POR in the explicit engine
 
 Independence `e₁ ⊥ e₂` ⟺ writes(e₁) ∩ (reads(e₂) ∪ writes(e₂)) = ∅ (and
