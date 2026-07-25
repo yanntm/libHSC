@@ -301,6 +301,53 @@ mixing control and data (counters) coarsen the skeleton — domains
 mitigate; events pinned on two controllers are boundary events
 (attribute by modularity); cap the per-check symbolic cost.
 
+## Interface closure — component collapse (Petrucci-style)
+
+Modular state spaces (Christensen–Petrucci) defer all internal
+interleaving into per-module closures; here we take it as a
+*transformation*: fuse all local actions of a component until it is
+interaction-ready again.
+
+* **Setting.** Component = subtree with local variables L; internal
+  events touch only L; interface events (syncs) touch L and outside —
+  the only way the outside nudges the component. V ∩ L = ∅.
+* **Locality discharges Lipton for free.** Internal vs remote supports
+  are disjoint, so internals are both-movers *by construction*: the
+  whole internal segment between interactions is a transaction with
+  L1/L2 trivial, L4 from V ∩ L = ∅, L3 dropped by the projection
+  contract. The spectrum: shared-mediator handshake pays condition 6
+  because its mediator is shared; component collapse pays nothing
+  because its internals are private.
+* **The fusion.** Sync guards read L, so different internal points
+  enable different syncs — collapse per sync, not to quiescence:
+  t′ = t ∘ ρ*_A ∘ ρ*_B for each sync t among participants, internal
+  events deleted. Component states surviving in the global system are
+  the post-sync states; a component's contribution is a saturated
+  closure set — a canonical code. The component's abstract state *is*
+  an interned handle (tuples of handles hash for free).
+* **Two materializations.** Small local automaton: the closure
+  enumerates into guarded commands (entry-pin → exit-pin, accumulated
+  writes) — a spec→spec chain pass; the (x,m) handshake is the
+  one-scalar degenerate case, and silent A_c paths are the small
+  general case. Large component: closure is not a guarded command; the
+  symbolic engine computes it — saturation restricted to a subtree IS
+  ρ*, computed once and reused. The global engine fires syncs as
+  big-step events; the explicit engine queries closure codes for
+  concrete successors. Symbolic engine as closure oracle.
+* **Quotient refinement.** V excludes L, so local states matter only
+  through their interface futures: quotient by weak bisimulation over
+  the sync alphabet (trace equivalence is the coarsest sound choice
+  for safety). Closure shrinks runs; the quotient shrinks states.
+  Optimization, not correctness.
+* **Caveats.** A query reaching into L blocks that component's
+  collapse (others still collapse). Deadlock-over-V: internal livelock
+  looks like a sync-level deadlock and local dead states need a local
+  check — the known modular-analysis subtlety. Closure needs finite
+  local spaces (domains) and a per-component cost cap.
+* Paper to fetch when wanted: Christensen & Petrucci, "Modular
+  Analysis of Petri Nets", The Computer Journal 43(3), 2000 (earlier
+  ATPN'95 for coloured nets; Lakos–Petrucci extensions).
+
 ## POR in the explicit engine
 
 Independence `e₁ ⊥ e₂` ⟺ writes(e₁) ∩ (reads(e₂) ∪ writes(e₂)) = ∅ (and
