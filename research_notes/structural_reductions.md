@@ -396,6 +396,20 @@ interaction-ready again.
   boundaries: profile semigroups can be large — generate reachable
   profiles lazily, refine; always build the DFA, build the full
   invariant when identity / caching / definability read-offs pay.
+* **Engine: port sos_sdd to hsc** (assessed feasible, staged). The
+  libDDD Hom_Basic + libITS ExprHom machinery collapses into hsc
+  events (currying handles the data-dependent Comp reads natively);
+  Phases 0–2 become generated specs + reach; hierarchy/factored
+  products are native shapes (the SDD growth path for free); the
+  val_t cap and GC hazards dissolve. New surface needed: block
+  quantification (shared with the projection oracle), preimage events
+  for symbolic Phase 5 (deferrable — explicit fallback exists),
+  ordered shortlex walks, a stats stream. The byte-parity conformance
+  gate makes the port a 6222-language differential test of hsc's own
+  symbolic engine — and the ported constructor is the bottom layer of
+  the contract program (closure oracle, invariant builder, MAT
+  teacher). Stages: specs+reach+member/Booleans → quantification+
+  squaring+witness → symbolic Phase 5 → census sweeps.
 * **Caveats.** A query reaching into L blocks that component's
   collapse (others still collapse). Deadlock-over-V: internal livelock
   looks like a sync-level deadlock and local dead states need a local
