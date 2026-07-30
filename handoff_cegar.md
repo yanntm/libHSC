@@ -10,18 +10,28 @@ State: v1 delivered, M0–M6 green (18 cases / 1210 assertions), full
 campaign clean — 212 models, 0 parity disagreements, 56/56
 certificates pass the independent checker, 0 budget violations.
 
+Paper is at **v3** (`cegar_certified_abstractions_v3.md`):
+standalone, F1/F2 folded in, T3 restated on the budget pool,
+prospective evaluation section (§9) sketching corpora, comparators,
+metrics, falsifiable expectations. Drafts v1/v2 are superseded,
+retire when convenient.
+
 ## TODO — theory (next action first)
 
-1. Read the report's findings F1 (initial hypothesis must be
-   published as chaos — spec §3.2 permits an unsound reading; revise)
-   and F2 (paper §6's "clients never touched" is search-order
-   dependent; restate around entry-count locality) and fold into spec
-   and paper.
-2. T-D is uninformative: the rand corpus is violation-dominated
-   (policies never diverge). Design a refinement-heavy corpus (holds
-   instances with deep spurious chains, or bug depth as a generator
-   parameter) and add the expected-outcome section to spec §10.
-3. Decide the next relaxation to spec (paper §8 order: interior
+1. Acquisition pass on `cegar_citations.md`: pull the
+   [TBD: check from source] entries into `papers/` (priority: the
+   learned assume-guarantee line — Cobleigh et al., "breaking up is
+   hard to do" — and CEGAR/lazy abstraction), read, then let §9's
+   framing cite them. Verify the flagged BtL identifications
+   (Arnold 1985, Abdulla 2011, Chen–Liu 2017) from source.
+2. Revise spec §3.2 to state the publication discipline (F1) —
+   currently the spec still permits the unsound reading the paper's
+   Remark 3.7 now forbids.
+3. T-D is uninformative: the rand corpus is violation-dominated
+   (policies never diverge). Design a refinement-heavy corpus (bug
+   depth / spurious-chain depth as generator parameters); spec §10
+   revision (mirrored as paper §10.5).
+4. Decide the next relaxation to spec (paper §10 order: interior
    contracts first).
 
 ## TODO — engineering
