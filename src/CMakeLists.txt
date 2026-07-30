@@ -12,6 +12,9 @@ add_library(hsc_louvain STATIC
 target_include_directories(hsc_louvain PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(hsc PUBLIC hsc_louvain)
 
+# The CEGAR package: separate library, not folded into hsc (isolated).
+add_subdirectory(cegar)
+
 target_sources(hsc PRIVATE
   stats.cc
   timing.cc

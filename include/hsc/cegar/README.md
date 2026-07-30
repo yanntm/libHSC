@@ -35,12 +35,16 @@ thread.
 * `learner.hh` — L\* with Rivest–Schapire counterexample handling;
   `publish()` returns the dead-closed, canonicalized hypothesis.
 * `loop.hh` — profile (interned per distinct leaf), abstract-product
-  search, shape-descent replay, refine-until-resolved, `run`;
-  `mono` (the monolithic oracle walk); certificate emission (`.cert`).
+  search, shape-descent replay, refine-until-resolved, `run`,
+  certificate emission (`.cert`); `mono` (the monolithic oracle walk)
+  and `refire` live in `model.hh`.
+* `gen.hh` — model families (clients, clients-bug, ring, rand),
+  deterministic in a seed.
 
-Binaries: `tools/hsc-cegar.cc` (run / mono / gen);
-`tools/hsc-certcheck.cc` — the independent checker, deliberately
-sharing **no code** with this package.
+Sources: `src/cegar/` (own static library `hsc_cegar`). Binaries:
+`tools/cegar/` — `hsc-cegar` (run / mono / gen) and `hsc-certcheck`,
+the independent checker, deliberately sharing **no code** with this
+package.
 
-Tests: `tests/test_cegar.cc`. Experiment records:
+Tests: `tests/cegar/` (own doctest binary). Experiment records:
 `experiments/cegar/`.
