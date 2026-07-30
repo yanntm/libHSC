@@ -287,6 +287,7 @@ run_result run(const model& m, const options& opt) {
     if (culprits.empty()) {
       r.v.k = verdict::kind::violation;
       r.v.witness = s.witness;
+      r.v.states_walked = static_cast<std::int64_t>(s.inv.size());
       break;
     }
     // Policy: which culprits of this witness to refine.
