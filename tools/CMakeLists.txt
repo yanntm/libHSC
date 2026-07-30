@@ -43,6 +43,9 @@ else()
   message(STATUS "expat not found: the nupn2hsc / hsc-mcc tools will not be built")
 endif()
 
+# The CEGAR binaries live in their own folder.
+add_subdirectory(cegar)
+
 # The DVE (BEEM) importer.
 add_executable(dve2hsc dve2hsc.cc)
 target_link_libraries(dve2hsc PRIVATE hsc::hsc CLI11::CLI11)
