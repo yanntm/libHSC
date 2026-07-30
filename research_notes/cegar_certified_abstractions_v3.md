@@ -1,10 +1,7 @@
 # Certified Component Abstraction on a Shape
 
 *Working draft 3. Standalone: everything used is stated; what is
-imported is imported in §2 and nowhere else. A v1 implementation of
-the finite instance exists (spec: `cegar_spec.md`; report:
-`cegar_report.md`); where the text states a measured fact it names
-that record.*
+imported is imported in §2 and nowhere else.*
 
 ---
 
@@ -27,10 +24,9 @@ Four claims, each a theorem below:
 1. **Soundness is a local invariant, not a global argument** (T1):
    every abstraction in play is certified against its leaf by a
    leaf-sized inclusion check; the global claim composes one-line
-   lemmas. The invariant has teeth: it is a *publication* discipline —
-   nothing a learner knows is visible to the loop until certified
-   (§3.6), and the one natural way to get this wrong is unsound
-   (Remark 3.7, found by the implementation's independent checker).
+   lemmas. The invariant is a *publication* discipline — nothing a
+   learner knows is visible to the loop until certified (§3.6); the
+   natural shortcut is unsound (Remark 3.7).
 2. **Spurious witnesses name their culprits by construction** (T2):
    replay is a descent of the shape ending in one execution per
    touched leaf; no abstract-counterexample simulation, no heuristics.
@@ -243,18 +239,16 @@ invariant is: *the published classifier is certified before any use*
 Algorithm 4.1 step 3).
 
 **Remark 3.7 (the trap the discipline closes).** A closed observation
-table is *not* an over-approximation of the leaf. Closing already
+table is *not* an over-approximation of the leaf: closing already
 distinguishes letters by initial-state firability, so the table
-rejects words the leaf can fire — using it uncertified is unsound in
-the dangerous direction: it can block abstract transitions and hide
-real violations behind a "holds". This is not hypothetical: the v1
-implementation initially published the closed table, produced false
-"holds" verdicts on 5 of 200 random models, and the *independent
-certificate checker* rejected every certificate built on an
-uncertified table (obligation (L) of §5) — the trusted-core
-architecture catching the loop's own bug is claim 4 doing its job
-(record: `cegar_report.md`, finding F1). Publication-as-chaos is the
-discipline that makes the loop invariant hold from the first round.
+rejects words the leaf can fire. Using it uncertified is unsound in
+the dangerous direction — it blocks abstract transitions and can hide
+a real violation behind a "holds". Publication-as-chaos is what makes
+the loop invariant hold from the first round without a certification
+pass the initial profile has not earned; every later publication sits
+behind the certification of step 3. (A certificate built on an
+uncertified table fails its (L) obligation, so the checker of §5
+rejects it: the trusted core does not inherit the trap.)
 
 **Lemma 3.8 (white-box teachers are local).** Under the contract,
 each leaf supports a minimally adequate teacher whose every answer is
@@ -337,14 +331,14 @@ system.
 **Remark 4.2 (culprits are witness-relative).** T2 names the
 culprits *of the witness the search returned*; a different search
 order returns a different witness with a different culprit set, and
-several leaves may be culpable at once. (Measured: on the
-client–server example of §6, a shortlex BFS returns a witness that
-indicts both the server and a client, where a different witness
-indicts the server alone.) No theorem depends on the choice: T1–T3
-hold for every search order and every culprit-selection policy, so
-the locality that is *guaranteed* is per-entry — refinement lands on
-at most the touched behaviors — while which behaviors those are is a
-measurable property of the search, not of the calculus.
+several leaves may be culpable at once — on the example of §6, a
+shortlex BFS finds a witness indicting both the server and a client,
+while another order finds one indicting the server alone. No theorem
+depends on the choice: T1–T3 hold for every search order and every
+culprit-selection policy. The locality that is *guaranteed* is
+per-behavior — refinement lands on at most the touched entries —
+while which entries those are is a property of the search, not of
+the calculus.
 
 **Theorem T3 (progress and termination — the finite instance).**
 With finite LTS leaves, define the budget pool
@@ -371,16 +365,12 @@ finite. The loop halts in step 1 (T1) or step 2 (a violation
 validated by execution). ∎
 
 **Remark 4.3 (what is *not* claimed).** The published index sum need
-not grow monotonically round over round as a matter of theorem —
-canonicalization minimizes, and hypotheses are non-monotone
-(Fact 2.4), so a refuted witness may even recur in a later round;
-each recurrence burns budget, so T3 stands. (Empirically the
-published index sum grew strictly in every round of every run of the
-v1 campaign — the implementation asserts it and the assertion never
-fired; a counterexample to that conjecture would be interesting, not
-fatal.) Where there is no budget to burn, non-recurrence must be
-manufactured — the negative store of §7, needed there and optional
-here.
+not grow monotonically round over round — canonicalization
+minimizes, and hypotheses are non-monotone (Fact 2.4) — and a
+refuted witness may recur in a later round; each recurrence burns
+budget, so T3 stands without either property. Where there is no
+budget to burn, non-recurrence must be manufactured — the negative
+store of §7, needed there and optional here.
 
 **Remark 4.4 (the bound, read).** `B` is linear in the model:
 refinement can never do worse than reconstructing every leaf's
@@ -422,14 +412,12 @@ all leaves with Lemma 3.10: `L_V ⊆ L_V[H]`; conclude as in T1. No
 step refers to how `K` was produced. ∎
 
 **Remark 5.2 (the checker is the trusted core).** Two kinds of walk
-and a closure scan; no learner, no search heuristics. The v1 checker
-is one self-contained program sharing no code with the loop; on the
-first campaign it rejected every certificate the unsound
-pre-discipline loop emitted and accepts all 56 the corrected loop
-emits (record: `experiments/cegar/`). A verification of a large
-model certifies as n independent leaf lemmas plus one small
-induction — the assume-guarantee shape, as data, laid out on the
-tree.
+and a closure scan; no learner, no search heuristics, a few dozen
+lines — implemented as a self-contained program sharing no code with
+the loop, so a bug in the loop cannot certify itself. A verification
+of a large model certifies as n independent leaf lemmas plus one
+small induction — the assume-guarantee shape, as data, laid out on
+the tree.
 
 **Remark 5.3 (regression).** Edit leaf `i`; re-check (L_i) alone —
 leaf-sized. Pass: the entire proof stands unread. Fail: the walk
@@ -441,15 +429,14 @@ means byte-equal leaves share one classifier and one (L) obligation
 throughout the run, and a witness spurious at one instance refines
 all `k` siblings in lockstep. The certificate for a symmetric system
 carries one leaf lemma per *behavior*, not per instance — and the
-refinement budget is per behavior too, which is where the measured
-size-independence of §9 comes from.
+refinement budget is per behavior too, the source of the
+size-independence claimed in §8 and tested in §9.
 
 ---
 
 ## 6. A worked round: k clients and a server
 
-Small enough to check by hand; aligned with what the implementation
-actually does (record: `tests/cegar/`, `experiments/cegar/`).
+Small enough to check by hand.
 
 **The model.** Clients `Cl_1..Cl_k`, each `I —g→ C —r→ I` over
 `{g, r}`; a server over `{g_1, r_1, …, g_k, r_k}` with states
@@ -474,10 +461,10 @@ entries to their exact rungs — client index 3, server index `k+2`.
 **Round 2.** Search over the refined profile reaches
 `{(quiet, F, I..), (outstanding, B_i, .., C_i, ..) : i ≤ k}` — bad
 unreachable. Emit the certificate: one (L) obligation for the
-server, **one for all k clients**, and `Inv` with `k+1` states
-(measured at k = 2: 3 abstract states, 3 counterexamples spent, of a
-budget of 7). Verdict parity, the witness economics, and the shared
-client obligation are all measured facts of the v1 campaign (§9).
+server, **one for all k clients**, and `Inv` with `k+1` states — for
+any k, two obligations and a linear invariant, within a T3 budget of
+`k+5` over the two entries (server `≤ k+1` counterexamples, client
+`≤ 2`, two publication switches).
 
 The example is minimal to the point of parody — every leaf is
 load-bearing for this property, so the cone-of-influence phenomenon
@@ -535,26 +522,25 @@ Making this a focus is a different note.
 
 ## 8. Cost shape, honestly
 
-Cheap, and measured cheap: replay (executions proportional to the
-witness's support, parallel over leaves); certification (leaf-local
-products); refinement (budgeted, T3); certificate checking
-(milliseconds on every v1 instance); canonicalization (leaf-scale
-sorting).
+Cheap: replay (executions proportional to the witness's support,
+parallel over leaves); certification (leaf-local products);
+refinement (budgeted, T3); certificate checking (Remark 5.2);
+canonicalization (leaf-scale sorting).
 
 Not cheap: step 1's walk, `|M| · Π_i index(H_i)` at worst — the
 irreducible cost of composition, honestly priced: over classifier
-indices, 1 wherever the property has not probed. Two measured poles
-frame the promise (record: `experiments/cegar/tc_scaling.tsv`). On a
-token ring of N interned-identical stations, refinement cost is flat
-— 4 counterexamples whether N is 2 or 64 — because the budget is per
-behavior (with interning ablated it grows as 2N, the verdict
-unmoved). On the client–server family the property's enforcer *is*
-the system: the server's exact contract has k+2 classes, refinement
-reconstructs it wholesale, and the monolithic walk — tiny, because
-clients are tightly coupled — wins on wall time. The loop wins when
-the property is local, ties with overhead when it is not, and T3
-caps the cost of finding out. What the overhead case still yields,
-and the monolithic baseline does not, is the certificate.
+indices, 1 wherever the property has not probed. Two poles frame the
+promise. On a ring of N identical stations, all stations are one
+entry (Remark 5.4), so refinement cost is a constant independent of
+N — the budget is per behavior, and only the invariant grows with
+the system. On the client–server family of §6 the property's
+enforcer *is* the system: the server's exact contract has k+2
+classes, refinement reconstructs it wholesale, and the concrete
+product — small, because every client is tightly coupled to the
+server — is walked faster monolithically. The loop wins when the
+property is local, ties with overhead when it is not, and T3 caps
+the cost of finding out. What the overhead pole still yields, and a
+monolithic walk does not, is the certificate.
 
 One exposure deferred rather than hidden: classifiers range over
 each leaf's **full** alphabet, and interior nodes carry no contracts
@@ -569,11 +555,11 @@ is stated at every node precisely so that this extension changes the
 ## 9. Evaluation (prospective)
 
 What the experimental section intends to establish, against whom,
-and what would count as failure. Preliminary anchors exist from the
-v1 campaign (212 synthetic models: verdict parity 212/212 against a
-monolithic oracle, 56/56 certificates accepted by the independent
-checker, zero budget violations; `experiments/cegar/`); the section
-below is the campaign the paper wants.
+and what would count as failure. An implementation of the finite
+instance exists, with the oracle discipline of Q1 below wired in;
+preliminary results on the synthetic families (reproducible from
+`experiments/cegar/`) anchor the expectations, and the section below
+is the campaign the paper wants.
 
 **Questions.**
 
@@ -591,11 +577,10 @@ below is the campaign the paper wants.
   already give — except the certificate.
 - **Q3 Symmetry leverage**: refinement cost per *behavior*, not per
   instance, on models with replicated components; the certificate
-  carries one obligation per behavior. Already measured flat on the
-  synthetic ring (4 counterexamples, N = 2..64); the question at
-  scale is whether real corpora expose enough byte-equal leaves —
-  which is itself a finding about the front ends (currification
-  quality), reported either way.
+  carries one obligation per behavior. Flat refinement in N holds on
+  the synthetic ring; the question at scale is whether real corpora
+  expose enough byte-equal leaves — itself a finding about the front
+  ends (currification quality), reported either way.
 - **Q4 Budget adherence**: counterexamples spent vs the T3 bound,
   distributions not just maxima; how far below `Σ N(L_i)` the
   property lets the loop stop.
@@ -697,12 +682,11 @@ as such, with the certificate as the compensating deliverable.
    small tables; when indices grow, that walk is what hierarchical
    decision diagrams are for. Nothing above assumed explicitness
    except the walk.
-5. **Refinement-heavy corpora for policy measurement.** The v1
-   random grid is violation-dominated: witnesses are real on round
-   one and the policy knobs of Remark 4.5 never diverge (300 runs,
-   no separation). Measuring them needs generators with controlled
-   spurious-chain depth — a corpus-design question, queued with the
-   evaluation.
+5. **Refinement-heavy corpora for policy measurement.** Naive random
+   models tend to violate on the first witness, so the policy knobs
+   of Remark 4.5 never get to diverge. Measuring them needs
+   generators with controlled spurious-chain depth — a corpus-design
+   question, queued with the evaluation.
 
 ---
 
@@ -715,9 +699,5 @@ budget), and certification is local (the equivalence oracle loses
 its cost). On a shape, in the separable fragment, blame is a
 descent, abstractions are canonical objects at every rung, the leaf
 interface is two oracles, and finiteness is one theorem's
-hypothesis, not the architecture's. One round of implementation has
-already paid the discipline back twice: the certificate checker
-caught the loop's only soundness bug, and the measured ring/clients
-poles turned §8's promise into two numbers. What the loop knows, it
-proves; what it spends, it counts; what it claims, a smaller program
-checks.
+hypothesis, not the architecture's. What the loop knows, it proves;
+what it spends, it counts; what it claims, a smaller program checks.
