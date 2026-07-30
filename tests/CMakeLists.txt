@@ -25,3 +25,6 @@ target_compile_options(hsc_tests PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>)
 
 doctest_discover_tests(hsc_tests)
+
+# The CEGAR package suite lives in its own folder with its own binary.
+add_subdirectory(cegar)
