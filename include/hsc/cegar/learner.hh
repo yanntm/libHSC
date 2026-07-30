@@ -7,13 +7,21 @@
 /// hypothesis as a canonical classifier: table DFA, dead-closed (soundness
 /// is certification's burden, not construction's), canonicalized.
 ///
+/// Until the first counterexample arrives the published hypothesis is
+/// chaos — the certified-for-free initial rung; the observation table
+/// underneath may already be richer, but it is not exposed, because an
+/// unpublished table has not been certified and exposure would be
+/// unsound (found the hard way: the independent checker rejected it).
+///
 /// A counterexample is any word the *published* classifier misclassifies.
 /// Because publication dead-closes, the word itself may agree with the raw
 /// table; some prefix of it then disagrees (prefix-closed target), and the
 /// handler locates the shortest such prefix and runs Rivest–Schapire
-/// against the raw table. Every processed counterexample strictly grows
-/// |S| (asserted), and |S| never exceeds the leaf's state count + 1 —
-/// the budget that bounds the whole loop.
+/// against the raw table. A counterexample against published-chaos that
+/// the raw table already classifies correctly merely switches publication
+/// to the real table (once per leaf, no budget spent). Every other
+/// processed counterexample strictly grows |S| (asserted), and |S| never
+/// exceeds the leaf's state count + 1 — the budget that bounds the loop.
 
 #pragma once
 
@@ -55,6 +63,7 @@ class learner {
   std::map<word, bool> memo_;
   classifier published_;
   bool fresh_ = false;
+  bool virgin_ = true;  ///< still publishing chaos
   std::int64_t n_cex_ = 0;
 };
 

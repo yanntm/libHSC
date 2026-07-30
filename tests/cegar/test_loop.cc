@@ -75,6 +75,15 @@ TEST_CASE("parity on a random grid, all policies") {
   }
 }
 
+TEST_CASE("regression: uncertified initial hypotheses were unsound") {
+  // These seeds produced false 'holds' verdicts when the learner's
+  // closed-but-uncertified initial table was published instead of chaos
+  // (caught by hsc-certcheck in the first sweep). Pinned forever.
+  check_parity(gen_rand(3, 4, 2, 5, 0.5, 72));
+  for (std::uint64_t seed : {57, 67, 73, 96})
+    check_parity(gen_rand(4, 5, 3, 8, 0.4, seed));
+}
+
 TEST_CASE("ring scales without touching the mono product") {
   model m = gen_ring(8);
   run_result r = run(m, {});

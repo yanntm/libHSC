@@ -94,7 +94,7 @@ raw_table learner::table() {
 
 const classifier& learner::published() {
   if (!fresh_) {
-    published_ = canonicalize(table());
+    published_ = virgin_ ? chaos(leaf_->n_letters) : canonicalize(table());
     fresh_ = true;
   }
   return published_;
@@ -104,7 +104,8 @@ void learner::add_counterexample(const word& w) {
   raw_table t = table();
   // Publication dead-closes, so the published misclassification may sit
   // on a proper prefix as far as the raw table is concerned: locate the
-  // shortest prefix the raw table misclassifies (one must exist).
+  // shortest prefix the raw table misclassifies (one must exist — except
+  // against published-chaos, where the raw table may already be right).
   word bad;
   bool found = false;
   for (std::size_t len = 0; len <= w.size() && !found; ++len) {
@@ -114,7 +115,15 @@ void learner::add_counterexample(const word& w) {
       found = true;
     }
   }
-  if (!found) die("counterexample agrees with the raw table");
+  if (!found) {
+    if (!virgin_) die("counterexample agrees with the raw table");
+    // First exposure: publish the real table (index 1 -> >= 2, so the
+    // round still progresses); no counterexample budget is spent.
+    virgin_ = false;
+    fresh_ = false;
+    return;
+  }
+  virgin_ = false;
   // Rivest–Schapire: A(i) = member(rep(class of bad[..i)) . bad[i..));
   // A(0) = member(bad), A(n) = table's classification: they differ, so
   // a flip exists; binary search finds it, the suffix is the experiment.
