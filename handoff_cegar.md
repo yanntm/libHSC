@@ -16,9 +16,10 @@ prospective evaluation section (§9) sketching corpora, comparators,
 metrics, falsifiable expectations; citations landed with a References
 section, every entry read from source (`cegar_citations.md` is the
 registry: keys, holdings, verification notes, and the do-not-cite
-queue — AG origins, BEEM/MCC infra, learner engineering, plus exact
-venues for four preprint-copy entries). Drafts v1/v2 are superseded,
-retire when convenient.
+queue — priority: AGAR, CAV 2008, the nearest cousin, read before the
+contribution claim is final; then AG origins, BEEM/MCC infra, learner
+engineering, plus exact venues for four preprint-copy entries).
+Drafts v1/v2 are superseded, retire when convenient.
 
 ## TODO — theory (next action first)
 
