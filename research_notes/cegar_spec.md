@@ -302,19 +302,13 @@ failure.
   mutated ones fail.
 * **O6 builder**: §5.7 — `mono` vs `xreach` on every corpus model.
 
-## 8. Milestones
+## 8. Status
 
-* **P0 docs.** This spec; `cegar/README.md` and `algorithm.md`
-  reflect the HSC-native design; manual §8 gains the three commands.
-* **P1 builder.** §5 bridge + O6 green on the §9 families.
-* **P2 commands.** `cegar` + `certificate` wired into the runner;
-  O1–O4 green; the §9 examples self-check (`expect` lines).
-* **P3 checker.** `certcheck` + O5, mutation tests.
-* **P4 purge.** No trace of the retired side formats anywhere in the
-  tree (grep for their extensions comes back empty outside `.git`);
-  old binaries and generator deleted; tests are `.hsc`-fixture-based.
-* **P5 campaign.** Sweeps re-run end to end from `.hsc` corpora;
-  tables T-A..T-D regenerated; report updated.
+Delivered in full — docs, builder, commands, checker, campaign; the
+report responds section by section, and the oracles of §7 run in the
+test suite and inside every sweep. Engineering work queues in the
+handoff (next: the CAC08 FSP → `.hsc` translation, which will get its
+own spec when it starts).
 
 ## 9. Model families
 

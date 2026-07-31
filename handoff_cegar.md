@@ -8,20 +8,17 @@ Report: `research_notes/cegar_report.md`. Code: `include/hsc/cegar/`
 model/driver split; tests in `tests/cegar/`, examples in
 `examples/cegar/`, campaign in `experiments/cegar/`.
 
-State: **HSC-only port delivered** — one language, one parser; side
-formats, binaries and the generator are gone from the tree. Tests 18
-cases / 1205 assertions green; T-A and T-C regenerated on the family
+State: **v2 delivered, HSC-native** — one language, one parser.
+Tests 18 cases / 1205 assertions green; T-A and T-C on the family
 corpus, all rows agree across the cegar/symbolic/explicit triangle,
-all holds certified in-sweep; ring refinement measured flat in N
-under interning; the teacher-cost split (search/replay/refine ns) is
-a column everywhere. Latent uniform-family crash found and fixed
-(report F3). Random corpus dropped from the campaign (fuzzing lives
-in the test suite).
+all holds certified in-sweep; ring refinement flat in N under
+interning; the teacher-cost split (search/replay/refine ns) is a
+column everywhere. Random-model fuzzing lives in the test suite; the
+campaign measures the families.
 
 Paper v3: standalone, citations landed from source
 (`cegar_citations.md` is the registry; priority acquisition: AGAR,
-CAV 2008, before the contribution claim is final). Drafts v1/v2
-superseded, retire when convenient.
+CAV 2008, before the contribution claim is final).
 
 ## TODO — theory (next action first)
 

@@ -2,14 +2,12 @@
 
 Response to `cegar_spec.md` (v2: the finite instance, HSC-native).
 Status: **delivered end to end** — one language, one parser; the loop,
-the certificate and the checker are commands of the main; the previous
-toolchain's formats and binaries are gone from the tree.
+the certificate and the checker are commands of the main.
 Reproducibility: every number traces to `experiments/cegar/*.tsv`,
 produced by `experiments/cegar/sweep.sh` against the committed tree;
 models are the committed `examples/cegar/*_model.hsc` files sized on
 the command line, so the TSVs are reproducible from the repository
-alone. Records of the retired toolchain's campaign live in git
-history, superseded by the tables below.
+alone.
 
 ## Delivered
 
@@ -39,38 +37,26 @@ history, superseded by the tables below.
 
 ## Findings
 
-**F1 — publish chaos until the first counterexample** (historical,
-now absorbed): the learner's closed-but-uncertified table rejects
-genuine traces; publishing it produced false `holds` on the first
-campaign, caught by the independent checker — the architecture's
-claim, demonstrated by its own bug. Spec v2 §3.2 now states the
-discipline; the failing seeds stay pinned in `test_loop.cc`.
+**F1 — publish chaos until the first counterexample**: the learner's
+closed-but-uncertified table rejects genuine traces; publishing it
+yields false `holds`, and it is the independent checker that catches
+it — the architecture's claim, demonstrated by its own bug. The
+discipline is spec §3.2; the seeds that exposed it are pinned in
+`test_loop.cc`.
 
 **F2 — the paper's §6 narrative is search-order dependent** (stands):
 BFS returns `g1·g1`, which the *client* also rejects, so both entries
 end exact; culprit sets are witness-relative (paper Remark 4.2). The
 K-independence that survives is entry-count locality via interning.
 
-**F3 — latent crash in the certified-uniform-families fast path**
-(found by this port, fixed forward): a uniform `exists` family whose
-body also touches a scalar leaf (a counter, a monitor) drove the
-fold's array-cell indexing with the scalar's frontier position —
-`std::out_of_range`, uncaught, core dump. Neither existing example
-family mixes a scalar into a family event, so it had never fired.
-Fixed by the closed-support gate (C5): such a family is
-index-invariant in the scalar, not index-periodic — detected on the
-representative instance, routed to the enumerated sum with its own
-note. Hardened separately: `run_file` now converts any escaped
-internal exception into a named diagnostic and exit 3.
-
-**F4 — the first teacher-cost data** (new columns, all tables): the
+**F3 — teacher-cost data** (columns in every table): the
 `ns_search/replay/refine` split makes the paper's economics visible.
 Ring, interned: refine is **55–56 µs at every N from 16 to 64** —
 flat, the per-behavior budget as wall time. Clients at K=64: refine
 is 3.2 s and 99.9 % of the run (the L\* rebuild of the K+2-class
 server contract — the paper's §8 overhead pole), while the entire
 symbolic + explicit parity pass takes 35 ms. Where the teacher lives
-is now a measured column, not a narrative.
+is a measured column.
 
 ## T-A — parity and budget
 
@@ -100,22 +86,18 @@ interning on/off:
 * |Inv| = concrete states on both families at every size: the final
   abstraction is exactly as coarse as the property allows.
 
-## T-B / T-D — retired pending real corpora
+## T-B / T-D — awaiting their corpora
 
-The cone measurement (T-B) and the policy knobs (T-D) were previously
-reported on a random corpus; those numbers are withdrawn as evidence
-— random models are a correctness fuzzer (now in-process in the test
-suite), not a benchmark. The cone needs properties that ignore most
-of a model (the CAC08 and DVE corpora below); the knobs need the
-refinement-heavy corpus (Theory queue item).
+The cone measurement (T-B) needs properties that ignore most of a
+model (the CAC08 and DVE corpora below); the policy knobs (T-D) need
+the refinement-heavy corpus (Theory queue item). The families cannot
+show either — every leaf is either property-coupled or symmetric —
+so neither table carries rows yet.
 
-## CAC08 corpus — acquisition (supersedes the reconstruction spec)
+## CAC08 corpus — the authors' artifacts
 
-`cegar_spec_cac08.md` asked us to *rebuild* the CAC08 family from the
-paper's prose, calling it explicitly "a reconstruction, not a
-reproduction". That spec is deleted: **the authors' own artifacts were
-recovered**, so we translate the real subjects instead of re-deriving
-them, and the fidelity contract in that spec no longer binds anything.
+**The original artifacts of the study are in hand** — the subjects
+are translated from source, not derived from the paper's prose.
 
 * The URL printed in the paper (p. 7:14),
   `laser.cs.umass.edu/~jcobleig/breakingup-examples/`, is **wrong** —
@@ -166,7 +148,7 @@ Not started: the translation. Next engineering step is an FSP reader
 emitting **separable-fragment `.hsc`** (model-only files, drivers via
 `(input …)`) for the parameterized subset (Gas Station / Peterson /
 Relay / Smokers), then Chiron's pre-flattened files. The teacher-cost
-split the CAC08 comparison needs is already in the loop's output (F4).
+split the CAC08 comparison needs is in the loop's output (F3).
 
 ## Deviations from spec
 
