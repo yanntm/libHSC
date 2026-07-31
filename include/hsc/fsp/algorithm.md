@@ -134,7 +134,57 @@ makes it Σ ≈ the dispatcher's transition count — large but linear; if
 that bites, the relief is affine-piece detection (counters emitting
 `(+= P k)` for whole source classes), deferred until measured.
 
-## 5. Oracles
+## 5. Factoring the stores (`--factor`)
+
+CAC08's negative result is structural: every system centers on a
+*store* process (operator counters, table bitmask, dispatcher
+registration list) and any cut at process boundaries crosses it at
+full width — the assumption must carry the whole store. The corpus
+itself shows the fix: chiron *multiple* is the authors' hand-factored
+dispatcher, and it is where abstraction leverage appears. `--factor`
+mechanizes that re-decomposition at the ground-LTS level, before
+emission.
+
+**Coordinates.** Each ground state carries factoring metadata from the
+grounder: a **phase** (the statedef, or the anonymous chain position)
+and a **register file** — one register per state-parameter or label
+binder name, holding its value where in scope and a canonical 0 where
+not (sound: an out-of-scope register is never read before rewritten).
+The candidate decomposition of a leaf is one coordinate per register
+with more than one observed value, plus the phase.
+
+**Validation, per label.** The label's relation `R` factors over
+coordinates iff it equals the synchronized product of its per-
+coordinate projections `R_c` on reachable states: `s ∈ dom(R)` exactly
+when every `s_c ∈ dom(R_c)`, and `R(s) = Π R_c(s_c)` as sets (guards
+are rectangles, actions act coordinatewise; per-coordinate
+nondeterminism is allowed, cross-coordinate correlation is not).
+A label that fails **merges every coordinate it touches** (writes, or
+guards — `dom(R_c)` proper) into one, and validation restarts; the
+fixpoint is the finest factoring consistent with the dynamics. This
+is the heuristic search: coordinates are proposed by names, disposed
+by semantics.
+
+**Emission.** Each surviving coordinate becomes a leaf (`P_ac1`, …)
+holding that quotient LTS; a label enters a coordinate's alphabet only
+where its action there is non-trivial (moves it, or restricts its
+domain) — total-identity coordinates do not participate, so factoring
+*narrows* event supports. Hidden labels factor like any other and stay
+process-local. §3's composition then applies unchanged. Per-target
+pieces collapse where the factored action is uniform (table `put[k]`
+becomes one `(:= P_bit_k 1)` event, not one per table state): factored
+models have *fewer* events, not more. Counts are preserved: the
+factored reachable space is isomorphic to the original per process
+(the canonical-0 convention keeps dead registers from multiplying
+states), which the triangle checks per subject as always.
+
+Flattened processes (no parameters — chiron single, peterson, relay)
+get a one-coordinate candidate and pass through unfactored; recovering
+their structure needs SP-partition discovery (Hartmanis–Stearns) on
+the ground LTS, which is specified separately when the measurements
+here justify it.
+
+## 6. Oracles
 
 * The composed `.hsc` runs the cegar/symbolic/explicit triangle like any
   corpus model (spec §5.7, §7): `xreach` and `cegar::mono` pin the
