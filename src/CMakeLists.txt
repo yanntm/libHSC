@@ -14,6 +14,7 @@ target_link_libraries(hsc PUBLIC hsc_louvain)
 
 # The CEGAR package: separate library, not folded into hsc (isolated).
 add_subdirectory(cegar)
+target_link_libraries(hsc PUBLIC hsc_cegar)
 
 target_sources(hsc PRIVATE
   stats.cc
@@ -35,6 +36,8 @@ target_sources(hsc PRIVATE
   surface_arrays.cc
   surface_louvain.cc
   surface_xpl.cc
+  surface_cegar.cc
+  surface_certcheck.cc
   surface_spec.cc
   dve_parser.cc
   dve_to_surface.cc

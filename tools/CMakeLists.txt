@@ -44,7 +44,6 @@ else()
 endif()
 
 # The CEGAR binaries live in their own folder.
-add_subdirectory(cegar)
 
 # The DVE (BEEM) importer.
 add_executable(dve2hsc dve2hsc.cc)

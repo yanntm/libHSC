@@ -5,6 +5,8 @@
 /// goes to the symbolic translator. The one layer that knows both
 /// engines; neither engine knows the other.
 
+#include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <optional>
 #include <sstream>
@@ -13,6 +15,9 @@
 
 #include "surface_translator.hh"
 
+#include "hsc/cegar/loop.hh"
+#include "hsc/surface/cegar_build.hh"
+#include "hsc/surface/certcheck.hh"
 #include "hsc/surface/expand.hh"
 #include "hsc/surface/rewrite.hh"
 #include "hsc/surface/spec.hh"
@@ -78,6 +83,9 @@ class runner {
     const std::string& kw = f.head();
     if (kw == "xreach") return do_xreach(f);
     if (kw == "xdomains") return do_xdomains(f);
+    if (kw == "cegar") return do_cegar(f);
+    if (kw == "certificate") return do_certificate(f);
+    if (kw == "certcheck") return do_certcheck(f);
     if (kw == "print-spec") {  // the current spec, post-chain, runnable
       for (const datum& g : *forms_) {
         if (g.is_list() && !g.items().empty() && g.head() == "print-spec") {
@@ -188,6 +196,103 @@ class runner {
   /// domains (`spec.hh`); data only, nothing is tagged yet.
   void do_xdomains(const datum&) { print_domains(out_, analyze_domains(*forms_)); }
 
+  // --- the cegar loop's commands --------------------------------------------
+
+  /// `(cegar NAME QATOM+ [all|first|cheapest] [jump-exact] [cap INT])`:
+  /// run the loop against bad = the atoms. Binds NAME as an explicit
+  /// result — the validated bad state on violation, empty on holds (so
+  /// `(expect NAME 0)` asserts "holds"). Holds retains the certificate
+  /// for `(certificate FILE)`.
+  void do_cegar(const datum& form) {
+    if (form.items().size() < 2 || !form.items()[1].is_atom()) {
+      fail(form, "cegar needs a result name");
+    }
+    const std::string& name = form.items()[1].text();
+    if (t_.has_result(name) || xresults_.contains(name)) {
+      fail(form, "result '" + name + "' already bound");
+    }
+    std::vector<datum> atoms;
+    cegar::options opt;
+    for (std::size_t i = 2; i < form.items().size(); ++i) {
+      const datum& it = form.items()[i];
+      if (it.is_list()) {
+        atoms.push_back(it);
+      } else if (it.text() == "all") {
+        opt.pick = cegar::options::culprits::all;
+      } else if (it.text() == "first") {
+        opt.pick = cegar::options::culprits::first;
+      } else if (it.text() == "cheapest") {
+        opt.pick = cegar::options::culprits::cheapest;
+      } else if (it.text() == "jump-exact") {
+        opt.jump_exact = true;
+      } else if (it.text() == "cap" && i + 1 < form.items().size()) {
+        opt.cap = std::stoll(form.items()[++i].text());
+      } else {
+        fail(it, "cegar options are: all|first|cheapest, jump-exact, cap INT");
+      }
+    }
+    if (atoms.empty()) fail(form, "cegar needs at least one property atom");
+    const spec& s = model_spec();
+    const expr_reader reader(ex_, s);
+    const cegar_bridge b = build_cegar_model(s, ex_, reader, atoms);
+    const cegar::run_result r = cegar::run(b.model, opt);
+    const bool holds = r.v.k == cegar::verdict::kind::holds;
+    out_ << name << " cegar " << (holds ? "holds" : "violation")
+         << " rounds " << r.rounds << " cex " << r.cex_total << '/'
+         << r.budget << " rungs " << r.leaves_chaotic << '/'
+         << r.leaves_intermediate << '/' << r.leaves_exact << " inv "
+         << r.inv_size << " abstract " << r.v.states_walked << " ns "
+         << r.ns_search << '/' << r.ns_replay << '/' << r.ns_refine << '\n';
+    xpl::reach_result res{{}, xpl::state_store(s.order().size())};
+    res.stats.st = xpl::explore_stats::status::ok;
+    if (holds) {
+      last_cert_ = r.certificate;
+    } else {
+      out_ << name << " witness";
+      for (std::int32_t e : r.v.witness)
+        out_ << ' ' << b.model.events[static_cast<std::size_t>(e)].name;
+      out_ << '\n';
+      const xpl::word w(r.final_values.begin(), r.final_values.end());
+      (void)res.states.intern(xpl::state_view{w.data(), w.size()});
+    }
+    res.stats.count = res.states.size();
+    xresults_.emplace(name, std::move(res));
+  }
+
+  /// `(certificate FILE)`: write the certificate retained by the last
+  /// holding `cegar` run.
+  void do_certificate(const datum& form) {
+    if (form.items().size() != 2 || !form.items()[1].is_atom()) {
+      fail(form, "certificate needs one file name");
+    }
+    if (last_cert_.empty()) {
+      fail(form, "no certificate retained (did the last cegar hold?)");
+    }
+    const std::string& path = form.items()[1].text();
+    std::ofstream f(path, std::ios::binary);
+    if (!f) fail(form, "cannot write " + path);
+    f << last_cert_;
+    out_ << "certificate " << path << " (" << last_cert_.size()
+         << " bytes)\n";
+  }
+
+  /// `(certcheck FILE)`: the trusted core — check a certificate document
+  /// against the current spec.
+  void do_certcheck(const datum& form) {
+    if (form.items().size() != 2 || !form.items()[1].is_atom()) {
+      fail(form, "certcheck needs one file name");
+    }
+    const std::string& path = form.items()[1].text();
+    std::ifstream f(path, std::ios::binary);
+    if (!f) fail(form, "cannot read " + path);
+    std::ostringstream buf;
+    buf << f.rdbuf();
+    const std::vector<datum> forms = parse(buf.str());
+    const spec& s = model_spec();
+    const expr_reader reader(ex_, s);
+    failures_ += certcheck(s, ex_, reader, forms, out_);
+  }
+
   // --- the overlay on explicit results --------------------------------------
 
   void xcount(const datum& form) {
@@ -260,6 +365,7 @@ class runner {
   xpl::model model_;
   bool model_built_ = false;
   std::unordered_map<std::string, xpl::reach_result> xresults_;
+  std::string last_cert_;  ///< retained by the last holding cegar run
   int failures_ = 0;
 };
 
@@ -269,6 +375,46 @@ int translate(const std::vector<datum>& forms, std::ostream& out) {
   runner r(out);
   return r.run(forms);
 }
+
+namespace {
+
+/// `(input FILE)`: splice the forms of FILE in place — the model/script
+/// split. Relative paths resolve against the including file; cycles and
+/// unreadable files are parse errors naming the culprit.
+std::vector<datum> splice_inputs(std::vector<datum> forms,
+                                 const std::filesystem::path& dir,
+                                 std::vector<std::filesystem::path>& stack) {
+  std::vector<datum> out;
+  out.reserve(forms.size());
+  for (datum& f : forms) {
+    if (f.head() != "input") {
+      out.push_back(std::move(f));
+      continue;
+    }
+    if (f.items().size() != 2 || !f.items()[1].is_atom()) {
+      throw parse_error(f.line(), "input takes one file name");
+    }
+    std::filesystem::path p(f.items()[1].text());
+    if (p.is_relative()) p = dir / p;
+    std::error_code ec;
+    const std::filesystem::path canon = std::filesystem::weakly_canonical(p, ec);
+    if (!ec && std::find(stack.begin(), stack.end(), canon) != stack.end()) {
+      throw parse_error(f.line(), "input cycle through " + canon.string());
+    }
+    std::ifstream in(p, std::ios::binary);
+    if (!in) throw parse_error(f.line(), "cannot open input " + p.string());
+    std::ostringstream buf;
+    buf << in.rdbuf();
+    stack.push_back(canon);
+    std::vector<datum> sub =
+        splice_inputs(parse(buf.str()), p.parent_path(), stack);
+    stack.pop_back();
+    for (datum& g : sub) out.push_back(std::move(g));
+  }
+  return out;
+}
+
+}  // namespace
 
 int run_file(const std::string& path, std::ostream& out, std::ostream& err,
              const std::map<std::string, long long>& params) {
@@ -281,8 +427,12 @@ int run_file(const std::string& path, std::ostream& out, std::ostream& err,
   buf << in.rdbuf();
   const std::string text = buf.str();
   try {
+    std::vector<std::filesystem::path> stack{
+        std::filesystem::weakly_canonical(path)};
     const std::vector<datum> forms =
-        expand(parse(text), /*families=*/true, params);
+        expand(splice_inputs(parse(text),
+                             std::filesystem::path(path).parent_path(), stack),
+               /*families=*/true, params);
     return translate(forms, out) == 0 ? 0 : 1;
   } catch (const parse_error& e) {
     err << path << ": parse error: " << e.what() << '\n';
