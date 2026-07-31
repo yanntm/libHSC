@@ -50,3 +50,9 @@ add_executable(dve2hsc dve2hsc.cc)
 target_link_libraries(dve2hsc PRIVATE hsc::hsc CLI11::CLI11)
 target_compile_options(dve2hsc PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>)
+
+# The FSP (LTSA / CAC08) importer.
+add_executable(fsp2hsc fsp2hsc.cc)
+target_link_libraries(fsp2hsc PRIVATE hsc::hsc CLI11::CLI11)
+target_compile_options(fsp2hsc PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>)

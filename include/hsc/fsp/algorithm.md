@@ -10,7 +10,7 @@ item      ::= 'const' NAME '=' expr
 procdef   ::= NAME '=' init (',' statedef)* ext* '.'
 init      ::= stateref | body            ; inline body = one anonymous state
 statedef  ::= NAME ('[' NAME ':' rng ']')* '=' body
-body      ::= '(' branch ('|' branch)* ')' ext*
+body      ::= '(' branch ('|' branch)* ')' ext* | 'STOP'
 rng       ::= NAME | expr '..' expr      ; inclusive bounds, both ends
 branch    ::= ('when' '(' bexpr ')')? label ('->' label)* '->' target
 target    ::= NAME ('[' expr ']')* | 'ERROR' | stateref-with-args
@@ -32,8 +32,12 @@ Comments `//` and `/* */`. A `[' expr ']` whose expression is a lone
 range name is an anonymous choice, not an index — ranges and constants
 share no namespace in the corpus.
 
-Refused at parse: `||` composite processes, relabelling `/{…}`, `STOP`,
-`progress`, `assert`, LTL, `>>`-priority. `minimal` is parsed and
+`STOP` is a state with no branches (a deadlocked state; in a property,
+totalization sends its whole alphabet to ERROR). Refused at parse: `||`
+composite processes, parameterized process headers `P(X = v)`,
+relabelling `/{…}`, `progress`, `assert`, LTL, `>>`-priority — the
+authors' unsized template files (`peterson.lts`) use these; the sized
+per-subject files never do. `minimal` is parsed and
 ignored: it is a state-count optimization of LTSA's (weak-bisimulation
 quotient after hiding); dropping it preserves every trace and so the
 safety verdict — our tau steps stay explicit local events.
@@ -43,7 +47,10 @@ safety verdict — our tau steps stay explicit local events.
 Each process is compiled to a ground LTS exactly as LTSA would:
 
 * A **ground state** is (statedef, argument tuple), arguments within the
-  declared inclusive ranges (outside → refuse loudly). Prefix chains
+  declared inclusive ranges. A *target* whose arguments fall outside is
+  **ERROR** — LTSA's convention, and load-bearing: `never_fill_table`
+  errs precisely by walking its counter off its range. A target naming
+  the process itself refers back to its initial state. Prefix chains
   `a -> b -> S` introduce a fresh anonymous state per `->` under each
   valuation. States are numbered in BFS discovery order from the initial
   reference; **the initial state is 0** (so the `.hsc` base word, every

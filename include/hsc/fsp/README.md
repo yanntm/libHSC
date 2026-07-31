@@ -31,7 +31,7 @@ print model and driver.
 
 The subset parsed is exactly what the corpus uses — `const`, `range`,
 guarded choice, indexed states and labels, label sets and ranges, alphabet
-extension `+{…}`, hiding `\{…}`, `property`, `minimal` (ignored) — and the
-front end **refuses loudly** on anything else (`||` composition,
-relabelling `/{…}`, `STOP`, progress/LTL). See `algorithm.md` for the
+extension `+{…}`, hiding `\{…}`, `property`, `STOP`, `minimal` (ignored) —
+and the front end **refuses loudly** on anything else (`||` composition,
+parameterized process headers, relabelling `/{…}`, progress/LTL). See `algorithm.md` for the
 grammar, the grounding rules, and the event mapping.

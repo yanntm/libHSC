@@ -41,6 +41,9 @@ target_sources(hsc PRIVATE
   surface_spec.cc
   dve_parser.cc
   dve_to_surface.cc
+  fsp_parser.cc
+  fsp_ground.cc
+  fsp_to_surface.cc
   lia_bool.cc
   lia_int.cc
   query.cc
