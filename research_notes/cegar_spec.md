@@ -126,16 +126,23 @@ and remain the implementation's shape:
 **4.1 Profile** — per distinct leaf (interning by `lts.serialize()`):
 learner + published classifier + certified flag; initially chaos.
 
-**4.2 Search** — BFS over `(m, c_1..c_n)`; event fires through the
-monitor delta and each supported leaf's right action, blocked when a
-supported class goes dead; bad = monitor bad mask. No bad reachable →
-certificate from the reached set (§6), verdict **holds**.
+**4.2 Search** — BFS over `(m, c_1..c_k)` where the classifier
+coordinates range over the **non-property** leaves (property leaves
+are tracked exactly by the monitor, §5.6, and carry no classifier
+coordinate); an event fires through the monitor delta (blocked where
+the monitor blocks) and each supported leaf's right action, blocked
+when a supported class goes dead; bad = monitor bad mask. No bad
+reachable → certificate from the reached set (§6), verdict
+**holds**.
 
-**4.3 Replay** — for each leaf with support in the witness, fire the
-projection (skip the rest wholesale). All complete → verdict
-**violation** (validated by the executions; the final concrete state
-is assembled from the leaf executions' end states and bound as the
-result, §4.8). Else culprits = the failing leaves.
+**4.3 Replay** — for each non-property leaf with support in the
+witness, fire the projection (skip the rest wholesale; property-leaf
+projections are fired too, as an assertion — the monitor's exactness
+makes their failure a bridge bug, not a culprit). All complete →
+verdict **violation** (validated by the executions; the final
+concrete state is assembled from the leaf executions' end states and
+bound as the result, §4.8). Else culprits = the failing non-property
+leaves.
 
 **4.4 Refine until resolved** — per culprit (policy knob): feed the
 negative counterexample; `publish`; `certify`; feed back positives
@@ -220,15 +227,20 @@ calculus's letters, not the events, label leaf transitions).
 by the expression reader; each atom's support must lie within one
 leaf (crossing atoms → refuse; they are the non-separable property
 case). The named leaves are the **property leaves**. The monitor is
-their observer: states = tuples of property-leaf values reachable
-from the seed tuple (bounded by `Π` their domains), delta per event =
-the local actions where defined, self-loop where an action is
-undefined at the tuple (sound: the leaf itself blocks concretely, and
-abstractly its classifier answers for it — the monitor only
-*observes*). `bad` = tuples satisfying every atom. Property leaves
-remain ordinary leaves of the model: they block, they replay, they
-refine like any other — the monitor duplicates their tracking
-exactly (paper Def 1.7's DFA), it does not replace them.
+their exact sub-product: states = tuples of property-leaf values
+reachable from the seed tuple (bounded by `Π` their domains), delta
+per event = the local actions where defined, **blocked** (`-1`)
+where an action is undefined at the tuple — exactly the leaves' own
+blocking, tracked at full precision. `bad` = tuples satisfying every
+atom. Conceptually this is the paper's Def 1.7 DFA composed with the
+property leaves at their exact rung from round zero (a legal
+jump-to-exact, T3-neutral since they never spend afterwards).
+Consequences, all load-bearing: property leaves carry **no
+classifier coordinate** (§4.2), are **never culprits** (a witness's
+property-leaf projections always fire — asserted at replay), are
+**excluded from interning** (a byte-equal non-property sibling
+interns separately, so refinement of the sibling never advances a
+property leaf's rung), and spend **no budget**.
 
 **5.7 The builder's oracle (O6).** On every corpus model,
 `cegar::mono` (the core's concrete product walk) and `(xreach)` on
@@ -243,11 +255,12 @@ the main:
 
 ```lisp
 (certificate (select QATOM+))        ; header: the property, echoed
-(classifier LEAF CLASSES DEAD        ; one per distinct leaf; DEAD = -1 if none
-  (a CLASS LETTER CLASS)*)           ; the full action table
+(classifier LEAF CLASSES DEAD        ; one per distinct non-property leaf;
+  (a CLASS LETTER CLASS)*)           ;   DEAD = -1 if none; full action table
 (use LEAF REPLEAF)                   ; instance → representative alias
 (inv (LEAF X)*)                      ; one per Inv state: X = value for
-                                     ; property leaves, class index otherwise
+                                     ; property leaves (they determine the
+                                     ; monitor state), class index otherwise
 ```
 
 Letters are the canonical indices of §5.5 — the checker recomputes
