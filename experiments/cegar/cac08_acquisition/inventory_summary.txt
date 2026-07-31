@@ -1,0 +1,17 @@
+
+=== distinct properties and sizes per system ===
+chiron       multiple  9 props  k in [2021, 3021, 4021, 5021]
+                        ['(base)', 'p01a', 'p02a', 'p03a', 'p04a', 'p05a', 'p06a', 'p07a', 'p09a']
+chiron       single    9 props  k in [2021, 3021, 4021, 5021]
+                        ['(base)', 'p01a', 'p02a', 'p03a', 'p04a', 'p05a', 'p06a', 'p07a', 'p09a']
+gas_station  p2        4 props  k in [2, 3, 4, 5, 6, 7, 8, 9]
+                        ['gas-correct-change', 'gas-cust-1-start-stop', 'gas-mutual-exclusion', 'gas-pump1-start-stop']
+peterson     -         1 props  k in [2, 3]
+                        ['mutual_exclusion']
+relay        -         1 props  k in [2, 3, 4, 5, 6, 7, 8, 9]
+                        ['relay']
+smokers      -         8 props  k in [2, 3, 4, 5, 6]
+                        ['correct_assembly', 'mutual_exclusion', 'mutual_exclusion_a1_a2', 'never_fill_table', 'put_correct_pieces_1', 'put_pieces_assemble_item', 'put_take_1', 'table_lock_unlock']
+
+total (system,property) pairs: 32
+total .lts subject files: 147
