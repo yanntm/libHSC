@@ -5,22 +5,24 @@
 # on every holds. The bad atom (== mon E) is read from each subject's
 # generated driver — E varies per property.
 #
-# Usage: ./cac08_sweep.sh BUILDDIR   (e.g. ../../build)
+# Usage: ./cac08_sweep.sh BUILDDIR [BUDGET_S]   (e.g. ../../build 480)
 # Each of the four phases (cegar / sym / xpl / certcheck) is capped at
 # 15 s independently, so one slow engine never starves another's column;
 # a timeout is named in the status, and the finished phases still report.
-# Resumable: completed subjects are skipped, so an interrupted sweep is
-# finished by running it again; a lock refuses concurrent sweeps.
+# Rows stream: each subject's TSV row prints to stdout the moment it is
+# done, and is appended to the TSV at the same time. The sweep exits on
+# its own once the time budget is spent (default 480 s) — run it again
+# to continue: completed subjects are skipped. It never needs killing.
 set -u
 BUILD=${1:-../../build}
+BUDGET_S=${2:-480}
 HERE=$(cd "$(dirname "$0")" && pwd)
 HSC=$(cd "$HERE" && cd "$BUILD" && pwd)/tools/hsc
 CORPUS=$(cd "$HERE/../../examples/cac08/hsc" && pwd)
 cd "$HERE"
-exec 9> .cac08_sweep.lock
-flock -n 9 || { echo "another sweep holds the lock; not starting" >&2; exit 1; }
 TMP=$(mktemp -d "$HERE/tmp.XXXX")
 trap 'rm -rf "$TMP"' EXIT
+T_START=$(date +%s)
 
 now_ms() { date +%s%3N; }
 
