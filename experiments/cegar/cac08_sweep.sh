@@ -5,20 +5,18 @@
 # on every holds. The bad atom (== mon E) is read from each subject's
 # generated driver — E varies per property.
 #
-# Usage: ./cac08_sweep.sh BUILDDIR [BUDGET_S]   (e.g. ../../build 480)
-# Each of the four phases (cegar / sym / xpl / certcheck) is capped at
-# 15 s independently, so one slow engine never starves another's column;
-# a timeout is named in the status, and the finished phases still report.
-# Rows stream: each subject's TSV row prints to stdout the moment it is
-# done, and is appended to the TSV at the same time. The sweep exits on
-# its own once the time budget is spent (default 480 s) — run it again
-# to continue: completed subjects are skipped. It never needs killing.
+# Usage: ./cac08_sweep.sh BUILDDIR   (e.g. ../../build)
+# The only timeouts are per hsc invocation: each of the four phases
+# (cegar / sym / xpl / certcheck) is capped at 15 s independently, so
+# one slow engine never starves another's column. Rows stream: each
+# subject's TSV row prints to stdout the moment it is done, and is
+# appended to the TSV at the same time. Subjects already in the TSV are
+# skipped, so an interrupted sweep continues where it left off.
 # Variant knobs: CORPUS_DIR (default examples/cac08/hsc), OUT_TSV
 # (default cac08_verdicts.tsv), CHAIN — rewrite directives inserted into
 # every probe after its (input …) line, e.g. '(hotbit 17 100000)'.
 set -u
 BUILD=${1:-../../build}
-BUDGET_S=${2:-480}
 HERE=$(cd "$(dirname "$0")" && pwd)
 HSC=$(cd "$HERE" && cd "$BUILD" && pwd)/tools/hsc
 CORPUS=$(cd "$HERE/../../examples/cac08/${CORPUS_DIR:-hsc}" && pwd)
@@ -26,7 +24,6 @@ CHAIN=${CHAIN:-}
 cd "$HERE"
 TMP=$(mktemp -d "$HERE/tmp.XXXX")
 trap 'rm -rf "$TMP"' EXIT
-T_START=$(date +%s)
 
 now_ms() { date +%s%3N; }
 
@@ -107,10 +104,6 @@ for model in "$CORPUS"/*/*_model.hsc; do
   driver=${model%_model.hsc}.hsc
   if awk -F'\t' -v s="$system" -v j="$subject" '$1==s && $2==j {found=1} END {exit !found}' "$OUT"; then
     continue
-  fi
-  if [ $(( $(date +%s) - T_START )) -ge "$BUDGET_S" ]; then
-    echo "budget spent ($BUDGET_S s) — rerun to continue from $subject"
-    exit 0
   fi
   line=$(row "$system" "$subject" "$model" "$driver")
   printf '%s\n' "$line" >> "$OUT"
