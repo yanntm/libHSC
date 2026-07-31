@@ -220,6 +220,46 @@ Chiron at 2 artists is entirely in the 61 (both variants, all eight
 properties). Larger Chiron sizes come from the tarballs when a table
 demands them.
 
+### The encoding experiment — hotbit + redecompose (`cac08_hotbit.tsv`)
+
+Same 91 subjects re-emitted `--pinned` (every piece singleton-guarded,
+hotbit's pinning eligibility) and driven through the existing chain
+`(hotbit 17 100000) (decompose-louvain) (reorder-force)` — the store's
+states become one-hot bit leaves and migrate to their owners'
+communities. No new engine code; MIN 17 keeps every monitor and small
+task un-encoded. All 55 completed rows keep the triangle green (agree,
+certcheck). The two-sided result:
+
+* **Economics wins** — five baseline cegar timeouts now verify: Gas
+  `correct_change` at c002–c004 (165 states, 51 ms, |Inv| = concrete)
+  and smokers6 `put_take_1` / `table_lock_unlock` (494 states,
+  ~0.8 s). Refining 2-state bits sidesteps the big leaf's rung
+  ladder.
+* **Leverage wins** — chiron_single p01 drops from no leverage
+  (inv 130 / conc 137) to **inv 18**: the authors' hand-made
+  chiron_multiple factoring, reproduced mechanically on the
+  unfactored variant.
+* **Ghost losses** — the one-hot mutex ("exactly one bit set") is
+  itself a cross-leaf correlation; rungs that keep bits chaotic admit
+  multi-hot ghosts. chiron_single p05/p09 inflate to 32 256 / 27 648
+  abstract states against 137 concrete; chiron_multiple p06 goes
+  208 → 26 624; and **eight subjects diverge past the 1 M abstract
+  cap** (relay 06–09, chiron_single p03/p06, smokers4 ×2). Gas c004's
+  three fast properties regress ok → timeout, and gas c005's
+  symbolic lane newly times out (the 126-bit spine is not saved by
+  louvain + FORCE here).
+* Engine fix shaken out: the abstract-search cap was enforced as a
+  loop invariant (hard abort, core dump); it is a **resource
+  verdict** — `verdict::kind::cap` now surfaces as a clean refusal
+  naming the `cap N` knob.
+
+Reading: one-hot is the *wrong grain* — it proves the redecomposition
+thesis (p01, the economics wins) while showing exactly why per-state
+bits can't be the mechanism (the mutex ghosts). The needed grain is
+the store's *semantic* factors (counters, per-item bits, per-artist
+registrations), i.e. the factoring pass of `hsc/fsp/algorithm.md` §5 —
+whose home, per direction, is a surface hsc→hsc pass. Theory question.
+
 ## Deviations from spec
 
 * Spec §5.7's builder oracle (O6) names `mono` vs `xreach`; the sweep
