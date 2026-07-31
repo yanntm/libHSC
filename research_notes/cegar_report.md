@@ -1,102 +1,113 @@
-# CEGAR v1 — engineering report
+# CEGAR — engineering report
 
-Response to `cegar_spec.md` (v1: finite instance). Status: **M0–M6
-delivered**; all oracles wired; campaign data below. Reproducibility:
-every number traces to `experiments/cegar/*.tsv`, produced by
-`experiments/cegar/sweep.sh` against the committed tree; models are
-regenerated from recorded seeds by `hsc-cegar gen`, so the TSVs and the
-script are the whole artefact.
+Response to `cegar_spec.md` (v2: the finite instance, HSC-native).
+Status: **delivered end to end** — one language, one parser; the loop,
+the certificate and the checker are commands of the main; the previous
+toolchain's formats and binaries are gone from the tree.
+Reproducibility: every number traces to `experiments/cegar/*.tsv`,
+produced by `experiments/cegar/sweep.sh` against the committed tree;
+models are the committed `examples/cegar/*_model.hsc` files sized on
+the command line, so the TSVs are reproducible from the repository
+alone. Records of the retired toolchain's campaign live in git
+history, superseded by the tables below.
 
 ## Delivered
 
-* Package `include/hsc/cegar/` + `src/cegar/` (own static lib
-  `hsc_cegar`, isolation as specified: `util/` only).
-* Tools `tools/cegar/`: `hsc-cegar` (run / mono / gen),
-  `hsc-certcheck` (independent, zero shared code).
-* Tests `tests/cegar/` (own binary): 18 cases / 1210 assertions, all
-  green; oracles O1–O4 in-process, O5 via the sweep + a pinned
-  in-sweep mutation battery (G1 drop, action redirect, dead-flip both
-  ways: all rejected).
-* Campaign `experiments/cegar/`: T-A/T-B, T-C, T-D.
+* Core `include/hsc/cegar/` + `src/cegar/` (static lib `hsc_cegar`):
+  parser-free PODs and walks; certificates emitted as `.hsc`
+  s-expressions.
+* Bridge `src/surface_cegar.cc`: the separable fragment of `.hsc`
+  (spec §5) → the core's model; per-leaf letters induced by domain
+  enumeration, canonically numbered; the property-leaf monitor;
+  refusals name the event and the construct.
+* Checker `src/surface_certcheck.cc`: own translation unit; shares
+  the parser and the bridge, none of the loop.
+* Commands in the main (manual §8d): `cegar` (binds the validated bad
+  state, or empty on holds), `certificate` (skip-note on violation),
+  `certcheck`; `(input FILE)` for the model/driver split; a `cegar`
+  command auto-appends the normalizing passes to the rewrite chain.
+* Tests `tests/cegar/` (own binary, links the surface library): 18
+  cases / 1205 assertions green — bridge, classifier, teacher/learner,
+  loop parity on the in-process random fuzzer (all policies, pinned
+  regression seeds, bit-exact historical RNG), certificate emitter,
+  in-process certcheck mutation battery.
+* Examples `examples/cegar/` (CTest-registered): clients,
+  clients-bug, ring — model-only files plus drivers; `ring_check.hsc`
+  is the full round trip (prove, export, re-check, cross-count).
+* Campaign `experiments/cegar/`: T-A, T-C; per-row parity triangle
+  (cegar / symbolic / explicit) with in-sweep `certcheck`.
 
-## Findings the spec (or paper) should absorb
+## Findings
 
-**F1 — the initial hypothesis must be published as chaos; anything
-else is unsound until certified.** The learner's observation table,
-closed at construction, already distinguishes letters by
-initial-state firability; publishing that table uncertified rejects
-genuine traces and is not an over-approximation. First sweep: 5/200
-random models returned false `holds`, and `hsc-certcheck` rejected
-all 25 certificates built on uncertified tables (obligation L) — the
-independent checker caught the loop's bug, which is precisely the
-architecture's claim. Fix: publish chaos until the first
-counterexample; a counterexample the raw table already classifies
-correctly switches publication without spending budget (index still
-strictly grows, so round progress holds). The failing seeds are
-pinned as a regression test. *Spec impact:* §3.2's "publication"
-paragraph should state the chaos-until-first-counterexample rule
-explicitly; it currently permits the unsound reading.
+**F1 — publish chaos until the first counterexample** (historical,
+now absorbed): the learner's closed-but-uncertified table rejects
+genuine traces; publishing it produced false `holds` on the first
+campaign, caught by the independent checker — the architecture's
+claim, demonstrated by its own bug. Spec v2 §3.2 now states the
+discipline; the failing seeds stay pinned in `test_loop.cc`.
 
-**F2 — the paper's §6 narrative is search-order dependent.** With BFS
-in event order, the first witness for `clients(2)` is `g1·g1`, not
-the paper's `g1·g2` — and the *client* also rejects `grant·grant`,
-so both the server and the (shared) client entry are culprits, and
-both end exact. "The clients are never touched again" holds only for
-the witness the paper happened to choose. What survives, and what the
-data shows: interning makes the refinement count K-independent (all
-clients are one entry), and the verdict/certificate are unaffected
-(T1–T3 are policy- and order-independent, as claimed). *Paper
-impact:* §6 should either pick the witness deliberately ("a search
-returning `g1·g2`…") or report both culprits; the phenomenon to
-advertise is entry-count, not leaf-count, locality.
+**F2 — the paper's §6 narrative is search-order dependent** (stands):
+BFS returns `g1·g1`, which the *client* also rejects, so both entries
+end exact; culprit sets are witness-relative (paper Remark 4.2). The
+K-independence that survives is entry-count locality via interning.
 
-## T-A — verdict parity (O1 as data)
+**F3 — latent crash in the certified-uniform-families fast path**
+(found by this port, fixed forward): a uniform `exists` family whose
+body also touches a scalar leaf (a counter, a monitor) drove the
+fold's array-cell indexing with the scalar's frontier position —
+`std::out_of_range`, uncaught, core dump. Neither existing example
+family mixes a scalar into a family event, so it had never fired.
+Fixed by the closed-support gate (C5): such a family is
+index-invariant in the scalar, not index-periodic — detected on the
+representative instance, routed to the enumerated sum with its own
+note. Hardened separately: `run_file` now converts any escaped
+internal exception into a named diagnostic and exit 3.
 
-`ta_tb_parity.tsv`: families (clients, clients-bug, ring × sizes
-{2,3,5,8}) + two rand grids × 100 seeds each. **212 rows: 56 holds,
-156 violation; 212/212 agree with `mono`; 56/56 certificates pass
-`hsc-certcheck`; 0 timeouts.** Every violation witness refires
-concretely (the driver hard-fails otherwise; 0 such failures).
+**F4 — the first teacher-cost data** (new columns, all tables): the
+`ns_search/replay/refine` split makes the paper's economics visible.
+Ring, interned: refine is **55–56 µs at every N from 16 to 64** —
+flat, the per-behavior budget as wall time. Clients at K=64: refine
+is 3.2 s and 99.9 % of the run (the L\* rebuild of the K+2-class
+server contract — the paper's §8 overhead pole), while the entire
+symbolic + explicit parity pass takes 35 ms. Where the teacher lives
+is now a measured column, not a narrative.
 
-## T-B — budget and the emergent cone (O3 as data)
+## T-A — parity and budget
 
-Over all 212 rows, **counterexamples ≤ budget everywhere** (0
-violations of the T3 bound). Cone on the 48 rand `holds` rows
-(distinct-leaf entries): **71 chaotic / 6 intermediate / 81 exact** —
-about 45 % of entries are never probed by the property at all, and
-the loop leaves them at the free rung. Abstract states walked on
-those rows total 80 vs 95 for `mono` — at these model sizes the two
-walks are comparable; the separation argument is T-C.
+`ta_parity.tsv`: clients, clients-bug, ring at sizes {2,3,5,8} —
+12 rows: 8 holds, 4 violation; **12/12 agree** across the triangle
+(cegar vs `reach`+`select` vs `xreach`); **8/8 certificates pass
+`certcheck` in-sweep; 0 timeouts; cex ≤ budget everywhere.**
+Violations bind their validated bad state (the driver prints it
+re-runnably).
 
 ## T-C — symmetry scaling
 
-`tc_scaling.tsv`, clients/ring × n ∈ {2..64} × intern {on, off}.
+`tc_scaling.tsv`, clients(K)/ring(N), sizes {2,4,8,16,32,64},
+interning on/off:
 
-* **ring is the advertised phenomenon**: with interning, rounds = 3
-  and counterexamples = 4 at *every* N from 2 to 64 (one shared
-  station entry + station 0); with interning off, rounds = N+1 and
-  counterexamples = 2N. Refinement effort is size-independent
-  exactly when the symmetry is shared; the verdict never changes
-  (ablation confirms policy-independence of T1–T3).
-* **clients prices the promise honestly** (paper §7): the server is
-  the property's enforcer and its exact contract has 2K+2 classes,
-  so refinement rebuilds it wholesale — cex = K+1, and walltime grows
-  to 4.2 s at K=64 while `mono` stays at milliseconds (the concrete
-  product is *small*: 2K+1 states — clients are tightly coupled to
-  the server, so there is nothing for abstraction to skip). The loop
-  wins when the property is local, ties-with-overhead when it is
-  not; this family is the "not".
-* |Inv| = mono states on both families at every size: the final
+* **ring is the advertised phenomenon**: interned — rounds 3,
+  counterexamples 4, refine ~55 µs at *every* N (two entries: station
+  0 and the shared rest); interning off — rounds N+1,
+  counterexamples 2N, refine growing superlinearly. The verdict and
+  |Inv| = 2N never change (the ablation confirms policy-independence
+  of T1–T3).
+* **clients prices the promise honestly**: the server is the
+  property's enforcer, its exact contract rebuilds wholesale — cex =
+  K+1, wall 3.3 s at K=64 vs 35 ms for the parity pass on a 65-state
+  concrete space. The loop wins when the property is local; this
+  family is the "not", kept in the table for exactly that reason.
+* |Inv| = concrete states on both families at every size: the final
   abstraction is exactly as coarse as the property allows.
 
-## T-D — policy knobs
+## T-B / T-D — retired pending real corpora
 
-`td_policies.tsv`, 50 seeds × {all, first, cheapest} × jump-exact
-{off, on}: **no separation** — only 7/300 runs refine at all (the
-rand corpus is violation-dominated; witnesses are real on round 1),
-so all configurations coincide within noise (~2.4 ms/run). The knobs
-need a refinement-heavy corpus to be measurable; question returned
-to Theory (spec §10 revision).
+The cone measurement (T-B) and the policy knobs (T-D) were previously
+reported on a random corpus; those numbers are withdrawn as evidence
+— random models are a correctness fuzzer (now in-process in the test
+suite), not a benchmark. The cone needs properties that ignore most
+of a model (the CAC08 and DVE corpora below); the knobs need the
+refinement-heavy corpus (Theory queue item).
 
 ## CAC08 corpus — acquisition (supersedes the reconstruction spec)
 
@@ -132,7 +143,7 @@ Findings that bear on the evaluation, before any modelling:
    tarball never held it. Subjects 8 and 17 therefore need either a
    hand-translation from QRE or dropping from the table, with the gap
    stated. **Theory question.**
-2. **The spec's §5 prediction is already visible in the artifact.** In
+2. **The spec's prediction is already visible in the artifact.** In
    Chiron single the dispatcher runs 38 / 422 / 2 021 / **42 071**
    states at 2 / 3 / 4 / 5 artists while the artists stay at **8–10
    states each** — server superexponential in k, clients flat, exactly
@@ -151,15 +162,17 @@ Findings that bear on the evaluation, before any modelling:
    research/non-profit, notice must appear in all copies — honoured).
    The other four ship no notice at all. See the README.
 
-Not started: any translation into `.cts`. Next engineering step is an
-FSP reader for the parameterized subset (Gas Station / Peterson / Relay
-/ Smokers) plus the flattened subset (Chiron).
+Not started: the translation. Next engineering step is an FSP reader
+emitting **separable-fragment `.hsc`** (model-only files, drivers via
+`(input …)`) for the parameterized subset (Gas Station / Peterson /
+Relay / Smokers), then Chiron's pre-flattened files. The teacher-cost
+split the CAC08 comparison needs is already in the loop's output (F4).
 
 ## Deviations from spec
 
-* `run --tsv` column order is verdict-first (spec §10 lists model
-  first; the sweep script prepends model columns, net format as
-  specified).
-* The in-process test for O5 checks the emitter's shape only; the
-  mutation battery runs out-of-process in the sweep (spec allows
-  either placement).
+* Spec §5.7's builder oracle (O6) names `mono` vs `xreach`; the sweep
+  realizes it as the cegar-vs-symbolic-vs-explicit triangle (three
+  implementations rather than two; `mono` parity runs in-process in
+  the test suite). Same end, stronger witnesses.
+* The bridge's letter induction is exercised by the families and the
+  unit fixtures, not fuzzed — reported as the known gap, spec §9.
