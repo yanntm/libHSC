@@ -186,10 +186,39 @@ Findings:
    (smokers5: 6, smokers6: 3 of the 8) — the 91 count is the
    artifact's own coverage, not a translation loss.
 
-The teacher-cost split the CAC08 comparison needs is in the loop's
-output (F3). Next: sweep the 91 drivers into a TSV (15 s cap, a
-timeout is a row), pin the `expect` lines from verified rows, then
-pull larger Chiron sizes from the tarballs as the tables demand.
+### The campaign — swept, pinned
+
+`cac08_verdicts.tsv` (by `cac08_sweep.sh`: cegar / symbolic / explicit
+/ certcheck, each phase capped at 15 s independently) covers all 91
+subjects; `pin_expects.sh` wrote the verified expectations back into
+the drivers.
+
+* **61/91 full triangle**: every one **holds**, cegar and symbolic
+  agree, certificate checks — zero violations, zero disagreements,
+  exactly CAC08's own verdicts.
+* **14 cegar-only timeouts** (symbolic and explicit still fill their
+  columns): Gas `correct_change` from c002 up (165 states!) and all
+  four Gas properties from c005, relay_09 (8 929 states), three of
+  smokers5 and all three smokers6 subjects — smokers6 is **494
+  concrete states**, so these are refinement-economics failures, not
+  state-space size. The
+  pattern is consistent: the monitor watching the *big* leaf's labels
+  (operator, table) stalls the loop; properties over the small leaves
+  verify in the same models in seconds. **Theory-relevant data.**
+* **4 rows where symbolic also times out but explicit finishes**: Gas
+  c006 (xreach walks 186 381 states in ~5 s while `reach` exceeds
+  15 s).
+* **12 rows where all engines time out**: Gas c007–c009, the corpus's
+  scaling wall under a 15 s cap.
+* Scaling reads directly off the ok rows: relay resolves in 2 rounds
+  at every size with cex growing linearly (8 → 74) and |Inv| = the
+  concrete count; smokers' `put_take`/`table_lock` keep 2 rounds with
+  the table leaf climbing its rung ladder (rungs 2–5/0/2), while the
+  conjunction-shaped properties pay 4–7 rounds.
+
+Chiron at 2 artists is entirely in the 61 (both variants, all eight
+properties). Larger Chiron sizes come from the tarballs when a table
+demands them.
 
 ## Deviations from spec
 
