@@ -432,8 +432,10 @@ step refers to how `K` was produced. ∎
 
 **Remark 5.2 (the checker is the trusted core).** Two kinds of walk
 and a closure scan; no learner, no search heuristics, a few dozen
-lines — implemented as a self-contained program sharing no code with
-the loop, so a bug in the loop cannot certify itself. A verification
+lines — implemented as a self-contained unit that shares only the
+input parser with the loop, none of its logic (no search, no
+learner, no canonicalizer), so a bug in the loop cannot certify
+itself. A verification
 of a large model certifies as n independent leaf lemmas plus one
 small induction — the assume-guarantee shape, as data, laid out on
 the tree.
