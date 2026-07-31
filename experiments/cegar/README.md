@@ -25,6 +25,17 @@ status rows (15 s per run), never as discarded rows.
   pays ~2N; clients' server contract grows with K by design (the
   paper's §8 overhead pole).
 
+* `cac08_verdicts.tsv` — the CAC08 corpus (`examples/cac08/hsc/`, one
+  row per translated subject), produced by `./cac08_sweep.sh BUILDDIR`.
+  Same triangle, but the four phases (cegar / symbolic / explicit /
+  certcheck) are capped at 15 s **independently**, so one slow engine
+  never blanks another's column; `status` names the phases that timed
+  out. The sweep is resumable (done subjects are skipped; a lock
+  refuses concurrent runs) — run it repeatedly until it prints the
+  final `CAC08 ->` line. Verified rows are pinned into the drivers by
+  `examples/cac08/pin_expects.sh`, which reads this TSV; regeneration
+  order is translate_all → cac08_sweep → pin_expects.
+
 There is no random corpus here: random models are a correctness
 fuzzer and live in `tests/cegar/` (in-process, against the `mono`
 oracle). T-D (policy knobs) is deferred until the refinement-heavy
