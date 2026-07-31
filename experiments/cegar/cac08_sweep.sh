@@ -13,12 +13,16 @@
 # done, and is appended to the TSV at the same time. The sweep exits on
 # its own once the time budget is spent (default 480 s) — run it again
 # to continue: completed subjects are skipped. It never needs killing.
+# Variant knobs: CORPUS_DIR (default examples/cac08/hsc), OUT_TSV
+# (default cac08_verdicts.tsv), CHAIN — rewrite directives inserted into
+# every probe after its (input …) line, e.g. '(hotbit 17 100000)'.
 set -u
 BUILD=${1:-../../build}
 BUDGET_S=${2:-480}
 HERE=$(cd "$(dirname "$0")" && pwd)
 HSC=$(cd "$HERE" && cd "$BUILD" && pwd)/tools/hsc
-CORPUS=$(cd "$HERE/../../examples/cac08/hsc" && pwd)
+CORPUS=$(cd "$HERE/../../examples/cac08/${CORPUS_DIR:-hsc}" && pwd)
+CHAIN=${CHAIN:-}
 cd "$HERE"
 TMP=$(mktemp -d "$HERE/tmp.XXXX")
 trap 'rm -rf "$TMP"' EXIT
@@ -32,30 +36,38 @@ row() { # row SYSTEM SUBJECT MODELPATH DRIVERPATH
   E=$(sed -n 's/.*(== mon \([0-9]*\)).*/\1/p' "$driver")
   local drv=$TMP/drv.hsc sym=$TMP/sym.hsc xpl=$TMP/xpl.hsc chk=$TMP/chk.hsc
   local proof=$TMP/proof.hsc c_out s_out x_out
-  printf '(input %s)\n(cegar v (== mon %s))\n(certificate %s)\n' \
-    "$model" "$E" "$proof" > "$drv"
-  printf '(input %s)\n(reach R)\n(count R)\n(select B R (== mon %s))\n(count B)\n' \
-    "$model" "$E" > "$sym"
-  printf '(input %s)\n(xreach x)\n' "$model" > "$xpl"
-  printf '(input %s)\n(certcheck %s)\n' "$model" "$proof" > "$chk"
+  printf '(input %s)\n%s\n(cegar v (== mon %s))\n(certificate %s)\n' \
+    "$model" "$CHAIN" "$E" "$proof" > "$drv"
+  printf '(input %s)\n%s\n(reach R)\n(count R)\n(select B R (== mon %s))\n(count B)\n' \
+    "$model" "$CHAIN" "$E" > "$sym"
+  printf '(input %s)\n%s\n(xreach x)\n' "$model" "$CHAIN" > "$xpl"
+  printf '(input %s)\n%s\n(certcheck %s)\n' "$model" "$CHAIN" "$proof" > "$chk"
 
-  local t0 late="" wall_c wall_s wall_x
+  # Per phase: ok, timeout (exit 124 from timeout(1)), or fail (any other
+  # nonzero — a refusal or crash, reported as such, never as a timeout).
+  local t0 rc wall_c wall_s wall_x c_st=ok s_st=ok x_st=ok
   rm -f "$proof"
   t0=$(now_ms)
-  c_out=$(timeout 15 "$HSC" "$drv" 2>/dev/null) || late="cegar"
+  c_out=$(timeout 15 "$HSC" "$drv" 2>/dev/null); rc=$?
+  [ $rc -ne 0 ] && { c_st=fail; [ $rc -eq 124 ] && c_st=timeout; }
   wall_c=$(( $(now_ms) - t0 ))
   t0=$(now_ms)
-  s_out=$(timeout 15 "$HSC" "$sym" 2>/dev/null) || late="$late sym"
+  s_out=$(timeout 15 "$HSC" "$sym" 2>/dev/null); rc=$?
+  [ $rc -ne 0 ] && { s_st=fail; [ $rc -eq 124 ] && s_st=timeout; }
   wall_s=$(( $(now_ms) - t0 ))
   t0=$(now_ms)
-  x_out=$(timeout 15 "$HSC" "$xpl" 2>/dev/null) || late="$late xpl"
+  x_out=$(timeout 15 "$HSC" "$xpl" 2>/dev/null); rc=$?
+  [ $rc -ne 0 ] && { x_st=fail; [ $rc -eq 124 ] && x_st=timeout; }
   wall_x=$(( $(now_ms) - t0 ))
 
-  local status=ok
-  [ -n "$late" ] && status="timeout:$(echo $late | tr ' ' '+')"
+  local status=ok bad=""
+  [ $c_st != ok ] && bad="cegar_$c_st"
+  [ $s_st != ok ] && bad="$bad sym_$s_st"
+  [ $x_st != ok ] && bad="$bad xpl_$x_st"
+  [ -n "$bad" ] && status=$(echo $bad | tr ' ' '+')
 
   local verdict=- rounds=- cex=- budget=- rungs=- inv=- abs=- ns=- wl=-
-  case "$late" in *cegar*) ;; *)
+  case "$c_st" in timeout|fail) ;; *)
     local fields
     fields=$(echo "$c_out" | awk '
       $2=="cegar" { split($7, cb, "/");
@@ -65,7 +77,7 @@ row() { # row SYSTEM SUBJECT MODELPATH DRIVERPATH
     read -r verdict rounds cex budget rungs inv abs ns wl <<< "$fields"
   ;; esac
   local sym_states=- sym_bad=- sym_verdict=- agree=-
-  case "$late" in *sym*) ;; *)
+  case "$s_st" in timeout|fail) ;; *)
     sym_states=$(echo "$s_out" | awk '$1=="R" && $2=="count" {print $3}')
     sym_bad=$(echo "$s_out" | awk '$1=="B" && $2=="count" {print $3}')
     sym_verdict=violation
@@ -74,7 +86,7 @@ row() { # row SYSTEM SUBJECT MODELPATH DRIVERPATH
       agree=$([ "$verdict" = "$sym_verdict" ] && echo yes || echo NO)
   ;; esac
   local x_states=-
-  case "$late" in *xpl*) ;; *)
+  case "$x_st" in timeout|fail) ;; *)
     x_states=$(echo "$x_out" | awk '$2=="xreach" {print $3}')
   ;; esac
   local cc=-
@@ -87,7 +99,7 @@ row() { # row SYSTEM SUBJECT MODELPATH DRIVERPATH
     "$sym_states" "$x_states" "$ns" "$wall_c/$wall_s/$wall_x"
 }
 
-OUT=cac08_verdicts.tsv
+OUT=${OUT_TSV:-cac08_verdicts.tsv}
 [ -f "$OUT" ] || printf 'system\tsubject\tstatus\tverdict\tsym_verdict\tagree\tcertcheck\trounds\tcex\tbudget\trungs_c/i/e\tinv\tabs_states\twitness_len\tsym_states\txreach_states\tns_search/replay/refine\twall_ms_cegar/sym/xpl\n' > "$OUT"
 for model in "$CORPUS"/*/*_model.hsc; do
   system=$(basename "$(dirname "$model")")
