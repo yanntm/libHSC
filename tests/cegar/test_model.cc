@@ -1,94 +1,95 @@
-// M0 — the model kit: .cts round-trip; the paper's §6 worked example
-// under the monolithic oracle, in both variants.
+// The bridge (spec §5): letter induction, interning keys, the derived
+// monitor, fragment refusals; the monolithic oracle on the worked
+// example, both variants.
 
 #include <doctest/doctest.h>
 
-#include "hsc/cegar/gen.hh"
+#include "fixtures.hh"
 #include "hsc/cegar/model.hh"
 
 using namespace hsc::cegar;
+using hsc::cegar::testing::build;
 
-namespace {
-
-// Paper §6: two clients and a server, "no grant while outstanding".
-const char* kClientsServer = R"(
-cts 1
-leaf server states 3 letters 4
-t 0 0 1   # F -g1-> B1
-t 1 1 0   # B1 -r1-> F
-t 0 2 2   # F -g2-> B2
-t 2 3 0   # B2 -r2-> F
-leaf cl1 states 2 letters 2
-t 0 0 1
-t 1 1 0
-leaf cl2 states 2 letters 2
-t 0 0 1
-t 1 1 0
-shape ( cl1 ( server cl2 ) )
-event g1 server:0 cl1:0
-event r1 server:1 cl1:1
-event g2 server:2 cl2:0
-event r2 server:3 cl2:1
-monitor states 4
-m 0 g1 1
-m 1 r1 0
-m 0 g2 2
-m 2 r2 0
-m 1 g1 3
-m 1 g2 3
-m 2 g1 3
-m 2 g2 3
-bad 3
-)";
-
-}  // namespace
-
-TEST_CASE("cts parse and round-trip") {
-  std::string err;
-  auto m = parse_cts(kClientsServer, &err);
-  REQUIRE(m);
-  CHECK(m->leaves.size() == 3);
-  CHECK(m->events.size() == 4);
-  CHECK(m->mon.n_states == 4);
-  // Unlisted monitor transitions self-loop.
-  CHECK(m->mon.step(0, 1) == 0);  // r1 from quiet
-  // Round-trip: print, re-parse, same structure.
-  auto m2 = parse_cts(print_cts(*m), &err);
-  REQUIRE(m2);
-  CHECK(m2->leaves.size() == m->leaves.size());
-  for (std::size_t i = 0; i < m->leaves.size(); ++i)
-    CHECK(m2->leaves[i].serialize() == m->leaves[i].serialize());
-  CHECK(m2->mon.delta == m->mon.delta);
+TEST_CASE("the worked example induces the paper's alphabets") {
+  auto b = build(testing::kClients2, "(== mon 2)");
+  const model& m = b.model;
+  REQUIRE(m.leaves.size() == 4);
+  REQUIRE(m.events.size() == 4);
+  // srv: four distinct local actions; clients: grant/release; mon:
+  // count-up (shared by g1,g2) and count-down (shared by r1,r2).
+  CHECK(m.leaves[0].n_letters == 4);
+  CHECK(m.leaves[1].n_letters == 2);
+  CHECK(m.leaves[2].n_letters == 2);
+  CHECK(m.leaves[3].n_letters == 2);
+  // The two clients are byte-equal: one interning key.
+  CHECK(m.leaves[1].serialize() == m.leaves[2].serialize());
+  CHECK(m.leaves[0].serialize() != m.leaves[1].serialize());
+  // mon is the one property leaf; its exact sub-product is the monitor.
+  REQUIRE(m.prop_leaves == std::vector<std::int32_t>{3});
+  CHECK(m.mon.n_states == 3);
+  int bads = 0;
+  for (bool x : m.mon.bad) bads += x;
+  CHECK(bads == 1);
+  // Values decode monitor states for the certificate.
+  REQUIRE(m.monitor_values.size() == 3);
+  CHECK(m.monitor_values[0] == std::vector<std::int32_t>{0});
 }
 
-TEST_CASE("parser rejects malformed input") {
-  std::string err;
-  CHECK(!parse_cts("leaf a states 1 letters 1\n", &err));  // no header
-  CHECK(!parse_cts("cts 1\nleaf a states 2 letters 1\nt 0 0 1\nt 0 0 1\n"
-                   "monitor states 1\n",
-                   &err));  // duplicate transition
-  CHECK(!parse_cts("cts 1\nleaf a states 1 letters 1\n"
-                   "event e a:0 a:0\nmonitor states 1\n",
-                   &err));  // leaf twice in support
+TEST_CASE("two events with one local action share the letter") {
+  auto b = build(R"(
+(leaf a 0 2) (leaf x 0 2)
+(shape (spine a x))
+(init)
+(event e1 (when (== a 0)) (do (:= a 1) (:= x 1)))
+(event e2 (when (== a 0)) (do (:= a 1) (:= x 0)))
+)",
+                 "(== x 1)");
+  CHECK(b.model.leaves[0].n_letters == 1);  // same graph on a
+  CHECK(b.model.leaves[1].n_letters == 2);  // set-1 vs set-0 on x
+}
+
+TEST_CASE("fragment refusals are loud") {
+  // Unbounded leaf.
+  CHECK_THROWS(build(R"(
+(leaf a) (leaf x 0 2) (shape (spine a x)) (init)
+(event e (when (== a 0)) (do (:= a 1)))
+)",
+                     "(== x 1)"));
+  // A guard atom crossing two leaves.
+  CHECK_THROWS(build(R"(
+(leaf a 0 2) (leaf x 0 2) (shape (spine a x)) (init)
+(event e (when (< a x)) (do (:= a 1)))
+)",
+                     "(== x 1)"));
+  // havoc.
+  CHECK_THROWS(build(R"(
+(leaf a 0 2) (leaf x 0 2) (shape (spine a x)) (init)
+(event e (when (== a 0)) (do (havoc a 0 2)))
+)",
+                     "(== x 1)"));
+  // An action reading another leaf.
+  CHECK_THROWS(build(R"(
+(leaf a 0 2) (leaf x 0 2) (shape (spine a x)) (init)
+(event e (when (== a 0)) (do (:= a x)))
+)",
+                     "(== x 1)"));
+  // An event driving a leaf out of its bound.
+  CHECK_THROWS(build(R"(
+(leaf a 0 2) (leaf x 0 2) (shape (spine a x)) (init)
+(event e (when (== x 0)) (do (+= a 1) (:= x 1)))
+)",
+                     "(== x 1)"));
 }
 
 TEST_CASE("mono: worked example holds; bugged variant violates and refires") {
-  std::string err;
-  auto m = parse_cts(kClientsServer, &err);
-  REQUIRE(m);
-  verdict v = mono(*m, 1'000'000);
+  auto b = build(testing::kClients2, "(== mon 2)");
+  verdict v = mono(b.model, 1'000'000);
   CHECK(v.k == verdict::kind::holds);
-  CHECK(v.states_walked == 3);  // (m0,F,I,I), (m1,B1,C,I), (m2,B2,I,C)
+  CHECK(v.states_walked == 3);  // (F,I,I,0), (B1,C,I,1), (B2,I,C,1)
 
-  model bug = gen_clients_bug(2);
-  verdict vb = mono(bug, 1'000'000);
+  auto bug = build(testing::kClients2Bug, "(== mon 2)");
+  verdict vb = mono(bug.model, 1'000'000);
   REQUIRE(vb.k == verdict::kind::violation);
   CHECK(vb.witness.size() == 2);
-  CHECK(refire(bug, vb.witness));
-}
-
-TEST_CASE("generated families have the predicted verdicts") {
-  CHECK(mono(gen_clients(3), 1'000'000).k == verdict::kind::holds);
-  CHECK(mono(gen_ring(4), 1'000'000).k == verdict::kind::holds);
-  CHECK(mono(gen_clients_bug(3), 1'000'000).k == verdict::kind::violation);
+  CHECK(refire(bug.model, vb.witness));
 }

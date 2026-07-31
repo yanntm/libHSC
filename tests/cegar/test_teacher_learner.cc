@@ -4,7 +4,7 @@
 #include <doctest/doctest.h>
 
 #include "hsc/cegar/certify.hh"
-#include "hsc/cegar/gen.hh"
+#include "rand_model.hh"
 #include "hsc/cegar/learner.hh"
 
 using namespace hsc::cegar;
@@ -105,7 +105,7 @@ TEST_CASE("L* converges to the exact rung within budget") {
 
 TEST_CASE("L* exactness on a random leaf population") {
   for (std::uint64_t seed = 1; seed <= 20; ++seed) {
-    model m = gen_rand(1, 6, 3, 1, 1.0, seed);
+    model m = testing::rand_model(1, 6, 3, 1, 1.0, seed);
     const lts& l = m.leaves[0];
     classifier h = learn_exact(l);
     // Language equality, both directions, by the two product walks.
