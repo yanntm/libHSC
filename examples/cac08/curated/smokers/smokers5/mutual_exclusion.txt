@@ -1,0 +1,3 @@
+./smokers/smokers5/mutual_exclusion.lts
+TASK_ASSEMBLER_1
+TASK_SUPPLIER

@@ -1,0 +1,4 @@
+./peterson/peterson2.lts
+TASK_CLIENT_1
+TASK_CLIENT_2
+TASK_IN_STAGE

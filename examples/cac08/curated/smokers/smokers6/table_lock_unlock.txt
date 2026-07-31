@@ -1,0 +1,3 @@
+./smokers/smokers6/table_lock_unlock.lts
+TASK_SUPPLIER
+TASK_TABLE

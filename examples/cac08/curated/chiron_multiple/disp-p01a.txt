@@ -1,0 +1,7 @@
+chiron/multiple/02021/disp-p01a.lts
+TASK_disp_a1
+TASK_disp_a2
+TASK_disp_adt_wrapper
+TASK_disp_artist_manager
+TASK_disp_client_init
+TASK_disp_dispatcher

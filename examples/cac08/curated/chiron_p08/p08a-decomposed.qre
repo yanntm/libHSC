@@ -1,0 +1,22 @@
+-- Property 8: 
+--
+-- REQUIREMENT: Size of the linked list used to store IDs of artists
+-- registered for an event never exceeds 2.
+--
+-- p08a:
+--
+-- REFINEMENT:  Size of the linked list used to store IDs of artists
+-- registered for event1 never exceeds 2.
+-- 
+-- Pattern: None
+--
+-- NOTE: Requires Ada code to be modified to check for this
+-- assertion
+for events {{e1_list_out_of_bounds}}
+
+show no executions satisfy
+
+.*;
+{e1_list_out_of_bounds};
+.*
+

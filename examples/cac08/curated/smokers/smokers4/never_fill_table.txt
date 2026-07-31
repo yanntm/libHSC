@@ -1,0 +1,3 @@
+./smokers/smokers4/never_fill_table.lts
+TASK_SUPPLIER
+TASK_TABLE

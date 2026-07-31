@@ -1,0 +1,3 @@
+./gas_station/gas_p2_c008/gas-mutual-exclusion.lts
+TASK_operator
+TASK_pump1

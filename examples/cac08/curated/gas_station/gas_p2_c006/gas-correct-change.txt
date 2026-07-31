@@ -1,0 +1,5 @@
+./gas_station/gas_p2_c006/gas-correct-change.lts
+TASK_operator
+TASK_customer1
+TASK_pump1
+TASK_pump2

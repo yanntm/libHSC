@@ -1,0 +1,97 @@
+// Generated on Fri Aug  5 14:12:54 2005
+// Smokers:  2
+
+const SMOKERS = 2
+
+range CLIENT_RANGE = 0..SMOKERS
+range SMOKER_RANGE = 1..SMOKERS
+
+minimal
+TASK_TABLE = STATE[0][0],
+  STATE[i:0..1<<SMOKERS][locked:0..1] =
+    ( when((locked == 1) && (((i>>(1 - 1)) % 2) == 0)) client[c:CLIENT_RANGE].put[1] -> STATE[i + (1<<(1-1))][locked]
+    | when((locked == 1) && (((i>>(1 - 1)) % 2) == 0)) client[c:CLIENT_RANGE].does_not_have[1] -> STATE[i][locked]
+    | when((locked == 1) && (((i>>(1 - 1)) % 2) == 1)) client[c:CLIENT_RANGE].get[1] -> STATE[i - (1<<(1-1))][locked]
+    | when((locked == 1) && (((i>>(1 - 1)) % 2) == 1)) client[c:CLIENT_RANGE].has[1] -> STATE[i][locked]
+
+    | when((locked == 1) && (((i>>(2 - 1)) % 2) == 0)) client[c:CLIENT_RANGE].put[2] -> STATE[i + (1<<(2-1))][locked]
+    | when((locked == 1) && (((i>>(2 - 1)) % 2) == 0)) client[c:CLIENT_RANGE].does_not_have[2] -> STATE[i][locked]
+    | when((locked == 1) && (((i>>(2 - 1)) % 2) == 1)) client[c:CLIENT_RANGE].get[2] -> STATE[i - (1<<(2-1))][locked]
+    | when((locked == 1) && (((i>>(2 - 1)) % 2) == 1)) client[c:CLIENT_RANGE].has[2] -> STATE[i][locked]
+
+    | when(locked == 1) client[CLIENT_RANGE].table_unlock -> STATE[i][0]
+    | when(locked == 0) client[CLIENT_RANGE].table_lock   -> STATE[i][1]
+    ).
+
+minimal
+TASK_SUPPLIER = START,
+  START =
+    ( client[0].table_lock -> PUTTING_ITEMS[1][1]
+    | client[0].table_lock -> PUTTING_ITEMS[2][1]
+    ),
+
+  PUTTING_ITEMS[skip:SMOKER_RANGE][current:SMOKER_RANGE] =
+    ( when ((current == skip) && (current == SMOKERS)) internal               -> DONE
+    | when ((current == skip) && (current != SMOKERS)) internal               -> PUTTING_ITEMS[skip][current + 1]
+    | when ((current != skip) && (current == SMOKERS)) client[0].put[current] -> DONE
+    | when ((current != skip) && (current != SMOKERS)) client[0].put[current] -> PUTTING_ITEMS[skip][current + 1]
+    ),
+
+  DONE = (client[0].put_items -> client[0].table_unlock -> client[c:SMOKER_RANGE].done_assembling -> START)
+  + {client[0].{{does_not_have, get, has, put}[1..SMOKERS], {table_lock, table_unlock}}} \ {internal}.
+
+minimal
+TASK_ASSEMBLER_1 = START,
+   START = (client[1].table_lock -> LOOKING[1]),
+
+   LOOKING[current:SMOKER_RANGE] =
+      ( when ((current == 1) && (current == SMOKERS)) internal -> TAKING_ITEMS[1]
+      | when ((current == 1) && (current != SMOKERS)) internal -> LOOKING[current + 1]
+      | when ((current != 1) && (current == SMOKERS)) client[1].has[current] -> TAKING_ITEMS[1]
+      | when ((current != 1) && (current == SMOKERS)) client[1].does_not_have[current] -> client[1].table_unlock -> START
+      | when ((current != 1) && (current != SMOKERS)) client[1].has[current] -> LOOKING[current + 1]
+      | when ((current != 1) && (current != SMOKERS)) client[1].does_not_have[current] -> client[1].table_unlock -> START
+      ),
+
+   TAKING_ITEMS[current:SMOKER_RANGE] = 
+      ( when ((current == 1) && (current == SMOKERS)) internal               -> HAVE_ITEMS
+      | when ((current == 1) && (current != SMOKERS)) internal               -> TAKING_ITEMS[current + 1]
+      | when ((current != 1) && (current == SMOKERS)) client[1].get[current] -> HAVE_ITEMS
+      | when ((current != 1) && (current != SMOKERS)) client[1].get[current] -> TAKING_ITEMS[current + 1]
+      ),
+
+   HAVE_ITEMS = (client[1].table_unlock -> client[1].start_assembling -> client[1].stop_assembling ->
+                 client[1].done_assembling -> START)
+
+    + {client[1].{{does_not_have, get, has, put}[1..SMOKERS], {table_lock, table_unlock}}} \ {internal}.
+
+minimal
+TASK_ASSEMBLER_2 = START,
+   START = (client[2].table_lock -> LOOKING[1]),
+
+   LOOKING[current:SMOKER_RANGE] =
+      ( when ((current == 2) && (current == SMOKERS)) internal -> TAKING_ITEMS[1]
+      | when ((current == 2) && (current != SMOKERS)) internal -> LOOKING[current + 1]
+      | when ((current != 2) && (current == SMOKERS)) client[2].has[current] -> TAKING_ITEMS[1]
+      | when ((current != 2) && (current == SMOKERS)) client[2].does_not_have[current] -> client[2].table_unlock -> START
+      | when ((current != 2) && (current != SMOKERS)) client[2].has[current] -> LOOKING[current + 1]
+      | when ((current != 2) && (current != SMOKERS)) client[2].does_not_have[current] -> client[2].table_unlock -> START
+      ),
+
+   TAKING_ITEMS[current:SMOKER_RANGE] = 
+      ( when ((current == 2) && (current == SMOKERS)) internal               -> HAVE_ITEMS
+      | when ((current == 2) && (current != SMOKERS)) internal               -> TAKING_ITEMS[current + 1]
+      | when ((current != 2) && (current == SMOKERS)) client[2].get[current] -> HAVE_ITEMS
+      | when ((current != 2) && (current != SMOKERS)) client[2].get[current] -> TAKING_ITEMS[current + 1]
+      ),
+
+   HAVE_ITEMS = (client[2].table_unlock -> client[2].start_assembling -> client[2].stop_assembling ->
+                 client[2].done_assembling -> START)
+
+    + {client[2].{{does_not_have, get, has, put}[1..SMOKERS], {table_lock, table_unlock}}} \ {internal}.
+
+
+property
+PROPERTY_MUTUAL_EXCLUSION = START,
+  START = (client[i:SMOKER_RANGE].start_assembling -> client[j:SMOKER_RANGE].stop_assembling -> START).
+

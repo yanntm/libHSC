@@ -1,0 +1,131 @@
+TASK_IN_STAGE = Q0,
+	Q0	= (in_stage[1..2].{get, put}[1..2][0] -> Q0
+		  |in_stage[1..2].put[2][2] -> Q1
+		  |in_stage[1..2].put[2][1] -> Q6
+		  |in_stage[1..2].put[1][2] -> Q7
+		  |in_stage[1..2].put[1][1] -> Q8),
+	Q1	= (in_stage[1..2].put[2][0] -> Q0
+		  |in_stage[1..2].{get, put}.{[1][0], [2][2]} -> Q1
+		  |in_stage[1..2].put[1][2] -> Q2
+		  |in_stage[1..2].put[1][1] -> Q5
+		  |in_stage[1..2].put[2][1] -> Q6),
+	Q2	= (in_stage[1..2].put[1][0] -> Q1
+		  |in_stage[1..2].{get, put}[1..2][2] -> Q2
+		  |in_stage[1..2].put[2][1] -> Q3
+		  |in_stage[1..2].put[1][1] -> Q5
+		  |in_stage[1..2].put[2][0] -> Q7),
+	Q3	= (in_stage[1..2].put[2][2] -> Q2
+		  |in_stage[1..2].{get, put}.{[1][2], [2][1]} -> Q3
+		  |in_stage[1..2].put[1][1] -> Q4
+		  |in_stage[1..2].put[1][0] -> Q6
+		  |in_stage[1..2].put[2][0] -> Q7),
+	Q4	= (in_stage[1..2].put[1][2] -> Q3
+		  |in_stage[1..2].{get, put}[1..2][1] -> Q4
+		  |in_stage[1..2].put[2][2] -> Q5
+		  |in_stage[1..2].put[1][0] -> Q6
+		  |in_stage[1..2].put[2][0] -> Q8),
+	Q5	= (in_stage[1..2].put[1][0] -> Q1
+		  |in_stage[1..2].put[1][2] -> Q2
+		  |in_stage[1..2].put[2][1] -> Q4
+		  |in_stage[1..2].{get, put}.{[1][1], [2][2]} -> Q5
+		  |in_stage[1..2].put[2][0] -> Q8),
+	Q6	= (in_stage[1..2].put[2][0] -> Q0
+		  |in_stage[1..2].put[2][2] -> Q1
+		  |in_stage[1..2].put[1][2] -> Q3
+		  |in_stage[1..2].put[1][1] -> Q4
+		  |in_stage[1..2].{get, put}.{[1][0], [2][1]} -> Q6),
+	Q7	= (in_stage[1..2].put[1][0] -> Q0
+		  |in_stage[1..2].put[2][2] -> Q2
+		  |in_stage[1..2].put[2][1] -> Q3
+		  |in_stage[1..2].{get, put}.{[1][2], [2][0]} -> Q7
+		  |in_stage[1..2].put[1][1] -> Q8),
+	Q8	= (in_stage[1..2].put[1][0] -> Q0
+		  |in_stage[1..2].put[2][1] -> Q4
+		  |in_stage[1..2].put[2][2] -> Q5
+		  |in_stage[1..2].put[1][2] -> Q7
+		  |in_stage[1..2].{get, put}.{[1][1], [2][0]} -> Q8) + {in_stage[1..2].{get, put}[1..2][0..2]}.
+
+
+TASK_LAST_PROCESS = Q0,
+	Q0	= (last_process[1..2].{get, put}[1..2][0] -> Q0
+		  |last_process[1..2].put[2][2] -> Q1
+		  |last_process[1..2].put[2][1] -> Q6
+		  |last_process[1..2].put[1][2] -> Q7
+		  |last_process[1..2].put[1][1] -> Q8),
+	Q1	= (last_process[1..2].put[2][0] -> Q0
+		  |last_process[1..2].{get, put}.{[1][0], [2][2]} -> Q1
+		  |last_process[1..2].put[1][2] -> Q2
+		  |last_process[1..2].put[1][1] -> Q5
+		  |last_process[1..2].put[2][1] -> Q6),
+	Q2	= (last_process[1..2].put[1][0] -> Q1
+		  |last_process[1..2].{get, put}[1..2][2] -> Q2
+		  |last_process[1..2].put[2][1] -> Q3
+		  |last_process[1..2].put[1][1] -> Q5
+		  |last_process[1..2].put[2][0] -> Q7),
+	Q3	= (last_process[1..2].put[2][2] -> Q2
+		  |last_process[1..2].{get, put}.{[1][2], [2][1]} -> Q3
+		  |last_process[1..2].put[1][1] -> Q4
+		  |last_process[1..2].put[1][0] -> Q6
+		  |last_process[1..2].put[2][0] -> Q7),
+	Q4	= (last_process[1..2].put[1][2] -> Q3
+		  |last_process[1..2].{get, put}[1..2][1] -> Q4
+		  |last_process[1..2].put[2][2] -> Q5
+		  |last_process[1..2].put[1][0] -> Q6
+		  |last_process[1..2].put[2][0] -> Q8),
+	Q5	= (last_process[1..2].put[1][0] -> Q1
+		  |last_process[1..2].put[1][2] -> Q2
+		  |last_process[1..2].put[2][1] -> Q4
+		  |last_process[1..2].{get, put}.{[1][1], [2][2]} -> Q5
+		  |last_process[1..2].put[2][0] -> Q8),
+	Q6	= (last_process[1..2].put[2][0] -> Q0
+		  |last_process[1..2].put[2][2] -> Q1
+		  |last_process[1..2].put[1][2] -> Q3
+		  |last_process[1..2].put[1][1] -> Q4
+		  |last_process[1..2].{get, put}.{[1][0], [2][1]} -> Q6),
+	Q7	= (last_process[1..2].put[1][0] -> Q0
+		  |last_process[1..2].put[2][2] -> Q2
+		  |last_process[1..2].put[2][1] -> Q3
+		  |last_process[1..2].{get, put}.{[1][2], [2][0]} -> Q7
+		  |last_process[1..2].put[1][1] -> Q8),
+	Q8	= (last_process[1..2].put[1][0] -> Q0
+		  |last_process[1..2].put[2][1] -> Q4
+		  |last_process[1..2].put[2][2] -> Q5
+		  |last_process[1..2].put[1][2] -> Q7
+		  |last_process[1..2].{get, put}.{[1][1], [2][0]} -> Q8) + {last_process[1..2].{get, put}[1..2][0..2]}.
+
+
+
+property
+PROPERTY_MUTUAL_EXCLUSION = Q0,
+	Q0	= (exit_critical[1..2] -> ERROR
+		  |enter_critical[2] -> Q1
+		  |enter_critical[1] -> Q2),
+	Q1	= ({enter_critical[1..2], exit_critical[1]} -> ERROR
+		  |exit_critical[2] -> Q0),
+	Q2	= ({enter_critical[1..2], exit_critical[2]} -> ERROR
+		  |exit_critical[1] -> Q0).
+
+
+TASK_CLIENT_1 = Q0,
+	Q0	= (in_stage[1].put[1][1] -> Q1),
+	Q1	= (last_process[1].put[1][1] -> Q2),
+	Q2	= (in_stage[1].get[2][1..2] -> Q3
+		  |in_stage[1].get[2][0] -> Q4),
+	Q3	= (last_process[1].get[1][1] -> Q2
+		  |last_process[1].get[1].{[0], [2]} -> Q4),
+	Q4	= (enter_critical[1] -> Q5),
+	Q5	= (exit_critical[1] -> Q6),
+	Q6	= (in_stage[1].put[1][0] -> Q0) + {{{enter_critical, exit_critical}[1], {in_stage, last_process}[1].{get, put}[1..2][0..2]}}.
+
+
+
+TASK_CLIENT_2 = Q0,
+	Q0	= (in_stage[2].put[2][1] -> Q1),
+	Q1	= (last_process[2].put[1][2] -> Q2),
+	Q2	= (in_stage[2].get[1][1..2] -> Q3
+		  |in_stage[2].get[1][0] -> Q4),
+	Q3	= (last_process[2].get[1][2] -> Q2
+		  |last_process[2].get[1][0..1] -> Q4),
+	Q4	= (enter_critical[2] -> Q5),
+	Q5	= (exit_critical[2] -> Q6),
+	Q6	= (in_stage[2].put[2][0] -> Q0) + {{{enter_critical, exit_critical}[2], {in_stage, last_process}[2].{get, put}[1..2][0..2]}}.

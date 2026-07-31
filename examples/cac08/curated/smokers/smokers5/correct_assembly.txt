@@ -1,0 +1,3 @@
+./smokers/smokers5/correct_assembly.lts
+TASK_ASSEMBLER_1
+TASK_SUPPLIER

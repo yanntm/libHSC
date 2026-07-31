@@ -1,0 +1,3 @@
+./smokers/smokers2/put_correct_pieces_1.lts
+TASK_ASSEMBLER_1
+TASK_ASSEMBLER_2

@@ -1,0 +1,4 @@
+./relay/relay_03/relay-03.lts
+TASK_relay_a
+TASK_relay_t1
+TASK_relay_t2

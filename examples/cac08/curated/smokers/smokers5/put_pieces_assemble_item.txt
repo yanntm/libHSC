@@ -1,0 +1,3 @@
+./smokers/smokers5/put_pieces_assemble_item.lts
+TASK_ASSEMBLER_1
+TASK_SUPPLIER

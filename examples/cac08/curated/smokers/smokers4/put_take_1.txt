@@ -1,0 +1,3 @@
+./smokers/smokers4/put_take_1.lts
+TASK_ASSEMBLER_1
+TASK_TABLE

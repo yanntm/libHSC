@@ -1,0 +1,8 @@
+./relay/relay_07/relay-07.lts
+TASK_relay_a
+TASK_relay_t1
+TASK_relay_t2
+TASK_relay_t3
+TASK_relay_t4
+TASK_relay_t5
+TASK_relay_t6

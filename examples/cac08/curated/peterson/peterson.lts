@@ -1,0 +1,55 @@
+const CLIENTS = 3
+
+range CLIENT_RANGE=1..CLIENTS
+range VALUE_RANGE=0..CLIENTS
+range J_RANGE=1..CLIENTS
+range K_RANGE=1..(CLIENTS+1)
+
+
+ARRAY_SLOT(SLOT = 0) = STATE[0],
+  STATE[i:VALUE_RANGE] = 
+     ( array[client:CLIENT_RANGE].put[SLOT][value:VALUE_RANGE] -> STATE[value]
+     | array[client:CLIENT_RANGE].get[SLOT][i] -> STATE[i] ).
+
+||ARRAY = (forall[client:CLIENT_RANGE] ARRAY_SLOT(client) ).
+
+minimal
+||IN_STAGE = ARRAY / {in_stage/array}.
+
+minimal
+||LAST_PROCESS = ARRAY / {last_process/array}.
+
+minimal
+CLIENT(CLIENT_ID=1) = FOR_J_HEAD[1],
+  FOR_J_HEAD[j:J_RANGE] = 
+    ( when(j < CLIENTS) in_stage[CLIENT_ID].put[CLIENT_ID][j] -> last_process[CLIENT_ID].put[j][CLIENT_ID] -> FOR_K_HEAD[j][1] 
+    | when(j >= CLIENTS) internal -> ENTER_CRITICAL_REGION),
+
+  FOR_K_HEAD[j:J_RANGE][k:K_RANGE] =
+    ( when (k <= CLIENTS) internal -> START_TEST[j][k]
+    | when (k > CLIENTS) internal -> FOR_J_HEAD[j+1]),
+
+  START_TEST[j:J_RANGE][k:CLIENT_RANGE] =
+    ( when (k == CLIENT_ID) internal -> FOR_K_HEAD[j][k+1]
+    | when (k != CLIENT_ID) in_stage[CLIENT_ID].get[k][value:VALUE_RANGE] -> TEST_1[j][k][value] ),
+   
+  TEST_1[j:J_RANGE][k:K_RANGE][value:VALUE_RANGE] =
+    ( when(value >= j) last_process[CLIENT_ID].get[j][value2:VALUE_RANGE] -> TEST_2[j][k][value2]
+    | when(value <  j) internal -> FOR_K_HEAD[j][k+1]),
+
+  TEST_2[j:J_RANGE][k:K_RANGE][value2:VALUE_RANGE] =
+    ( when(value2 == CLIENT_ID) internal -> FOR_K_HEAD[j][k]
+    | when(value2 != CLIENT_ID) internal -> FOR_K_HEAD[j][k+1] ),
+
+  ENTER_CRITICAL_REGION =
+    ( enter_critical[CLIENT_ID] -> exit_critical[CLIENT_ID] ->
+      in_stage[CLIENT_ID].put[CLIENT_ID][0] -> CLIENT ) 
+  + {in_stage[CLIENT_ID].{get, put}[CLIENT_RANGE][VALUE_RANGE],  
+     last_process[CLIENT_ID].{get, put}[CLIENT_RANGE][VALUE_RANGE]} 
+  \ {internal}.
+
+
+property
+MUTUAL_EXCLUSION = (enter_critical[client:CLIENT_RANGE] -> exit_critical[client] -> MUTUAL_EXCLUSION).
+
+||PETERSON =  (forall[client:CLIENT_RANGE] CLIENT(client) || IN_STAGE || LAST_PROCESS || MUTUAL_EXCLUSION).

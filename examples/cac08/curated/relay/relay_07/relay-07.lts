@@ -1,0 +1,415 @@
+TASK_relay_a = STATE1,
+   STATE1 = (
+             rend_t0_a_get_0_t0_ -> STATE56
+          |  rend_t1_a_get_0_t1_ -> STATE55
+          |  rend_t2_a_get_0_t2_ -> STATE54
+          |  rend_t3_a_get_0_t3_ -> STATE53
+          |  rend_t4_a_get_0_t4_ -> STATE52
+          |  rend_t5_a_get_0_t5_ -> STATE51
+          |  rend_t6_a_get_0_t6_ -> STATE50
+          |  rend_t6_a_set_0_ -> STATE1
+          |  rend_t0_a_set_1_ -> STATE7
+          |  rend_t1_a_set_2_ -> STATE6
+          |  rend_t2_a_set_3_ -> STATE5
+          |  rend_t3_a_set_4_ -> STATE4
+          |  rend_t4_a_set_5_ -> STATE3
+          |  rend_t5_a_set_6_ -> STATE2
+         ),
+   STATE2 = (
+             rend_t0_a_get_0_t0_ -> STATE49
+          |  rend_t1_a_get_0_t1_ -> STATE48
+          |  rend_t2_a_get_0_t2_ -> STATE47
+          |  rend_t3_a_get_0_t3_ -> STATE46
+          |  rend_t4_a_get_0_t4_ -> STATE45
+          |  rend_t5_a_get_0_t5_ -> STATE44
+          |  rend_t6_a_get_0_t6_ -> STATE43
+          |  rend_t6_a_set_0_ -> STATE1
+          |  rend_t0_a_set_1_ -> STATE7
+          |  rend_t1_a_set_2_ -> STATE6
+          |  rend_t2_a_set_3_ -> STATE5
+          |  rend_t3_a_set_4_ -> STATE4
+          |  rend_t4_a_set_5_ -> STATE3
+          |  rend_t5_a_set_6_ -> STATE2
+         ),
+   STATE3 = (
+             rend_t0_a_get_0_t0_ -> STATE42
+          |  rend_t1_a_get_0_t1_ -> STATE41
+          |  rend_t2_a_get_0_t2_ -> STATE40
+          |  rend_t3_a_get_0_t3_ -> STATE39
+          |  rend_t4_a_get_0_t4_ -> STATE38
+          |  rend_t5_a_get_0_t5_ -> STATE37
+          |  rend_t6_a_get_0_t6_ -> STATE36
+          |  rend_t6_a_set_0_ -> STATE1
+          |  rend_t0_a_set_1_ -> STATE7
+          |  rend_t1_a_set_2_ -> STATE6
+          |  rend_t2_a_set_3_ -> STATE5
+          |  rend_t3_a_set_4_ -> STATE4
+          |  rend_t4_a_set_5_ -> STATE3
+          |  rend_t5_a_set_6_ -> STATE2
+         ),
+   STATE4 = (
+             rend_t0_a_get_0_t0_ -> STATE35
+          |  rend_t1_a_get_0_t1_ -> STATE34
+          |  rend_t2_a_get_0_t2_ -> STATE33
+          |  rend_t3_a_get_0_t3_ -> STATE32
+          |  rend_t4_a_get_0_t4_ -> STATE31
+          |  rend_t5_a_get_0_t5_ -> STATE30
+          |  rend_t6_a_get_0_t6_ -> STATE29
+          |  rend_t6_a_set_0_ -> STATE1
+          |  rend_t0_a_set_1_ -> STATE7
+          |  rend_t1_a_set_2_ -> STATE6
+          |  rend_t2_a_set_3_ -> STATE5
+          |  rend_t3_a_set_4_ -> STATE4
+          |  rend_t4_a_set_5_ -> STATE3
+          |  rend_t5_a_set_6_ -> STATE2
+         ),
+   STATE5 = (
+             rend_t0_a_get_0_t0_ -> STATE28
+          |  rend_t1_a_get_0_t1_ -> STATE27
+          |  rend_t2_a_get_0_t2_ -> STATE26
+          |  rend_t3_a_get_0_t3_ -> STATE25
+          |  rend_t4_a_get_0_t4_ -> STATE24
+          |  rend_t5_a_get_0_t5_ -> STATE23
+          |  rend_t6_a_get_0_t6_ -> STATE22
+          |  rend_t6_a_set_0_ -> STATE1
+          |  rend_t0_a_set_1_ -> STATE7
+          |  rend_t1_a_set_2_ -> STATE6
+          |  rend_t2_a_set_3_ -> STATE5
+          |  rend_t3_a_set_4_ -> STATE4
+          |  rend_t4_a_set_5_ -> STATE3
+          |  rend_t5_a_set_6_ -> STATE2
+         ),
+   STATE6 = (
+             rend_t0_a_get_0_t0_ -> STATE21
+          |  rend_t1_a_get_0_t1_ -> STATE20
+          |  rend_t2_a_get_0_t2_ -> STATE19
+          |  rend_t3_a_get_0_t3_ -> STATE18
+          |  rend_t4_a_get_0_t4_ -> STATE17
+          |  rend_t5_a_get_0_t5_ -> STATE16
+          |  rend_t6_a_get_0_t6_ -> STATE15
+          |  rend_t6_a_set_0_ -> STATE1
+          |  rend_t0_a_set_1_ -> STATE7
+          |  rend_t1_a_set_2_ -> STATE6
+          |  rend_t2_a_set_3_ -> STATE5
+          |  rend_t3_a_set_4_ -> STATE4
+          |  rend_t4_a_set_5_ -> STATE3
+          |  rend_t5_a_set_6_ -> STATE2
+         ),
+   STATE7 = (
+             rend_t0_a_get_0_t0_ -> STATE14
+          |  rend_t1_a_get_0_t1_ -> STATE13
+          |  rend_t2_a_get_0_t2_ -> STATE12
+          |  rend_t3_a_get_0_t3_ -> STATE11
+          |  rend_t4_a_get_0_t4_ -> STATE10
+          |  rend_t5_a_get_0_t5_ -> STATE9
+          |  rend_t6_a_get_0_t6_ -> STATE8
+          |  rend_t6_a_set_0_ -> STATE1
+          |  rend_t0_a_set_1_ -> STATE7
+          |  rend_t1_a_set_2_ -> STATE6
+          |  rend_t2_a_set_3_ -> STATE5
+          |  rend_t3_a_set_4_ -> STATE4
+          |  rend_t4_a_set_5_ -> STATE3
+          |  rend_t5_a_set_6_ -> STATE2
+         ),
+   STATE8 = (
+             rend_a_t6_a_get_end_1_ -> STATE7
+         ),
+   STATE9 = (
+             rend_a_t5_a_get_end_1_ -> STATE7
+         ),
+   STATE10 = (
+             rend_a_t4_a_get_end_1_ -> STATE7
+         ),
+   STATE11 = (
+             rend_a_t3_a_get_end_1_ -> STATE7
+         ),
+   STATE12 = (
+             rend_a_t2_a_get_end_1_ -> STATE7
+         ),
+   STATE13 = (
+             rend_a_t1_a_get_end_1_ -> STATE7
+         ),
+   STATE14 = (
+             rend_a_t0_a_get_end_1_ -> STATE7
+         ),
+   STATE15 = (
+             rend_a_t6_a_get_end_2_ -> STATE6
+         ),
+   STATE16 = (
+             rend_a_t5_a_get_end_2_ -> STATE6
+         ),
+   STATE17 = (
+             rend_a_t4_a_get_end_2_ -> STATE6
+         ),
+   STATE18 = (
+             rend_a_t3_a_get_end_2_ -> STATE6
+         ),
+   STATE19 = (
+             rend_a_t2_a_get_end_2_ -> STATE6
+         ),
+   STATE20 = (
+             rend_a_t1_a_get_end_2_ -> STATE6
+         ),
+   STATE21 = (
+             rend_a_t0_a_get_end_2_ -> STATE6
+         ),
+   STATE22 = (
+             rend_a_t6_a_get_end_3_ -> STATE5
+         ),
+   STATE23 = (
+             rend_a_t5_a_get_end_3_ -> STATE5
+         ),
+   STATE24 = (
+             rend_a_t4_a_get_end_3_ -> STATE5
+         ),
+   STATE25 = (
+             rend_a_t3_a_get_end_3_ -> STATE5
+         ),
+   STATE26 = (
+             rend_a_t2_a_get_end_3_ -> STATE5
+         ),
+   STATE27 = (
+             rend_a_t1_a_get_end_3_ -> STATE5
+         ),
+   STATE28 = (
+             rend_a_t0_a_get_end_3_ -> STATE5
+         ),
+   STATE29 = (
+             rend_a_t6_a_get_end_4_ -> STATE4
+         ),
+   STATE30 = (
+             rend_a_t5_a_get_end_4_ -> STATE4
+         ),
+   STATE31 = (
+             rend_a_t4_a_get_end_4_ -> STATE4
+         ),
+   STATE32 = (
+             rend_a_t3_a_get_end_4_ -> STATE4
+         ),
+   STATE33 = (
+             rend_a_t2_a_get_end_4_ -> STATE4
+         ),
+   STATE34 = (
+             rend_a_t1_a_get_end_4_ -> STATE4
+         ),
+   STATE35 = (
+             rend_a_t0_a_get_end_4_ -> STATE4
+         ),
+   STATE36 = (
+             rend_a_t6_a_get_end_5_ -> STATE3
+         ),
+   STATE37 = (
+             rend_a_t5_a_get_end_5_ -> STATE3
+         ),
+   STATE38 = (
+             rend_a_t4_a_get_end_5_ -> STATE3
+         ),
+   STATE39 = (
+             rend_a_t3_a_get_end_5_ -> STATE3
+         ),
+   STATE40 = (
+             rend_a_t2_a_get_end_5_ -> STATE3
+         ),
+   STATE41 = (
+             rend_a_t1_a_get_end_5_ -> STATE3
+         ),
+   STATE42 = (
+             rend_a_t0_a_get_end_5_ -> STATE3
+         ),
+   STATE43 = (
+             rend_a_t6_a_get_end_6_ -> STATE2
+         ),
+   STATE44 = (
+             rend_a_t5_a_get_end_6_ -> STATE2
+         ),
+   STATE45 = (
+             rend_a_t4_a_get_end_6_ -> STATE2
+         ),
+   STATE46 = (
+             rend_a_t3_a_get_end_6_ -> STATE2
+         ),
+   STATE47 = (
+             rend_a_t2_a_get_end_6_ -> STATE2
+         ),
+   STATE48 = (
+             rend_a_t1_a_get_end_6_ -> STATE2
+         ),
+   STATE49 = (
+             rend_a_t0_a_get_end_6_ -> STATE2
+         ),
+   STATE50 = (
+             rend_a_t6_a_get_end_0_ -> STATE1
+         ),
+   STATE51 = (
+             rend_a_t5_a_get_end_0_ -> STATE1
+         ),
+   STATE52 = (
+             rend_a_t4_a_get_end_0_ -> STATE1
+         ),
+   STATE53 = (
+             rend_a_t3_a_get_end_0_ -> STATE1
+         ),
+   STATE54 = (
+             rend_a_t2_a_get_end_0_ -> STATE1
+         ),
+   STATE55 = (
+             rend_a_t1_a_get_end_0_ -> STATE1
+         ),
+   STATE56 = (
+             rend_a_t0_a_get_end_0_ -> STATE1
+         )\ {jmctoRemove}.
+
+
+TASK_relay_t0 = STATE1,
+   STATE1 = (
+             internal_t0_ -> STATE2
+         ),
+   STATE2 = (
+             rend_t0_a_get_0_t0_ -> STATE3
+         ),
+   STATE3 = (
+             rend_a_t0_a_get_end_0_ -> STATE16
+          |  rend_a_t0_a_get_end_1_ -> STATE2
+          |  rend_a_t0_a_get_end_2_ -> STATE2
+          |  rend_a_t0_a_get_end_3_ -> STATE2
+          |  rend_a_t0_a_get_end_4_ -> STATE2
+          |  rend_a_t0_a_get_end_5_ -> STATE2
+          |  rend_a_t0_a_get_end_6_ -> STATE2
+         ),
+   STATE16 = (
+             rend_t0_a_set_1_ -> STATE2
+         )\ {jmctoRemove}.
+
+
+TASK_relay_t1 = STATE1,
+   STATE1 = (
+             internal_t1_ -> STATE2
+         ),
+   STATE2 = (
+             rend_t1_a_get_0_t1_ -> STATE3
+         ),
+   STATE3 = (
+             rend_a_t1_a_get_end_0_ -> STATE2
+          |  rend_a_t1_a_get_end_1_ -> STATE14
+          |  rend_a_t1_a_get_end_2_ -> STATE2
+          |  rend_a_t1_a_get_end_3_ -> STATE2
+          |  rend_a_t1_a_get_end_4_ -> STATE2
+          |  rend_a_t1_a_get_end_5_ -> STATE2
+          |  rend_a_t1_a_get_end_6_ -> STATE2
+         ),
+   STATE14 = (
+             rend_t1_a_set_2_ -> STATE2
+         )\ {jmctoRemove}.
+
+
+TASK_relay_t2 = STATE1,
+   STATE1 = (
+             internal_t2_ -> STATE2
+         ),
+   STATE2 = (
+             rend_t2_a_get_0_t2_ -> STATE3
+         ),
+   STATE3 = (
+             rend_a_t2_a_get_end_0_ -> STATE2
+          |  rend_a_t2_a_get_end_1_ -> STATE2
+          |  rend_a_t2_a_get_end_2_ -> STATE12
+          |  rend_a_t2_a_get_end_3_ -> STATE2
+          |  rend_a_t2_a_get_end_4_ -> STATE2
+          |  rend_a_t2_a_get_end_5_ -> STATE2
+          |  rend_a_t2_a_get_end_6_ -> STATE2
+         ),
+   STATE12 = (
+             rend_t2_a_set_3_ -> STATE2
+         )\ {jmctoRemove}.
+
+
+TASK_relay_t3 = STATE1,
+   STATE1 = (
+             internal_t3_ -> STATE2
+         ),
+   STATE2 = (
+             rend_t3_a_get_0_t3_ -> STATE3
+         ),
+   STATE3 = (
+             rend_a_t3_a_get_end_0_ -> STATE2
+          |  rend_a_t3_a_get_end_1_ -> STATE2
+          |  rend_a_t3_a_get_end_2_ -> STATE2
+          |  rend_a_t3_a_get_end_3_ -> STATE10
+          |  rend_a_t3_a_get_end_4_ -> STATE2
+          |  rend_a_t3_a_get_end_5_ -> STATE2
+          |  rend_a_t3_a_get_end_6_ -> STATE2
+         ),
+   STATE10 = (
+             rend_t3_a_set_4_ -> STATE2
+         )\ {jmctoRemove}.
+
+
+TASK_relay_t4 = STATE1,
+   STATE1 = (
+             internal_t4_ -> STATE2
+         ),
+   STATE2 = (
+             rend_t4_a_get_0_t4_ -> STATE3
+         ),
+   STATE3 = (
+             rend_a_t4_a_get_end_0_ -> STATE2
+          |  rend_a_t4_a_get_end_1_ -> STATE2
+          |  rend_a_t4_a_get_end_2_ -> STATE2
+          |  rend_a_t4_a_get_end_3_ -> STATE2
+          |  rend_a_t4_a_get_end_4_ -> STATE8
+          |  rend_a_t4_a_get_end_5_ -> STATE2
+          |  rend_a_t4_a_get_end_6_ -> STATE2
+         ),
+   STATE8 = (
+             rend_t4_a_set_5_ -> STATE2
+         )\ {jmctoRemove}.
+
+
+TASK_relay_t5 = STATE1,
+   STATE1 = (
+             internal_t5_ -> STATE2
+         ),
+   STATE2 = (
+             rend_t5_a_get_0_t5_ -> STATE3
+         ),
+   STATE3 = (
+             rend_a_t5_a_get_end_0_ -> STATE2
+          |  rend_a_t5_a_get_end_1_ -> STATE2
+          |  rend_a_t5_a_get_end_2_ -> STATE2
+          |  rend_a_t5_a_get_end_3_ -> STATE2
+          |  rend_a_t5_a_get_end_4_ -> STATE2
+          |  rend_a_t5_a_get_end_5_ -> STATE6
+          |  rend_a_t5_a_get_end_6_ -> STATE2
+         ),
+   STATE6 = (
+             rend_t5_a_set_6_ -> STATE2
+         )\ {jmctoRemove}.
+
+
+TASK_relay_t6 = STATE1,
+   STATE1 = (
+             internal_t6_ -> STATE2
+         ),
+   STATE2 = (
+             rend_t6_a_get_0_t6_ -> STATE3
+         ),
+   STATE3 = (
+             rend_a_t6_a_get_end_0_ -> STATE2
+          |  rend_a_t6_a_get_end_1_ -> STATE2
+          |  rend_a_t6_a_get_end_2_ -> STATE2
+          |  rend_a_t6_a_get_end_3_ -> STATE2
+          |  rend_a_t6_a_get_end_4_ -> STATE2
+          |  rend_a_t6_a_get_end_5_ -> STATE2
+          |  rend_a_t6_a_get_end_6_ -> STATE4
+         ),
+   STATE4 = (
+             rend_t6_a_set_0_ -> STATE2
+         )\ {jmctoRemove}.
+
+
+
+property
+PROPERTY_always_1_between_zeros = STATE1,
+  STATE1 = ( rend_t0_a_set_1_ -> STATE2),
+  STATE2 = ( rend_t6_a_set_0_ -> STATE1
+           | rend_t0_a_set_1_ -> STATE2).

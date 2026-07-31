@@ -1,0 +1,3 @@
+./gas_station/gas_p2_c003/gas-pump1-start-stop.lts
+TASK_operator
+TASK_pump1

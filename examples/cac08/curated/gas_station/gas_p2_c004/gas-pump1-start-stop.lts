@@ -1,0 +1,104 @@
+// Generated on Thu Aug  3 12:25:35 2006
+// Customers:  4
+
+const CUSTOMERS = 4
+
+const PUMPS = 2
+
+range CUSTOMER_RANGE=1..CUSTOMERS
+range CUSTOMER_COUNTER=0..CUSTOMERS
+range PUMP_RANGE=1..PUMPS
+
+TASK_pump1 = START,
+  START =
+    ( pump[1].activate ->
+      pump[1][cust:CUSTOMER_RANGE].start_pumping ->
+      pump[1][cust].stop_pumping ->
+      operator[1][cust].charge -> START
+    ).
+
+TASK_pump2 = START,
+  START =
+    ( pump[2].activate ->
+      pump[2][cust:CUSTOMER_RANGE].start_pumping ->
+      pump[2][cust].stop_pumping ->
+      operator[2][cust].charge -> START
+    ).
+
+TASK_customer1 = START,
+  START =
+   ( operator[1][pump:PUMP_RANGE].prepay ->
+     operator[1].prepay_end ->
+     pump[pump][1].start_pumping ->
+     pump[pump][1].stop_pumping ->
+     customer[PUMP_RANGE][1].change -> START
+   ).
+
+TASK_customer2 = START,
+  START =
+   ( operator[2][pump:PUMP_RANGE].prepay ->
+     operator[2].prepay_end ->
+     pump[pump][2].start_pumping ->
+     pump[pump][2].stop_pumping ->
+     customer[PUMP_RANGE][2].change -> START
+   ).
+
+TASK_customer3 = START,
+  START =
+   ( operator[3][pump:PUMP_RANGE].prepay ->
+     operator[3].prepay_end ->
+     pump[pump][3].start_pumping ->
+     pump[pump][3].stop_pumping ->
+     customer[PUMP_RANGE][3].change -> START
+   ).
+
+TASK_customer4 = START,
+  START =
+   ( operator[4][pump:PUMP_RANGE].prepay ->
+     operator[4].prepay_end ->
+     pump[pump][4].start_pumping ->
+     pump[pump][4].stop_pumping ->
+     customer[PUMP_RANGE][4].change -> START
+   ).
+
+minimal
+TASK_operator = START[0][0],
+  START[ac1:CUSTOMER_COUNTER][ac2:CUSTOMER_COUNTER] =
+    ( when (ac1 < CUSTOMERS) operator[cust:CUSTOMER_RANGE][1].prepay -> PREPAYING[ac1][ac2][cust][1]
+    | when (ac2 < CUSTOMERS) operator[cust:CUSTOMER_RANGE][2].prepay -> PREPAYING[ac1][ac2][cust][2]
+    | when (ac1 > 0) operator[1][cust:CUSTOMER_RANGE].charge -> DECREMENT[ac1][ac2][cust][1]
+    | when (ac2 > 0) operator[2][cust:CUSTOMER_RANGE].charge -> DECREMENT[ac1][ac2][cust][2]
+    ),
+
+  DECREMENT[ac1:CUSTOMER_COUNTER][ac2:CUSTOMER_COUNTER][cust:CUSTOMER_RANGE][pump:PUMP_RANGE] =
+    ( when (pump == 1) internal -> REACTIVATING[ac1 - 1][ac2][cust][pump]
+    | when (pump == 2) internal -> REACTIVATING[ac1][ac2 - 1][cust][pump]
+    ),
+
+  REACTIVATING[ac1:CUSTOMER_COUNTER][ac2:CUSTOMER_COUNTER][cust:CUSTOMER_RANGE][pump:PUMP_RANGE] =
+    ( when ((pump == 1) && (ac1 == 0)) internal -> CHANGE[ac1][ac2][cust][pump]
+    | when ((pump == 1) && (ac1 != 0)) pump[pump].activate -> CHANGE[ac1][ac2][cust][pump]
+    | when ((pump == 2) && (ac2 == 0)) internal -> CHANGE[ac1][ac2][cust][pump]
+    | when ((pump == 2) && (ac2 != 0)) pump[pump].activate -> CHANGE[ac1][ac2][cust][pump]
+    ),
+
+  CHANGE[ac1:CUSTOMER_COUNTER][ac2:CUSTOMER_COUNTER][cust:CUSTOMER_RANGE][pump:PUMP_RANGE] =
+    ( customer[pump][cust].change -> START[ac1][ac2]
+    ),
+
+  PREPAYING[ac1:CUSTOMER_COUNTER][ac2:CUSTOMER_COUNTER][cust:CUSTOMER_RANGE][pump:PUMP_RANGE] =
+    ( when ((pump == 1) && (ac1 == 0)) pump[pump].activate -> END_PREPAY[ac1 + 1][ac2][cust]
+    | when ((pump == 1) && (ac1 != 0)) internal -> END_PREPAY[ac1 + 1][ac2][cust]
+    | when ((pump == 2) && (ac2 == 0)) pump[pump].activate -> END_PREPAY[ac1][ac2 + 1][cust]
+    | when ((pump == 2) && (ac2 != 0)) internal -> END_PREPAY[ac1][ac2 + 1][cust]
+    ),
+
+  END_PREPAY[ac1:CUSTOMER_COUNTER][ac2:CUSTOMER_COUNTER][cust:CUSTOMER_RANGE] =
+     ( operator[cust].prepay_end -> START[ac1][ac2]
+     ) \ {internal}.
+
+property
+PROPERTY_PUMP1_START_STOP =
+  ( pump[1][CUSTOMER_RANGE].start_pumping -> STARTED),
+  STARTED = (pump[1][CUSTOMER_RANGE].stop_pumping -> PROPERTY_PUMP1_START_STOP ).
+

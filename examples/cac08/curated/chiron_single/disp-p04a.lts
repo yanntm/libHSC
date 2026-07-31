@@ -1,0 +1,343 @@
+TASK_disp_a1 = STATE1,
+   STATE1 = (
+             rend_artist_manager_a1_start_artist_ -> STATE2
+         ),
+   STATE2 = (
+             rend_a1_dispatcher_register_event_art1_e1_ -> STATE3
+         ),
+   STATE3 = (
+             rend_a1_dispatcher_register_event_art1_e2_ -> STATE4
+         ),
+   STATE4 = (
+             rend_a1_artist_manager_a1_registered_ -> STATE5
+         ),
+   STATE5 = (
+             rend_dispatcher_a1_notify_client_event_e1_ -> STATE5
+          |  rend_dispatcher_a1_notify_client_event_e2_ -> STATE5
+          |  rend_artist_manager_a1_terminate_artist_ -> STATE6
+         ),
+   STATE6 = (
+             rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE13
+         ),
+   STATE13 = (
+             rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE14
+         ),
+   STATE14 = (
+             rend_artist_manager_a1_terminate_artist_end_ -> STATE15
+         ),
+   STATE15 = (
+             internal_jmc_end_ -> STATE16
+         ),
+   STATE16 = (
+        jmctoRemove -> STATE16
+         )\ {jmctoRemove}.
+
+
+TASK_disp_a2 = STATE1,
+   STATE1 = (
+             rend_artist_manager_a2_start_artist_ -> STATE2
+         ),
+   STATE2 = (
+             rend_a2_dispatcher_register_event_art2_e1_ -> STATE3
+         ),
+   STATE3 = (
+             rend_a2_artist_manager_a2_registered_ -> STATE4
+         ),
+   STATE4 = (
+             rend_dispatcher_a2_notify_client_event_e1_ -> STATE4
+          |  rend_artist_manager_a2_terminate_artist_ -> STATE5
+         ),
+   STATE5 = (
+             rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE11
+         ),
+   STATE11 = (
+             rend_artist_manager_a2_terminate_artist_end_ -> STATE12
+         ),
+   STATE12 = (
+             internal_jmc_end_ -> STATE13
+         ),
+   STATE13 = (
+        jmctoRemove -> STATE13
+         )\ {jmctoRemove}.
+
+
+TASK_disp_adt_wrapper = STATE1,
+   STATE1 = (
+             rend_client_init_adt_wrapper_start_wrapper_ -> STATE3
+          |  rend_client_init_adt_wrapper_start_wrapper_ -> STATE2
+         ),
+   STATE2 = (
+             rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE4
+         ),
+   STATE3 = (
+             rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE4
+         ),
+   STATE4 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE3
+          |  rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE2
+         )\ {jmctoRemove}.
+
+
+TASK_disp_artist_manager = STATE1,
+   STATE1 = (
+             rend_client_init_artist_manager_start_manager_ -> STATE2
+         ),
+   STATE2 = (
+             rend_artist_manager_a1_start_artist_ -> STATE3
+         ),
+   STATE3 = (
+             rend_artist_manager_a2_start_artist_ -> STATE4
+         ),
+   STATE4 = (
+             rend_a1_artist_manager_a1_registered_ -> STATE5
+         ),
+   STATE5 = (
+             rend_a2_artist_manager_a2_registered_ -> STATE6
+         ),
+   STATE6 = (
+             rend_client_init_artist_manager_start_manager_end_ -> STATE8
+          |  rend_client_init_artist_manager_start_manager_end_ -> STATE7
+         ),
+   STATE7 = (
+             internal_artist_manager_ -> STATE7
+         ),
+   STATE8 = (
+             rend_artist_manager_a1_terminate_artist_ -> STATE9
+         ),
+   STATE9 = (
+             rend_artist_manager_a1_terminate_artist_end_ -> STATE10
+         ),
+   STATE10 = (
+             rend_artist_manager_a2_terminate_artist_ -> STATE11
+         ),
+   STATE11 = (
+             rend_artist_manager_a2_terminate_artist_end_ -> STATE12
+         ),
+   STATE12 = (
+        jmctoRemove -> STATE12
+         )\ {jmctoRemove}.
+
+
+TASK_disp_client_init = STATE1,
+   STATE1 = (
+             rend_client_init_artist_manager_start_manager_ -> STATE2
+         ),
+   STATE2 = (
+             rend_client_init_artist_manager_start_manager_end_ -> STATE3
+         ),
+   STATE3 = (
+             rend_client_init_adt_wrapper_start_wrapper_ -> STATE4
+         ),
+   STATE4 = (
+        jmctoRemove -> STATE4
+         )\ {jmctoRemove}.
+
+
+TASK_disp_dispatcher = STATE1,
+   STATE1 = (
+             rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE1
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE1
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE1
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE29
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE33
+          |  rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE38
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE38
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE3
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE2 = (
+        jmctoRemove -> STATE2
+         ),
+   STATE3 = (
+             rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE3
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE3
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE1
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE66
+          |  rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE79
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE78
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE5
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE3
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE5 = (
+             rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE5
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE3
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE33
+          |  rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE98
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE96
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE9
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE5
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE5
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE9 = (
+             rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE120
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE118
+          |  rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE5
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE66
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE23
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE9
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE9
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE9
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE15 = (
+             rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE106
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE104
+          |  rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE5
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE19
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE23
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE15
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE15
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE15
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE19 = (
+             rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE85
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE84
+          |  rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE3
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE19
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE29
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE19
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE15
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE19
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE23 = (
+             rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE33
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE29
+          |  rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE53
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE51
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE23
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE23
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE23
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE15
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE29 = (
+             rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE41
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE40
+          |  rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE1
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE29
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE29
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE29
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE23
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE19
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE33 = (
+             rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE36
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE35
+          |  rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE33
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE1
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE33
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE23
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE33
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE5
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE35 = (
+             rend_dispatcher_a1_notify_client_event_e2_ -> STATE36
+         ),
+   STATE36 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE33
+         ),
+   STATE38 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE1
+         ),
+   STATE40 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE29
+         ),
+   STATE41 = (
+             rend_dispatcher_a1_notify_client_event_e1_ -> STATE40
+         ),
+   STATE51 = (
+             rend_dispatcher_a1_notify_client_event_e2_ -> STATE52
+         ),
+   STATE52 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE23
+         ),
+   STATE53 = (
+             rend_dispatcher_a1_notify_client_event_e1_ -> STATE52
+         ),
+   STATE66 = (
+             rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE69
+          |  rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE68
+          |  rend_a1_dispatcher_unregister_event_art1_e1_ -> STATE3
+          |  rend_a1_dispatcher_unregister_event_art1_e2_ -> STATE66
+          |  rend_a2_dispatcher_unregister_event_art2_e1_ -> STATE29
+          |  rend_a1_dispatcher_register_event_art1_e1_ -> STATE66
+          |  rend_a1_dispatcher_register_event_art1_e2_ -> STATE9
+          |  rend_a2_dispatcher_register_event_art2_e1_ -> STATE66
+          |  terminate_dispatcher_ -> STATE2
+         ),
+   STATE68 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE66
+         ),
+   STATE69 = (
+             rend_dispatcher_a2_notify_client_event_e1_ -> STATE70
+         ),
+   STATE70 = (
+             rend_dispatcher_a1_notify_client_event_e1_ -> STATE68
+         ),
+   STATE78 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE3
+         ),
+   STATE79 = (
+             rend_dispatcher_a2_notify_client_event_e1_ -> STATE78
+         ),
+   STATE84 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE19
+         ),
+   STATE85 = (
+             rend_dispatcher_a1_notify_client_event_e1_ -> STATE86
+         ),
+   STATE86 = (
+             rend_dispatcher_a2_notify_client_event_e1_ -> STATE84
+         ),
+   STATE96 = (
+             rend_dispatcher_a1_notify_client_event_e2_ -> STATE97
+         ),
+   STATE97 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE5
+         ),
+   STATE98 = (
+             rend_dispatcher_a2_notify_client_event_e1_ -> STATE97
+         ),
+   STATE104 = (
+             rend_dispatcher_a1_notify_client_event_e2_ -> STATE105
+         ),
+   STATE105 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE15
+         ),
+   STATE106 = (
+             rend_dispatcher_a1_notify_client_event_e1_ -> STATE107
+         ),
+   STATE107 = (
+             rend_dispatcher_a2_notify_client_event_e1_ -> STATE105
+         ),
+   STATE118 = (
+             rend_dispatcher_a1_notify_client_event_e2_ -> STATE119
+         ),
+   STATE119 = (
+             rend_adt_wrapper_dispatcher_notify_artists_end_ -> STATE9
+         ),
+   STATE120 = (
+             rend_dispatcher_a2_notify_client_event_e1_ -> STATE121
+         ),
+   STATE121 = (
+             rend_dispatcher_a1_notify_client_event_e1_ -> STATE119
+         )\ {jmctoRemove}.
+
+
+property
+PROPERTY_p04a = STATE1,
+        STATE1 = (
+            rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE2
+          | rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE1
+          | rend_dispatcher_a1_notify_client_event_e2_ -> STATE1
+        ),
+        STATE2 = (
+            rend_adt_wrapper_dispatcher_notify_artists_e1_ -> STATE2
+          | rend_adt_wrapper_dispatcher_notify_artists_e2_ -> STATE1
+        ).
