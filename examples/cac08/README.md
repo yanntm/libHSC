@@ -167,7 +167,17 @@ Checked; the answer is uneven, so state it plainly rather than assume.
 
 ## Status
 
-**Acquisition only.** Nothing here has been translated into any format of
-ours yet, and no verdict has been reproduced. Translating the FSP `.lts`
-side into separable-fragment `.hsc` models (drivers pull them in with
-`(input …)` — see `examples/cegar/`) is a separate step.
+**Translated.** `hsc/` holds the separable-fragment `.hsc` translation of
+every LTSA subject file — one `<name>_model.hsc` / `<name>.hsc`
+(driver) pair per (system, size, property), 91 in all, Chiron at its
+curated 2-artist size. Regenerate with
+
+```sh
+sh examples/cac08/translate_all.sh   # needs build/tools/fsp2hsc
+```
+
+The front end is `tools/fsp2hsc` (package `include/hsc/fsp/`, docs
+there); each model header records its source file, the paper's S1
+decomposition, and the state-name maps. Driver `expect` lines are
+pinned by the campaign (`research_notes/cegar_report.md` §CAC08), not
+by the translator.
