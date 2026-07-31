@@ -81,10 +81,11 @@ monotone); each recurrence burns budget, so termination stands.
 `⟨ per-distinct-leaf tables, Inv = final reached set ⟩` with
 obligations: per leaf, the certification walk (`L_i ⊆ L(H_i)`);
 globally, `Inv` contains the initial state, is closed under every
-event (dead-blocked counts as closed), and avoids `Bad`. Checked by
-`tools/hsc-certcheck.cc`, an independent translation unit sharing no
-code with this package — the trusted core is the checker, not the
-loop.
+event (dead-blocked counts as closed), and avoids `Bad`. Emitted as
+an `.hsc` s-expression document; checked by the `certcheck` command
+(`src/surface_certcheck.cc`), a translation unit that shares the
+parser and the model bridge with the rest of the system and none of
+this package's loop — the trusted core is the checker, not the loop.
 
 ## Oracles wired into tests and sweeps
 

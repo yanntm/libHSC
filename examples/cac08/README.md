@@ -169,4 +169,5 @@ Checked; the answer is uneven, so state it plainly rather than assume.
 
 **Acquisition only.** Nothing here has been translated into any format of
 ours yet, and no verdict has been reproduced. Translating the FSP `.lts`
-side into the CEGAR package's `.cts` model format is a separate step.
+side into separable-fragment `.hsc` models (drivers pull them in with
+`(input …)` — see `examples/cegar/`) is a separate step.

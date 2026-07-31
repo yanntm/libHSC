@@ -310,8 +310,8 @@ failure.
 * **P2 commands.** `cegar` + `certificate` wired into the runner;
   O1–O4 green; the §9 examples self-check (`expect` lines).
 * **P3 checker.** `certcheck` + O5, mutation tests.
-* **P4 purge.** No `.cts`/`.cert` text, code, or mention anywhere in
-  the tree (`grep -rn "\.cts\|\.cert"` → zero hits outside `.git`);
+* **P4 purge.** No trace of the retired side formats anywhere in the
+  tree (grep for their extensions comes back empty outside `.git`);
   old binaries and generator deleted; tests are `.hsc`-fixture-based.
 * **P5 campaign.** Sweeps re-run end to end from `.hsc` corpora;
   tables T-A..T-D regenerated; report updated.
