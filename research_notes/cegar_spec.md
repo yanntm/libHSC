@@ -161,10 +161,15 @@ culprit word now dead. Witness recurrence across rounds stays legal.
 **4.8 Commands** (the main's runner; grammar in the manual §8):
 
 ```lisp
-(cegar NAME QATOM+ [all|first|cheapest] [jump-exact] [cap INT])
+(cegar NAME QATOM+ [all|first|cheapest] [jump-exact] [no-intern] [cap INT])
 (certificate FILE)
 (certcheck FILE)
 ```
+
+The runner auto-appends `simplify-constants`, `simplify-arrays`,
+`flatten` to the rewrite chain of any file containing a `cegar`
+command (unless already present; the trace lines show it), so every
+engine in the file sees the same normalized spec.
 
 * `cegar` builds the model (§5) and monitor (§5.6) from the current
   spec and the atoms, runs the loop, prints one summary line
@@ -174,8 +179,9 @@ culprit word now dead. Witness recurrence across rounds stays legal.
   on violation, the **empty** result on holds — so `(expect NAME 0)`
   asserts "holds" in scripts, and `get-witness`/`get-states`/`count`
   work unchanged. On holds the session retains the certificate text.
-* `certificate FILE` writes the retained certificate (§6); an error
-  if the last `cegar` did not hold.
+* `certificate FILE` writes the retained certificate (§6); when the
+  last `cegar` did not hold it prints a skip note and continues —
+  linear driver scripts run unchanged on both verdicts.
 * `certcheck FILE` checks a certificate document against the current
   spec (§6); per-obligation pass/fail lines, nonzero exit on any
   fail.

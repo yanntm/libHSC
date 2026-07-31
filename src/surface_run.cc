@@ -249,10 +249,13 @@ class runner {
         opt.pick = cegar::options::culprits::cheapest;
       } else if (it.text() == "jump-exact") {
         opt.jump_exact = true;
+      } else if (it.text() == "no-intern") {
+        opt.intern = false;  // the ablation knob: one entry per leaf
       } else if (it.text() == "cap" && i + 1 < form.items().size()) {
         opt.cap = std::stoll(form.items()[++i].text());
       } else {
-        fail(it, "cegar options are: all|first|cheapest, jump-exact, cap INT");
+        fail(it, "cegar options are: all|first|cheapest, jump-exact, "
+                 "no-intern, cap INT");
       }
     }
     if (atoms.empty()) fail(form, "cegar needs at least one property atom");
@@ -290,7 +293,11 @@ class runner {
       fail(form, "certificate needs one file name");
     }
     if (last_cert_.empty()) {
-      fail(form, "no certificate retained (did the last cegar hold?)");
+      // Not a failure: linear scripts run the same driver on both
+      // verdicts; the skip is printed, never silent.
+      out_ << "certificate " << form.items()[1].text()
+           << " skipped (no proof retained)\n";
+      return;
     }
     const std::string& path = form.items()[1].text();
     std::ofstream f(path, std::ios::binary);

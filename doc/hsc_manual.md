@@ -327,7 +327,7 @@ validated bad state on violation, empty on holds — so
 `get-states` / `count` read a violation. The bad states are the
 conjunction of the atoms, `select` syntax; the leaves the atoms name
 are tracked exactly. Options: culprit policy `all|first|cheapest`
-(default `all`), `jump-exact`, `cap INT` on abstract states. A file
+(default `all`), `jump-exact`, `no-intern` (the sharing ablation), `cap INT` on abstract states. A file
 containing a `cegar` command auto-appends `simplify-constants`,
 `simplify-arrays`, `flatten` to the rewrite chain (§8c) unless
 already present — the trace lines show it.
