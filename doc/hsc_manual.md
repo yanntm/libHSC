@@ -62,7 +62,15 @@ ATOM  ::= SYMBOL | INT
 (array NAME COUNT [LO HI])   ; parametric: declares NAME_0 … NAME_{COUNT-1}
 (param NAME EXPR)            ; a compile-time integer (see §7)
 (shape SORT)                 ; the tree layout; every leaf used exactly once
+(input FILE)                 ; splice the forms of FILE here
 ```
+
+`input` is the model/script split: keep the model (leaves, shape,
+events) in one file and pull it into as many driver scripts as you
+like — symbolic, explicit, cegar — without touching it. Relative
+paths resolve against the including file; cycles are refused. The
+spliced forms go through the same expansion as everything else, so
+the model file may be parametric.
 
 A `leaf` is a variable over **Int**. Without bounds no domain is
 materialized: what keeps the state space finite is the model's own guards.
@@ -230,6 +238,9 @@ certificate; `unfold` always enumerates.
 (expect NAME N)              ; assert count == N; nonzero exit on miss
 (states [NAME])              ; the count in MCC output format
 (xreach NAME [from RESULT] [cap INT])  ; the explicit engine, §8b
+(cegar NAME QATOM+ [all|first|cheapest] [jump-exact] [cap INT])  ; §8d
+(certificate FILE)           ; write the last cegar proof as .hsc, §8d
+(certcheck FILE)             ; re-check a proof against the model, §8d
 (simplify-constants)         ; rewrite directive: elide constant leaves, §8c
 (hotbit [MIN [MAX]])         ; directive: one-hot encode enumerated leaves, §8c
 (reorder-force)              ; directive: FORCE order from event supports, §8c
@@ -303,6 +314,42 @@ supports stop over-approximating. Every pass reports; identity included.
 rewritten spec as runnable `.hsc` text (traces on stderr);
 `hsc --domains model.hsc` prints the inferred domains without running
 anything.
+
+## 8d. Certified abstraction: `cegar`, `certificate`, `certcheck`
+
+`(cegar NAME QATOM+)` verifies a safety property by certified
+component abstraction: each leaf carries a learned, certified
+over-approximation of its behavior, refined on demand; the answer is
+either a **violation** — a concrete run, validated by executing it —
+or **holds**, with a proof. `NAME` binds like an explicit result: the
+validated bad state on violation, empty on holds — so
+`(expect NAME 0)` asserts "holds" in a script, and `get-witness` /
+`get-states` / `count` read a violation. The bad states are the
+conjunction of the atoms, `select` syntax; the leaves the atoms name
+are tracked exactly. Options: culprit policy `all|first|cheapest`
+(default `all`), `jump-exact`, `cap INT` on abstract states. A file
+containing a `cegar` command auto-appends `simplify-constants`,
+`simplify-arrays`, `flatten` to the rewrite chain (§8c) unless
+already present — the trace lines show it.
+
+The engine works on the **separable fragment**: every leaf bounded,
+one initial state, plain `(event …)` guarded commands whose guard
+atoms and actions each touch a single leaf, no arrays surviving the
+rewrite chain, no havoc. Anything else is refused with the event and
+construct named — the refusal, not a silent approximation, is the
+contract.
+
+`(certificate FILE)` writes the proof of the last holding `cegar` as
+an `.hsc` document: one classifier table per distinct leaf (shared
+leaves alias it), and the invariant as `(inv …)` states.
+`(certcheck FILE)` re-checks such a document against the current
+model — per-leaf inclusion walks plus one closure scan, one
+pass/fail line per obligation, nonzero exit on failure. The checker
+shares the parser with everything else and none of the loop's logic:
+a proof is re-checkable years later, by a reader that never ran the
+search. `examples/cegar/` demonstrates the whole round trip
+(`ring_check.hsc` pulls `ring_model.hsc` in with `input`, proves,
+exports, re-checks, and cross-checks the count explicitly).
 
 ## 9. Errors, honestly
 
