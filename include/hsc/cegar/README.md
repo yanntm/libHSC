@@ -1,31 +1,38 @@
 # `cegar/` — certified component abstraction
 
-A verification loop over a tree of finite LTS leaves synchronized by
+A verification loop over finite LTS leaves synchronized by
 product-shaped events: each leaf carries a certified over-approximation
 of its trace language (a canonical classifier), the loop model-checks a
 safety monitor against the classifiers, replays abstract witnesses by
 executing their projections on the leaves (a failed execution *is* the
 culprit), refines the culprit with an L\* learner, and ends with either
-a concretely replayed violation or a certificate checkable by an
-independent program.
+a concretely replayed violation or a certificate checkable without the
+loop.
 
-Paper: `research_notes/cegar_certified_abstractions_v2.md`. Spec:
-`research_notes/cegar_spec.md` (v1 scope: finite leaves, safety,
-explicit walks).
+Paper: `research_notes/cegar_certified_abstractions_v3.md`. Spec:
+`research_notes/cegar_spec.md` (v2 scope: finite leaves, safety,
+explicit walks, HSC-native).
 
-## Isolation
+## Placement
 
-Depends on `util/` (hashing) only — no `core/`, no `lia/`, no
-`surface/`, no `xpl/`. The package brings its own tiny model format
-(`.cts`) and generator; bridges to the model corpora are a later
-thread.
+This package is the calculus core, parser-free: PODs and walks only,
+depending on `util/` (hashing) alone. Models arrive already built —
+the surface layer's bridge (`hsc/surface/cegar_build.hh`) derives
+them from a parsed `.hsc` spec (the separable fragment: bounded
+leaves, guarded-command events, per-leaf letters induced by domain
+enumeration). The user surface is three commands of the main —
+`(cegar …)`, `(certificate …)`, `(certcheck …)` — routed in
+`surface_run.cc`; the checker's implementation lives surface-side
+(`src/surface_certcheck.cc`) and shares this package's PODs and the
+bridge, none of the loop.
 
 ## Files
 
 * `model.hh` — `lts` (leaf: partial deterministic transition table,
-  `fire` = membership), `event` (support = per-leaf letters),
-  `monitor` (complete DFA over events, missing entries self-loop),
-  `shape` (binary tree), `model` (the bundle) + `.cts` parse/print.
+  `fire` = membership, `value_of` back to `.hsc` values), `event`
+  (support = per-leaf letters), `monitor` (complete DFA over events,
+  derived by the bridge from the property atoms), `model` (the
+  bundle) + `mono` (the monolithic oracle walk) and `refire`.
 * `classifier.hh` — the canonical class table (shortlex reps, right
   action, live mask, one absorbing dead class), `canonicalize`
   (merge dead, Moore-minimize, shortlex-rename), `chaos`, byte
@@ -33,18 +40,15 @@ thread.
 * `certify.hh` — the teacher's certification walk: `lts × classifier`
   product BFS; certified, or a positive counterexample.
 * `learner.hh` — L\* with Rivest–Schapire counterexample handling;
-  `publish()` returns the dead-closed, canonicalized hypothesis.
+  `publish()` returns the dead-closed, canonicalized hypothesis. The
+  observation table is internal state, never an abstraction: the
+  loop consumes only published, certified classifiers (the
+  publication discipline, spec §3.2).
 * `loop.hh` — profile (interned per distinct leaf), abstract-product
-  search, shape-descent replay, refine-until-resolved, `run`,
-  certificate emission (`.cert`); `mono` (the monolithic oracle walk)
-  and `refire` live in `model.hh`.
-* `gen.hh` — model families (clients, clients-bug, ring, rand),
-  deterministic in a seed.
+  search, replay by projection, refine-until-resolved, `run`;
+  certificate emission as `.hsc` s-expression text (spec §6).
 
-Sources: `src/cegar/` (own static library `hsc_cegar`). Binaries:
-`tools/cegar/` — `hsc-cegar` (run / mono / gen) and `hsc-certcheck`,
-the independent checker, deliberately sharing **no code** with this
-package.
-
-Tests: `tests/cegar/` (own doctest binary). Experiment records:
-`experiments/cegar/`.
+Sources: `src/cegar/` (static library `hsc_cegar`). Tests:
+`tests/cegar/` (own doctest binary; fixtures are `.hsc` literals).
+Model families: `examples/cegar/` and `tests/cegar/gen_rand.py`.
+Experiment records: `experiments/cegar/`.
