@@ -22,13 +22,17 @@ CAV 2008, before the contribution claim is final).
 
 ## TODO — theory (next action first)
 
-1. **The CAC08 cegar-timeout pattern** (report §CAC08): 14 subjects
-   where cegar blows 15 s on models the explicit engine walks
-   instantly — smokers6 at 494 concrete states, Gas `correct_change`
-   at 165. The pattern: the monitor watches the *big* leaf's labels.
-   Diagnose from the TSV's ns split and prescribe (policy? budget
-   order? a spec §10 relaxation?). This is the refinement-economics
-   corpus T-D was waiting for, found in the wild.
+1. **The decomposition grain** (report §CAC08, `cac08_verdicts.tsv`
+   vs `cac08_hotbit.tsv`): re-encoding the stores as one-hot bits
+   fixes five economics timeouts and produces the chiron_multiple
+   leverage on chiron_single mechanically (p01: inv 18 vs 137) — but
+   the one-hot mutex is cross-leaf correlation, and its ghosts
+   inflate other subjects 100×+ or past the search cap (8 clean
+   `cap` refusals). Prescribe the right grain: the semantic
+   store-factoring (`hsc/fsp/algorithm.md` §5 is the reference
+   design; its home is a surface hsc→hsc pass, spec needed), plus
+   whether the remaining pure-economics timeouts (smokers5,
+   gas c004+) want a policy fix instead.
 2. **CAC08 subjects 8 and 17** (Chiron property 8) exist only as QRE +
    Ada — no FSP in the artifact. Hand-translate from QRE, or drop them
    and state the gap? The other 30 subjects are in hand.
