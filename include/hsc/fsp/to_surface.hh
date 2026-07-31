@@ -41,9 +41,12 @@ class transform_error : public std::runtime_error {
 
 /// \brief Compose the ground processes. Exactly one must be the property.
 /// State-name maps longer than \p map_limit states are suppressed from the
-/// header. Throws `transform_error`.
+/// header. \p pinned splits every write piece per source, so each write is
+/// guarded by one `(== P s)` — the `hotbit` rewrite's pinning eligibility
+/// (more events, same semantics). Throws `transform_error`.
 [[nodiscard]] translation to_surface(const std::vector<ground_lts>& procs,
-                                     std::size_t map_limit = 200);
+                                     std::size_t map_limit = 200,
+                                     bool pinned = false);
 
 /// \brief M2T: the model-only `.hsc` (header comments, then the forms).
 void print_model(std::ostream& os, const translation& t);

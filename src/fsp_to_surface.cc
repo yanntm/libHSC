@@ -42,7 +42,7 @@ struct piece {
 /// §3). \p error_value ≥ 0 marks the property: the relation is totalized
 /// (undefined states write E, E is absorbing) and must be deterministic.
 std::vector<piece> pieces_of(const ground_lts& p, const glabel& a,
-                             int error_value) {
+                             int error_value, bool pinned) {
   const int n = static_cast<int>(p.state_names.size());
   std::map<int, std::set<int>> by_dst;  // non-self targets → sources
   std::set<int> self, covered;
@@ -70,9 +70,18 @@ std::vector<piece> pieces_of(const ground_lts& p, const glabel& a,
     self.insert(error_value);
   }
   std::vector<piece> out;
-  for (const auto& [d, srcs] : by_dst)
-    out.push_back({{srcs.begin(), srcs.end()}, d, true});
-  if (!self.empty()) out.push_back({{self.begin(), self.end()}, 0, false});
+  for (const auto& [d, srcs] : by_dst) {
+    if (pinned)  // one piece per source: every write guarded by (== P s)
+      for (const int s : srcs) out.push_back({{s}, d, true});
+    else
+      out.push_back({{srcs.begin(), srcs.end()}, d, true});
+  }
+  // Identity pieces too: a set guard would hotbit into an or across bit
+  // leaves — a crossing atom the cegar bridge refuses.
+  if (pinned)
+    for (const int s : self) out.push_back({{s}, 0, false});
+  else if (!self.empty())
+    out.push_back({{self.begin(), self.end()}, 0, false});
   return out;
 }
 
@@ -89,8 +98,9 @@ surface::datum write_act(const std::string& leaf, int dst) {
 
 class composer {
  public:
-  composer(const std::vector<ground_lts>& procs, std::size_t map_limit)
-      : map_limit_(map_limit) {
+  composer(const std::vector<ground_lts>& procs, std::size_t map_limit,
+           bool pinned)
+      : map_limit_(map_limit), pinned_(pinned) {
     for (const ground_lts& p : procs)
       (p.is_property ? props_ : leaves_).push_back(&p);
     if (props_.size() != 1)
@@ -125,6 +135,7 @@ class composer {
 
  private:
   std::size_t map_limit_;
+  bool pinned_ = false;
   std::vector<const ground_lts*> leaves_, props_;
   std::vector<std::string> leaf_names_;
   std::set<std::string> names_;
@@ -183,11 +194,11 @@ class composer {
     std::vector<std::vector<piece>> pp;
     std::vector<std::string> pnames;
     for (const std::size_t i : parts) {
-      pp.push_back(pieces_of(*leaves_[i], a, -1));
+      pp.push_back(pieces_of(*leaves_[i], a, -1, pinned_));
       pnames.push_back(leaf_names_[i]);
     }
     if (prop.alphabet.count(a)) {
-      pp.push_back(pieces_of(prop, a, t_.monitor_error));
+      pp.push_back(pieces_of(prop, a, t_.monitor_error, false));
       pnames.push_back("mon");
     }
     // The product of the piece sets, one event per tuple.
@@ -233,12 +244,19 @@ class composer {
         by_dst[d].insert(s);
     }
     std::vector<surface::datum> pending;
-    for (const auto& [d, srcs] : by_dst)
-      pending.push_back(list(
-          {atom("event"), atom(""),
-           list({atom("when"),
-                 guard_atom(leaf_names_[i], {srcs.begin(), srcs.end()})}),
-           list({atom("do"), write_act(leaf_names_[i], d)})}));
+    for (const auto& [d, srcs] : by_dst) {
+      // Under --pinned, tau writes split per source like any write piece.
+      std::vector<std::vector<int>> guards;
+      if (pinned_)
+        for (const int s : srcs) guards.push_back({s});
+      else
+        guards.push_back({srcs.begin(), srcs.end()});
+      for (auto& g : guards)
+        pending.push_back(
+            list({atom("event"), atom(""),
+                  list({atom("when"), guard_atom(leaf_names_[i], g)}),
+                  list({atom("do"), write_act(leaf_names_[i], d)})}));
+    }
     name_and_emit(leaf_names_[i] + "_tau", std::move(pending));
   }
 
@@ -260,8 +278,8 @@ class composer {
 }  // namespace
 
 translation to_surface(const std::vector<ground_lts>& procs,
-                       std::size_t map_limit) {
-  return composer(procs, map_limit).run();
+                       std::size_t map_limit, bool pinned) {
+  return composer(procs, map_limit, pinned).run();
 }
 
 void print_model(std::ostream& os, const translation& t) {

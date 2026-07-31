@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   CLI::App app{"Import a CAC08 FSP (.lts) subject into the .hsc surface"};
   std::string in, out, driver, s1;
   std::size_t map_limit = 200;
-  bool summary = false, parse_only = false;
+  bool summary = false, parse_only = false, pinned = false;
   app.add_option("input", in, "the .lts subject")->required();
   app.add_option("-o,--output", out, "write the model .hsc here "
                                      "(default: stdout)");
@@ -42,6 +42,9 @@ int main(int argc, char** argv) {
   app.add_option("--map-limit", map_limit,
                  "suppress a leaf's state-name map beyond this many states")
       ->capture_default_str();
+  app.add_flag("--pinned", pinned,
+               "split write pieces per source ((== P s) guards) so the "
+               "hotbit rewrite's pinning eligibility holds");
   app.add_flag("--summary", summary,
                "report processes, alphabets, and composition, then stop");
   app.add_flag("--parse-only", parse_only, "stop silently after the parse");
@@ -68,7 +71,7 @@ int main(int argc, char** argv) {
     for (const hsc::fsp::process& p : m.processes)
       procs.push_back(hsc::fsp::ground(m, p));
 
-    hsc::fsp::translation t = hsc::fsp::to_surface(procs, map_limit);
+    hsc::fsp::translation t = hsc::fsp::to_surface(procs, map_limit, pinned);
 
     if (summary) {
       for (const hsc::fsp::ground_lts& p : procs) {
