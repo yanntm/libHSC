@@ -96,7 +96,12 @@ for model in "$CORPUS"/*/*_model.hsc; do
   if awk -F'\t' -v s="$system" -v j="$subject" '$1==s && $2==j {found=1} END {exit !found}' "$OUT"; then
     continue
   fi
-  row "$system" "$subject" "$model" "$driver" >> "$OUT"
-  echo "$subject done" >&2
+  if [ $(( $(date +%s) - T_START )) -ge "$BUDGET_S" ]; then
+    echo "budget spent ($BUDGET_S s) — rerun to continue from $subject"
+    exit 0
+  fi
+  line=$(row "$system" "$subject" "$model" "$driver")
+  printf '%s\n' "$line" >> "$OUT"
+  printf '%s\n' "$line"
 done
-echo "CAC08 -> $OUT"
+echo "CAC08 complete -> $OUT"
