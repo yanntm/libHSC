@@ -93,6 +93,33 @@ every published size is `??021`, i.e. 2 event kinds, 1 dispatcher.
 4. Two stray `.lstar` files (a learned assumption dumped by their L\*
    run) survive in the FLAVERS tree; incidental, not part of the corpus.
 
+## Why the archives are large
+
+104 of the extracted 214 MB are `.lts` files, and almost all of that is
+**one component of one system**. The Gas Station / Peterson / Relay /
+Smokers FSP is parameterized and compact (Gas Station at 2 customers is
+87 lines: `const CUSTOMERS = 2`, ranges, `when` guards). Chiron's FSP is
+instead *pre-flattened* — one explicit `STATEn = (...)` clause per state
+— and its dispatcher enumerates the registration-list state space:
+
+| artists | Chiron single, dispatcher | Chiron multiple, largest dispatcher |
+|---|---|---|
+| 2 | 38 | 17 |
+| 3 | 422 | 66 |
+| 4 | 2 021 | 327 |
+| 5 | **42 071** | 1 958 |
+
+At 5 artists the single-dispatcher file is 220 k lines / 10.8 MB, one per
+property, and the artists themselves stay at **8–10 states each**. That
+asymmetry — server superexponential in k, clients flat — is exactly the
+pole the evaluation is aimed at, and it is visible in the upstream
+artifact before we model anything. It is also why the *multiple*
+dispatcher variant exists: splitting per event kind cuts 42 071 to 1 958.
+
+On the FLAVERS side the bulk is generated Ada (16.5 MB of `.adb`, e.g.
+`smokers_58/source/smokers.adb` at 2.4 MB) plus per-task control-flow
+graph dumps (`.operator`, `.dispatcher`, `.pump_1`, …).
+
 ## Status
 
 **Acquisition only.** Nothing here has been translated into any format of
