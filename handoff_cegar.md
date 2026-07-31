@@ -22,28 +22,26 @@ CAV 2008, before the contribution claim is final).
 
 ## TODO — theory (next action first)
 
-1. **CAC08 subjects 8 and 17** (Chiron property 8) exist only as QRE +
+1. **The CAC08 cegar-timeout pattern** (report §CAC08): 14 subjects
+   where cegar blows 15 s on models the explicit engine walks
+   instantly — smokers6 at 494 concrete states, Gas `correct_change`
+   at 165. The pattern: the monitor watches the *big* leaf's labels.
+   Diagnose from the TSV's ns split and prescribe (policy? budget
+   order? a spec §10 relaxation?). This is the refinement-economics
+   corpus T-D was waiting for, found in the wild.
+2. **CAC08 subjects 8 and 17** (Chiron property 8) exist only as QRE +
    Ada — no FSP in the artifact. Hand-translate from QRE, or drop them
    and state the gap? The other 30 subjects are in hand.
-2. T-D needs its corpus: the families resolve in too few rounds for
-   policies to diverge. Design the refinement-heavy family
-   (spurious-chain depth as a parameter), as committed `.hsc` models
-   or a spec'd generator; spec §10 revision (mirrored as paper §10.5).
-3. Decide the next relaxation to spec (paper §10 order: interior
+3. T-D needs its corpus: the families resolve in too few rounds for
+   policies to diverge — see item 1 before designing a synthetic one.
+4. Decide the next relaxation to spec (paper §10 order: interior
    contracts first).
 
 ## TODO — engineering
 
-1. **CAC08 campaign**: sweep the 91 translated drivers
-   (`examples/cac08/hsc/`, regenerate via `translate_all.sh`) into a
-   TSV under `experiments/cegar/` — 15 s cap, a timeout is a row —
-   then pin driver `expect` lines from verified rows. Known hot spot
-   to carry as data: `gas_c002_correct_change` blows the cap in the
-   cegar loop (xreach is instant; report §CAC08 finding 1). Larger
-   Chiron sizes come from the tarballs only when a table demands
-   them.
-2. Candidate cleanup when touched next: the `cegar` summary could
+1. Candidate cleanup when touched next: the `cegar` summary could
    report per-entry rungs (name → index) for cone-of-influence
    tables.
 
-Blockers: none.
+Blockers: none. (CAC08 is translated, swept, and pinned — see report
+§CAC08; next CAC08 action is theory's, item 1.)
