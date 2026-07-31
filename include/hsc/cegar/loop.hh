@@ -53,7 +53,10 @@ struct run_result {
 
 /// Algorithm 4.1 of the paper on model m. Round assertions and the
 /// budget cap are enforced with hard aborts — a failure is a bug in the
-/// learner or the teacher, not a condition to handle.
+/// learner or the teacher, not a condition to handle. The abstract
+/// search cap is the exception: it is a resource limit, and hitting it
+/// (an abstraction whose product outgrows it — many fine leaves, ghost
+/// states) returns `verdict::kind::cap` for the caller to diagnose.
 [[nodiscard]] run_result run(const model& m, const options& opt);
 
 }  // namespace hsc::cegar

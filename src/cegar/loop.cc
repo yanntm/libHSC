@@ -93,6 +93,7 @@ struct profile {
 /// entry, constant 0 for property leaves (the monitor carries them).
 struct search_result {
   bool bad_found = false;
+  bool capped = false;  ///< the cap was hit: a resource verdict, not a bug
   eword witness;
   std::vector<std::vector<std::int32_t>> inv;
 };
@@ -147,8 +148,13 @@ search_result search(const model& m, profile& p, std::int64_t cap) {
         r.witness = rebuild(static_cast<std::int64_t>(r.inv.size()) - 1);
         return r;
       }
-      if (static_cast<std::int64_t>(r.inv.size()) > cap)
-        die("abstract search exceeded cap");
+      if (static_cast<std::int64_t>(r.inv.size()) > cap) {
+        // A resource limit, not a loop invariant: an abstraction whose
+        // product outgrows the cap (many fine leaves, ghost states) is
+        // the caller's to diagnose — report, never abort.
+        r.capped = true;
+        return r;
+      }
     }
   }
   return r;
@@ -307,6 +313,11 @@ run_result run(const model& m, const options& opt) {
     auto t0 = now();
     search_result s = search(m, p, opt.cap);
     r.ns_search += ns(now() - t0);
+    if (s.capped) {
+      r.v.k = verdict::kind::cap;
+      r.v.states_walked = static_cast<std::int64_t>(s.inv.size());
+      break;
+    }
     std::vector<const classifier*> h(m.leaves.size(), nullptr);
     for (std::size_t i = 0; i < m.leaves.size(); ++i)
       if (p.of_leaf[i] >= 0) h[i] = &p.entries[p.of_leaf[i]]->published();

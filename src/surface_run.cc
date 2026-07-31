@@ -263,6 +263,13 @@ class runner {
     const expr_reader reader(ex_, s);
     const cegar_bridge b = build_cegar_model(s, ex_, reader, atoms);
     const cegar::run_result r = cegar::run(b.model, opt);
+    if (r.v.k == cegar::verdict::kind::cap) {
+      fail(form, "cegar: abstract search exceeded its cap (" +
+                     std::to_string(r.v.states_walked) +
+                     " abstract states materialized; the abstraction "
+                     "diverged — raise `cap N` or coarsen the "
+                     "decomposition)");
+    }
     const bool holds = r.v.k == cegar::verdict::kind::holds;
     out_ << name << " cegar " << (holds ? "holds" : "violation")
          << " rounds " << r.rounds << " cex " << r.cex_total << '/'
