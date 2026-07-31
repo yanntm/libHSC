@@ -192,6 +192,15 @@ must not be cited.
 
 ## Still to acquire (do not cite)
 
+* **Priority — nearest cousin, read before the contribution claim is
+  final**: Gheorghiu Bobaru, Giannakopoulou, Păsăreanu — AGAR,
+  *Automated assume-guarantee reasoning by abstraction refinement*
+  (CAV 2008): replaces the learned assumption by a CEGAR-refined
+  abstraction of the environment. Closest published point to
+  "abstraction per component, refined by counterexamples"; our deltas
+  (per-leaf certified over-approximations, n-ary shape, canonical
+  rungs + interning, budget theorem, exportable certificate) must be
+  stated against it explicitly.
 * AG origins one-liner: Misra & Chandy 1981; Jones 1983; Pnueli 1985;
   Grumberg & Long 1994 — or compress to one textbook pointer. The coda
   currently names assume-guarantee without an origins cite; acceptable
