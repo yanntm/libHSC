@@ -3,3 +3,5 @@
 (input smokers3_table_lock_unlock_model.hsc)
 (cegar v (== mon 5))
 (xreach x)
+(expect v 0)
+(expect x 116)

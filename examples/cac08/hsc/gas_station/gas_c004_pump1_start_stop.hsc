@@ -3,3 +3,5 @@
 (input gas_c004_pump1_start_stop_model.hsc)
 (cegar v (== mon 2))
 (xreach x)
+(expect v 0)
+(expect x 7209)

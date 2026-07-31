@@ -3,3 +3,5 @@
 (input smokers3_put_take_1_model.hsc)
 (cegar v (== mon 5))
 (xreach x)
+(expect v 0)
+(expect x 116)

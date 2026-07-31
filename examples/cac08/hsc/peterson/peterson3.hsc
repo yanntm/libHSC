@@ -3,3 +3,5 @@
 (input peterson3_model.hsc)
 (cegar v (== mon 4))
 (xreach x)
+(expect v 0)
+(expect x 2857)

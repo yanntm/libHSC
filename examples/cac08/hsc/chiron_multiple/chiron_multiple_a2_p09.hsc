@@ -3,3 +3,5 @@
 (input chiron_multiple_a2_p09_model.hsc)
 (cegar v (== mon 6))
 (xreach x)
+(expect v 0)
+(expect x 794)

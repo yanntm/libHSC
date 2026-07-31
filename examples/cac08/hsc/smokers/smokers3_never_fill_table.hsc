@@ -3,3 +3,5 @@
 (input smokers3_never_fill_table_model.hsc)
 (cegar v (== mon 3))
 (xreach x)
+(expect v 0)
+(expect x 116)

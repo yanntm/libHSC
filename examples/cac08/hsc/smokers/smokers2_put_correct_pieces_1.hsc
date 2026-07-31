@@ -3,3 +3,5 @@
 (input smokers2_put_correct_pieces_1_model.hsc)
 (cegar v (== mon 2))
 (xreach x)
+(expect v 0)
+(expect x 52)

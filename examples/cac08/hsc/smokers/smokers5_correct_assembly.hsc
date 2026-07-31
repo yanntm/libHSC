@@ -3,3 +3,5 @@
 (input smokers5_correct_assembly_model.hsc)
 (cegar v (== mon 15))
 (xreach x)
+(expect v 0)
+(expect x 334)

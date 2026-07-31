@@ -3,3 +3,5 @@
 (input gas_c004_mutual_exclusion_model.hsc)
 (cegar v (== mon 3))
 (xreach x)
+(expect v 0)
+(expect x 7209)

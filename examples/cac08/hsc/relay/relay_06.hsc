@@ -3,3 +3,5 @@
 (input relay_06_model.hsc)
 (cegar v (== mon 2))
 (xreach x)
+(expect v 0)
+(expect x 810)

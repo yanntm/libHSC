@@ -3,3 +3,5 @@
 (input smokers5_table_lock_unlock_model.hsc)
 (cegar v (== mon 7))
 (xreach x)
+(expect v 0)
+(expect x 334)

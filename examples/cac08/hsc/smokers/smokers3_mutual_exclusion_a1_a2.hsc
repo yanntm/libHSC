@@ -3,3 +3,5 @@
 (input smokers3_mutual_exclusion_a1_a2_model.hsc)
 (cegar v (== mon 3))
 (xreach x)
+(expect v 0)
+(expect x 116)
