@@ -40,9 +40,9 @@ argued.
   routing). **No cegar binaries.**
 
 Tests: `tests/cegar/` (own doctest binary; links `hsc_cegar` and the
-surface library — fixtures are `.hsc` literals). Model families:
-`examples/cegar/*.hsc` (parametric) and `tests/cegar/gen_rand.py`
-(the random corpus emitter, prints `.hsc`). Experiment records:
+surface library — fixtures are `.hsc` literals; random-model parity
+fuzzing lives here, in-process, and nowhere else). Model families:
+`examples/cegar/*.hsc` (parametric). Experiment records:
 `experiments/cegar/`.
 
 ## 2. Objects (the core's PODs)
@@ -329,30 +329,33 @@ Parametric `.hsc` in `examples/cegar/`, each self-checking:
 * `ring.hsc` — `(param N …)`: token ring of identical stations,
   mutual-exclusion monitor. **Holds.** One interned entry for all
   stations (O4 stress).
-* `tests/cegar/gen_rand.py --leaves L --states Q --letters S
-  --events E --density D --seed X` — prints a random separable-
-  fragment `.hsc` (partial deterministic leaves as guarded events, a
-  random monitor leaf, a `(cegar …)` line and its `expect`); the O1
-  workhorse. Parameters echoed in a `;` header (the file is the
-  record). Instances whose `xreach` exceeds 10⁶ states are rejected
-  at generation (keeps every diagnostic under the 15 s cap).
+There is **no random corpus in the campaign**: random models are a
+correctness fuzzer, not a measurement — that role lives in the test
+suite (parity vs `mono`, all policies, pinned regression seeds) and
+its rows belong in no table. Known gap, reported not hidden: the
+bridge's letter induction is exercised by the families and the unit
+fixtures, not fuzzed. Measurement corpora beyond the families are the
+real ones (DVE, NUPN), queued behind the fragment-coverage question
+(§10 of the paper).
 
 ## 10. Experiments (tables for the paper; records in `experiments/cegar/`)
 
-Unchanged in design from the prior campaign; re-run from the `.hsc`
-corpora. All sweeps: TSV, one row per (model, config, seed), scripts
-+ TSVs committed, 15 s per-model cap, a timeout is a row.
+Family-based; measurement on random soup is not evidence (§9). All
+sweeps: TSV, one row per (model, config), scripts + TSVs committed,
+15 s per-run cap, a timeout is a row. Per-row parity triangle:
+the `cegar` verdict against the symbolic engine (`reach` + `select`
+of the bad atoms), `xreach` for concrete counts, `certcheck` on
+every holds — three independent implementations agreeing, as data.
 
-* **T-A parity**: families + rand grid (≥200 models); verdicts,
-  agreement, witness refires — O1/O6 as data.
-* **T-B budget & cone**: holds-instances; budget spent vs pool, rung
-  profile, |Inv|, abstract vs mono states.
+* **T-A parity & budget**: clients, clients-bug, ring across sizes;
+  verdicts, agreement, certcheck, cex vs pool, rung profile, |Inv|,
+  abstract vs concrete states.
 * **T-C symmetry scaling**: clients(K), ring(N), K,N ∈
-  {2,4,8,16,32,64}; interning on/off ablation.
-* **T-D policy knobs**: rand corpus × culprit policies ×
-  jump-exact. (Known gap: the current rand corpus is
-  violation-dominated; the refinement-heavy generator revision is a
-  queued spec change, tracked in the handoff.)
+  {2,4,8,16,32,64}; interning on/off ablation; the time split.
+* **T-D policy knobs**: deferred until the refinement-heavy corpus
+  exists (the queued theory item) — the families resolve in too few
+  rounds for the policies to diverge, and measuring that would be
+  noise dressed as data.
 
 New column set, all tables: the time split (leaf-oracle time,
 search time, replay time) — the teacher-locality measurement.

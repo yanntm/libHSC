@@ -27,5 +27,6 @@ the test cases.
   pass; mutated ones (dropped inv, weakened select, mis-aliased use)
   fail — in-process, through the same entry the runner's
   `(certcheck FILE)` uses.
-* `gen_rand.py` — prints a random separable-fragment `.hsc` model with
-  its driver commands; the sweep corpus generator (spec §9).
+
+Random models are a correctness fuzzer and live only here (the parity
+cases above); the campaign records measure the structured families.
