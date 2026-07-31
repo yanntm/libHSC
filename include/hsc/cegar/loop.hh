@@ -1,6 +1,6 @@
 /// \file cegar/loop.hh
 /// \brief The verification loop: abstract-product search over certified
-/// classifiers, shape-descent replay, refine-until-resolved; verdicts
+/// classifiers, replay by projection, refine-until-resolved; verdicts
 /// carry their evidence (a replayable witness, or a certificate).
 ///
 /// Leaves are interned by their serialized bytes: byte-equal leaves share
@@ -39,8 +39,16 @@ struct run_result {
   std::int32_t leaves_chaotic = 0, leaves_intermediate = 0,
                leaves_exact = 0;
   std::int64_t inv_size = 0;  ///< |Inv| when v.k == holds.
-  /// The certificate text (.cert) when v.k == holds, else empty.
+  /// The certificate document (`.hsc` s-expressions, spec §6) when
+  /// v.k == holds, else empty.
   std::string certificate;
+  /// On violation: every leaf's model value at the witness's end
+  /// (leaf order) — the validated bad state, ready to bind.
+  std::vector<std::int32_t> final_values;
+  /// Coarse wall split, nanoseconds: abstract search, replay, and
+  /// refinement — the leaf oracles (membership, certification) live
+  /// inside refinement, so ns_refine is the teacher-cost column.
+  std::int64_t ns_search = 0, ns_replay = 0, ns_refine = 0;
 };
 
 /// Algorithm 4.1 of the paper on model m. Round assertions and the

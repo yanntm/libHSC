@@ -5,8 +5,7 @@ add_library(hsc_cegar STATIC
   classifier.cc
   certify.cc
   learner.cc
-  loop.cc
-  gen.cc)
+  loop.cc)
 target_include_directories(hsc_cegar PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_compile_options(hsc_cegar PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>)

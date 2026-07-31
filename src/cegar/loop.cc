@@ -1,8 +1,10 @@
 /// \file cegar/loop.cc — the verification loop: abstract-product search,
-/// shape-descent replay, refine-until-resolved, certificate emission.
+/// replay by projection, refine-until-resolved, certificate emission.
 
 #include "hsc/cegar/loop.hh"
 
+#include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -31,17 +33,23 @@ struct vec_hash {
   }
 };
 
-/// One entry per distinct leaf: shared learner, classifier, budget.
+/// One entry per distinct non-property leaf: shared learner, classifier,
+/// budget. Property leaves have no entry (of_leaf == -1): the monitor
+/// tracks them exactly (spec §5.6).
 struct profile {
   std::vector<std::unique_ptr<learner>> entries;
   std::vector<std::int64_t> entry_states;  // |Q| of the entry's leaf
   std::vector<std::int32_t> entry_leaf;    // entry -> representative leaf
-  std::vector<std::int32_t> of_leaf;       // leaf instance -> entry
+  std::vector<std::int32_t> of_leaf;       // leaf instance -> entry, -1 prop
 
   static profile build(const model& m, bool intern) {
     profile p;
     std::map<std::string, std::int32_t> by_key;
     for (std::size_t i = 0; i < m.leaves.size(); ++i) {
+      if (m.is_prop(static_cast<std::int32_t>(i))) {
+        p.of_leaf.push_back(-1);
+        continue;
+      }
       std::int32_t entry = -1;
       if (intern) {
         auto [it, fresh] = by_key.try_emplace(
@@ -81,6 +89,8 @@ struct profile {
 };
 
 /// Search result: a witness, or Inv (the reached set) proving "holds".
+/// Abstract states are (m, x_1..x_n) with x_i the class of leaf i's
+/// entry, constant 0 for property leaves (the monitor carries them).
 struct search_result {
   bool bad_found = false;
   eword witness;
@@ -89,9 +99,9 @@ struct search_result {
 
 search_result search(const model& m, profile& p, std::int64_t cap) {
   const std::int32_t n = static_cast<std::int32_t>(m.leaves.size());
-  std::vector<const classifier*> h(m.leaves.size());
+  std::vector<const classifier*> h(m.leaves.size(), nullptr);
   for (std::int32_t i = 0; i < n; ++i)
-    h[i] = &p.entries[p.of_leaf[i]]->published();
+    if (p.of_leaf[i] >= 0) h[i] = &p.entries[p.of_leaf[i]]->published();
   std::unordered_map<std::vector<std::int32_t>, std::int64_t, vec_hash> seen;
   search_result r;
   std::vector<std::pair<std::int64_t, std::int32_t>> pred;
@@ -115,8 +125,10 @@ search_result search(const model& m, profile& p, std::int64_t cap) {
     for (std::int32_t e = 0; e < m.mon.n_events; ++e) {
       std::vector<std::int32_t> nxt = cur;
       nxt[0] = m.mon.step(cur[0], e);
+      if (nxt[0] < 0) continue;  // a property leaf blocks
       bool enabled = true;
       for (const auto& [l, a] : m.events[e].support) {
+        if (!h[l]) continue;  // property leaf: the monitor answered
         std::int32_t c = h[l]->step(cur[l + 1], a);
         if (!h[l]->live(c)) {
           enabled = false;
@@ -142,18 +154,19 @@ search_result search(const model& m, profile& p, std::int64_t cap) {
   return r;
 }
 
-/// Replay by descent of the shape; collects failing leaves.
-void descend(const model& m, std::int32_t node, const eword& w,
-             std::vector<std::int32_t>& culprits) {
-  const shape::node& nd = m.tree.nodes[node];
-  if (nd.leaf >= 0) {
-    word u = m.project(w, nd.leaf);
-    if (u.empty()) return;  // no support here: skip
-    if (!m.leaves[nd.leaf].fire(u)) culprits.push_back(nd.leaf);
-    return;
+/// Replay by projection; collects failing leaves. A property-leaf
+/// projection cannot fail (the monitor is exact): asserted.
+std::vector<std::int32_t> replay(const model& m, const eword& w) {
+  std::vector<std::int32_t> culprits;
+  for (std::int32_t i = 0; i < static_cast<std::int32_t>(m.leaves.size());
+       ++i) {
+    word u = m.project(w, i);
+    if (u.empty()) continue;  // no support here: skip wholesale
+    if (m.leaves[i].fire(u)) continue;
+    if (m.is_prop(i)) die("property-leaf projection failed on replay");
+    culprits.push_back(i);
   }
-  descend(m, nd.left, w, culprits);
-  descend(m, nd.right, w, culprits);
+  return culprits;
 }
 
 /// Refine entry until certified and rejecting u; feeds certification
@@ -232,32 +245,48 @@ void drive_exact(learner& l, const lts& leaf, std::int64_t leaf_budget) {
   }
 }
 
+/// The certificate document (spec §6): `.hsc` s-expressions. One
+/// `classifier` per distinct non-property leaf, `use` aliases for the
+/// interned instances, one `inv` per abstract state — property leaves
+/// as model values, others as class indices.
 std::string emit_certificate(const model& m, const profile& p,
                              const std::vector<std::vector<std::int32_t>>& inv,
-                             std::vector<const classifier*> h) {
+                             const std::vector<const classifier*>& h) {
   std::ostringstream out;
-  out << "cert 1\n";
+  out << "(certificate (select " << m.property_text << "))\n";
   std::vector<std::int32_t> rep_leaf(p.entries.size(), -1);
   for (std::size_t i = 0; i < m.leaves.size(); ++i) {
-    std::int32_t entry = p.of_leaf[i];
+    const std::int32_t entry = p.of_leaf[i];
+    if (entry < 0) continue;  // property leaf: the monitor carries it
     if (rep_leaf[entry] < 0) {
       rep_leaf[entry] = static_cast<std::int32_t>(i);
       const classifier& c = *h[i];
-      out << "classifier " << m.leaf_names[i] << " classes " << c.k
-          << " dead " << c.dead << "\n";
+      out << "(classifier " << m.leaf_names[i] << ' ' << c.k << ' ' << c.dead;
       for (std::int32_t cl = 0; cl < c.k; ++cl)
         for (std::int32_t a = 0; a < c.n_letters; ++a)
-          out << "a " << cl << " " << a << " "
-              << c.step(cl, static_cast<letter>(a)) << "\n";
+          out << "\n  (a " << cl << ' ' << a << ' '
+              << c.step(cl, static_cast<letter>(a)) << ')';
+      out << ")\n";
     } else {
-      out << "use " << m.leaf_names[i] << " "
-          << m.leaf_names[rep_leaf[entry]] << "\n";
+      out << "(use " << m.leaf_names[i] << ' '
+          << m.leaf_names[rep_leaf[entry]] << ")\n";
     }
   }
   for (const auto& st : inv) {
-    out << "inv";
-    for (std::int32_t x : st) out << " " << x;
-    out << "\n";
+    out << "(inv";
+    const auto& vals = m.monitor_values[st[0]];
+    for (std::size_t i = 0; i < m.leaves.size(); ++i) {
+      const std::int32_t x =
+          p.of_leaf[i] >= 0
+              ? st[i + 1]
+              : vals[static_cast<std::size_t>(
+                    std::lower_bound(m.prop_leaves.begin(),
+                                     m.prop_leaves.end(),
+                                     static_cast<std::int32_t>(i)) -
+                    m.prop_leaves.begin())];
+      out << " (" << m.leaf_names[i] << ' ' << x << ')';
+    }
+    out << ")\n";
   }
   return out.str();
 }
@@ -269,12 +298,18 @@ run_result run(const model& m, const options& opt) {
   run_result r;
   r.budget = p.budget();
   std::int64_t last_index = p.index_total();
+  const auto now = [] { return std::chrono::steady_clock::now(); };
+  const auto ns = [](auto d) {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(d).count();
+  };
   for (;;) {
     ++r.rounds;
+    auto t0 = now();
     search_result s = search(m, p, opt.cap);
-    std::vector<const classifier*> h(m.leaves.size());
+    r.ns_search += ns(now() - t0);
+    std::vector<const classifier*> h(m.leaves.size(), nullptr);
     for (std::size_t i = 0; i < m.leaves.size(); ++i)
-      h[i] = &p.entries[p.of_leaf[i]]->published();
+      if (p.of_leaf[i] >= 0) h[i] = &p.entries[p.of_leaf[i]]->published();
     if (!s.bad_found) {
       r.v.k = verdict::kind::holds;
       r.v.states_walked = static_cast<std::int64_t>(s.inv.size());
@@ -282,12 +317,21 @@ run_result run(const model& m, const options& opt) {
       r.certificate = emit_certificate(m, p, s.inv, h);
       break;
     }
-    std::vector<std::int32_t> culprits;
-    descend(m, m.tree.root, s.witness, culprits);
+    auto t1 = now();
+    std::vector<std::int32_t> culprits = replay(m, s.witness);
+    r.ns_replay += ns(now() - t1);
     if (culprits.empty()) {
       r.v.k = verdict::kind::violation;
       r.v.witness = s.witness;
       r.v.states_walked = static_cast<std::int64_t>(s.inv.size());
+      r.final_values.reserve(m.leaves.size());
+      for (std::size_t i = 0; i < m.leaves.size(); ++i) {
+        const lts& l = m.leaves[i];
+        const auto q = l.fire(m.project(s.witness,
+                                        static_cast<std::int32_t>(i)));
+        if (!q) die("validated witness stopped refiring");
+        r.final_values.push_back(l.value_of[static_cast<std::size_t>(*q)]);
+      }
       break;
     }
     // Policy: which culprits of this witness to refine.
@@ -300,6 +344,7 @@ run_result run(const model& m, const options& opt) {
       culprits.assign(1, best);
     }
     // Interned duplicates in one batch: refine each entry once per round.
+    auto t2 = now();
     std::vector<bool> entry_done(p.entries.size(), false);
     for (std::int32_t c : culprits) {
       std::int32_t entry = p.of_leaf[c];
@@ -312,6 +357,7 @@ run_result run(const model& m, const options& opt) {
         drive_exact(l, m.leaves[c], p.entry_states[entry] + 1);
       if (l.published().accepts(u)) die("refined witness still accepted");
     }
+    r.ns_refine += ns(now() - t2);
     std::int64_t idx = p.index_total();
     if (idx <= last_index) die("no progress in refinement round");
     last_index = idx;
