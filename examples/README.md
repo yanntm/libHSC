@@ -5,6 +5,11 @@ Each example is a runnable program that prints something worth looking at and
 disagree. They are registered with CTest, so they are also the validation
 suite: a milestone is done when its feature works here.
 
+Subfolders: `models/` and `param/` (hand-written `.hsc` starters),
+`cegar/` (certified component abstraction: prove, export the proof,
+re-check it — see its README), `divine/` (the BEEM corpus) and `mcc/`
+(NUPN + oracle).
+
 Run one directly to see its output:
 
     cmake --build build -j && ./build/examples/philosophers

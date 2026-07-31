@@ -34,4 +34,12 @@ if(HSC_BUILD_TESTS)
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/states.hsc)
   add_test(NAME surface_altseq
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/altseq.hsc)
+  # cegar/: the certified-abstraction commands, self-checking (the ring
+  # driver writes its proof into the test's working directory).
+  add_test(NAME cegar_clients
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/cegar/clients.hsc)
+  add_test(NAME cegar_clients_bug
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/cegar/clients_bug.hsc)
+  add_test(NAME cegar_ring_roundtrip
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/cegar/ring_check.hsc)
 endif()

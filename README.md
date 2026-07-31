@@ -40,6 +40,18 @@ in-file — an independent oracle and debugging companion to the symbolic
 engine: exact counts on small instances, runnable witnesses, loud precise
 runtime errors.
 
+**Verify with a proof.** `(cegar NAME QATOM+)` runs certified component
+abstraction on the model: each leaf carries a learned, certified
+over-approximation, refined on demand; the answer is a concrete,
+replayed violation or a certificate — exportable with
+`(certificate FILE)` and re-checkable by the trusted core with
+`(certcheck FILE)` (manual §8d). `(input FILE)` splits model from
+driver script. The round trip, self-checking:
+
+```sh
+./build/tools/hsc examples/cegar/ring_check.hsc  # prove, export, re-check
+```
+
 **Write a model.** The language — syntax, semantics, the parametric layer
 (`param` / `forall` / `exists`), queries — is documented in
 [`doc/hsc_manual.md`](doc/hsc_manual.md). Hand-written starters live in
@@ -66,9 +78,9 @@ terms, saturate, query — each validated against an independent oracle.
 
 | path | what |
 |---|---|
-| `include/hsc/`, `src/` | the library: `core/` (calculus), `mem/` (substrate), `leaves/`, `lia/`, `xpl/` (the explicit engine), `surface/` (the `.hsc` pipeline), `order/`, `dve/`, `petri/` |
+| `include/hsc/`, `src/` | the library: `core/` (calculus), `mem/` (substrate), `leaves/`, `lia/`, `xpl/` (the explicit engine), `cegar/` (certified abstraction), `surface/` (the `.hsc` pipeline), `order/`, `dve/`, `petri/` |
 | `tools/` | the CLI binaries: `hsc`, `hsc-mcc`, `dve2hsc`, `nupn2hsc` |
-| `examples/` | self-checking programs and the model corpora (`models/`, `param/`, `divine/`, `mcc/`) |
+| `examples/` | self-checking programs and the model corpora (`models/`, `param/`, `cegar/`, `divine/`, `mcc/`) |
 | `tests/` | doctest suite (differential: `saturate == naive`), sweep and baseline scripts |
 | `doc/` | the `.hsc` language manual |
 | `experiments/` | experiment records: what was measured, the numbers, how to reproduce |
