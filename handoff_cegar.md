@@ -35,9 +35,12 @@ Drafts v1/v2 are superseded, retire when convenient.
 
 ## TODO — engineering
 
-1. Nothing blocking. On spec revision for T-D, extend `gen` and
-   re-sweep.
-2. Candidate cleanup when touched next: `hsc-cegar run` could report
+1. **CAC08 corpus**: build `examples/cac08/` per
+   `research_notes/cegar_spec_cac08.md` (M1 pilot first: Gas Station
+   + Peterson at k=2, stop and report). Adds the teacher-cost split
+   to the loop's output if absent.
+2. On spec revision for T-D, extend `gen` and re-sweep.
+3. Candidate cleanup when touched next: `hsc-cegar run` could report
    per-entry rungs (name → index) for cone-of-influence tables.
 
 Blockers: none.
