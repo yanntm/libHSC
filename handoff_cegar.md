@@ -32,13 +32,19 @@ Drafts v1/v2 are superseded, retire when convenient.
    revision (mirrored as paper §10.5).
 3. Decide the next relaxation to spec (paper §10 order: interior
    contracts first).
+4. **CAC08 subjects 8 and 17** (Chiron property 8) exist only as QRE +
+   Ada — no FSP in the artifact. Hand-translate from QRE, or drop them
+   and state the gap? The other 30 subjects are in hand.
 
 ## TODO — engineering
 
-1. **CAC08 corpus**: build `examples/cac08/` per
-   `research_notes/cegar_spec_cac08.md` (M1 pilot first: Gas Station
-   + Peterson at k=2, stop and report). Adds the teacher-cost split
-   to the loop's output if absent.
+1. **CAC08 corpus**: acquisition done — the authors' own artifacts are
+   in `examples/cac08/` (`upstream/` tarballs, `curated/` working set),
+   so the reconstruction spec is deleted and we translate the real
+   subjects. Next: an FSP `.lts` reader → `.cts`, parameterized subset
+   first (Gas Station / Peterson / Relay / Smokers), then Chiron's
+   pre-flattened files. Then the teacher-cost split in the loop's
+   output if absent. See `cegar_report.md` §CAC08.
 2. On spec revision for T-D, extend `gen` and re-sweep.
 3. Candidate cleanup when touched next: `hsc-cegar run` could report
    per-entry rungs (name → index) for cone-of-influence tables.

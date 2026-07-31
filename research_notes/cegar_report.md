@@ -98,6 +98,63 @@ so all configurations coincide within noise (~2.4 ms/run). The knobs
 need a refinement-heavy corpus to be measurable; question returned
 to Theory (spec §10 revision).
 
+## CAC08 corpus — acquisition (supersedes the reconstruction spec)
+
+`cegar_spec_cac08.md` asked us to *rebuild* the CAC08 family from the
+paper's prose, calling it explicitly "a reconstruction, not a
+reproduction". That spec is deleted: **the authors' own artifacts were
+recovered**, so we translate the real subjects instead of re-deriving
+them, and the fidelity contract in that spec no longer binds anything.
+
+* The URL printed in the paper (p. 7:14),
+  `laser.cs.umass.edu/~jcobleig/breakingup-examples/`, is **wrong** —
+  that path was never served and 404s live and in the archive. The
+  subjects sat at `laser.cs.umass.edu/breakingup-examples/`, dead today,
+  recovered from the Internet Archive crawl of 2010-06-27.
+* Ten tarballs, checksummed, committed under `examples/cac08/upstream/`
+  with `fetch_upstream.sh`; the archived index and the CDX listing that
+  located it are in `experiments/cegar/cac08_acquisition/`. Two
+  toolchains: **LTSA** (FSP `.lts` — component processes *and* the
+  safety `property` DFA in one file, which is precisely our leaves +
+  monitor) and **FLAVERS** (Ada source, CFGs, QRE). Each subject also
+  ships a `.txt` naming the components of the paper's chosen
+  decomposition — their best two-way split, i.e. a direct comparator for
+  our per-leaf contracts, which we had no way to reconstruct from prose.
+* `examples/cac08/curated/` is the working set actually to be
+  translated: 1.3 MB, one subfolder per model, byte-identical to
+  upstream.
+
+Findings that bear on the evaluation, before any modelling:
+
+1. **The LTSA side supplies 30 of the paper's 32 subjects.** Chiron
+   property 8 is absent from both variants at every size; it survives
+   only as QRE + Ada on the FLAVERS side. Not a fetch failure — the
+   tarball never held it. Subjects 8 and 17 therefore need either a
+   hand-translation from QRE or dropping from the table, with the gap
+   stated. **Theory question.**
+2. **The spec's §5 prediction is already visible in the artifact.** In
+   Chiron single the dispatcher runs 38 / 422 / 2 021 / **42 071**
+   states at 2 / 3 / 4 / 5 artists while the artists stay at **8–10
+   states each** — server superexponential in k, clients flat, exactly
+   the asymmetry the evaluation targets. The *multiple* variant is the
+   authors' own mitigation: splitting per event kind cuts 42 071 to
+   1 958.
+3. Sizes are wider than the spec assumed, and uneven between toolchains:
+   Gas Station to 200 customers and Smokers to 58 on the FLAVERS side,
+   but LTSA stops at 9 and 6. A `.lts` sweep beyond those needs the
+   generator the authors used, which is **not** in the artifact.
+4. Chiron's FSP is pre-flattened (one clause per state), which is why
+   its files are large; the other four systems are parameterized FSP
+   with `const`/`range`/`when` guards, i.e. a real (small) FSP front end
+   is needed to consume them.
+5. Licensing is uneven: only Chiron states terms (UC Regents,
+   research/non-profit, notice must appear in all copies — honoured).
+   The other four ship no notice at all. See the README.
+
+Not started: any translation into `.cts`. Next engineering step is an
+FSP reader for the parameterized subset (Gas Station / Peterson / Relay
+/ Smokers) plus the flattened subset (Chiron).
+
 ## Deviations from spec
 
 * `run --tsv` column order is verdict-first (spec §10 lists model
