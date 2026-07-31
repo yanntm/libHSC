@@ -2,6 +2,8 @@
 /// \brief Certified uniform families: the declared head-folded route, the
 /// enumerated route, and the check mode that requires the same code.
 
+#include <set>
+
 #include "surface_translator.hh"
 
 namespace hsc::surface {
@@ -165,6 +167,30 @@ void translator::do_family(const datum& form) {
     }
     if (!foldable) break;
   }
+  // C5 — closed support: every leaf the body touches sits in a family
+  // array. A shared scalar (a counter, a monitor) is index-invariant,
+  // not index-periodic: the per-instance extents below would not cover
+  // it and the fold would descend past its position. Such a family is
+  // sound but not foldable — the enumerated route owns it.
+  bool shared_leaf = false;
+  if (foldable) {
+    std::set<std::uint32_t> fam_cells;
+    for (const auto& [arr, ps] : pos) fam_cells.insert(ps.begin(), ps.end());
+    auto walk = [&](auto&& self, const datum& d) -> void {
+      if (shared_leaf) return;
+      if (d.is_atom()) {
+        const auto p = position(d.text());
+        if (p && !fam_cells.contains(*p)) shared_leaf = true;
+        return;
+      }
+      for (const datum& k : d.items()) self(self, k);
+    };
+    for (const datum& cl : body) {
+      const datum inst = instantiate(cl, 0, n);  // at@ markers -> cells
+      walk(walk, inst);
+    }
+    if (shared_leaf) foldable = false;
+  }
   if (period <= 0) period = 1;
   g.period = period;
 
@@ -214,7 +240,11 @@ void translator::do_family(const datum& form) {
     }
     if (!foldable) {
       std::cerr << "note: family '" << name
-                << "': layout is not index-periodic; enumerated (line "
+                << (shared_leaf
+                        ? "': touches leaves outside its arrays; enumerated"
+                          " (line "
+                        : "': layout is not index-periodic; enumerated"
+                          " (line ")
                 << form.line() << ")\n";
     }
     term = want_fold ? folded : unfolded;
