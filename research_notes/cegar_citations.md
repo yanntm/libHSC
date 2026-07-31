@@ -83,11 +83,16 @@ must not be cited.
   up is hard to do: an evaluation of automated assume-guarantee
   reasoning.* ACM TOSEM 17(2), Article 7, April 2008.
   (`Cobleigh_Avrunin_Clarke_2008_TOSEM`) — the negative result §9
-  answers; abstract, verified: all two-way decompositions, two
-  verifiers (FLAVERS, LTSA), "in only a few cases can assume-guarantee
-  reasoning verify properties on larger systems than monolithic
-  verification can, and in these cases the systems that can be
-  analyzed are only a few sizes larger."
+  answers; abstract and §6 conclusions, verified: all two-way
+  decompositions, two verifiers (FLAVERS, LTSA); "for the vast
+  majority of decompositions, more states were explored [with AG]
+  than [monolithically]"; at the smallest sizes about half the
+  subjects had no decomposition beating the monolith; the generalized
+  best decomposition verified larger sizes on only 8/32 subjects
+  (FLAVERS) and 0/30 (LTSA). NB the bottleneck named by the data is
+  premise size (each side of a two-way split is half the system) and
+  decomposition choice — not L* overhead; do not paraphrase it as
+  "learning overhead".
 * **[AMN05]** R. Alur, P. Madhusudan, W. Nam. *Symbolic compositional
   verification by learning assumptions.* CAV 2005, LNCS 3576,
   pp. 548–562. (`Alur_Madhusuda_Nam_2005_CAV`) — the assumption goes
