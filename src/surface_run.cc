@@ -56,6 +56,30 @@ class runner {
         work.push_back(f);
       }
     }
+    // A cegar command wants the fragment-friendly spec: constants
+    // elided, static arrays dissolved, the spine flattened — appended
+    // to the chain unless the file already asked; the trace lines keep
+    // it visible.
+    const bool wants_cegar =
+        std::any_of(work.begin(), work.end(),
+                    [](const datum& f) { return f.head() == "cegar"; });
+    if (wants_cegar) {
+      for (const char* name :
+           {"simplify-constants", "simplify-arrays", "flatten"}) {
+        if (std::any_of(chain.begin(), chain.end(),
+                        [&](const pass& p) { return p.name == name; }))
+          continue;
+        for (const pass_def& p : registry) {
+          if (p.name != name) continue;
+          const datum directive =
+              datum::list({datum::atom(name, 0)}, 0);
+          chain.push_back({p.name, [apply = p.apply, directive](
+                                       std::vector<datum> fs) {
+                             return apply(std::move(fs), directive);
+                           }});
+        }
+      }
+    }
     if (!chain.empty()) {
       auto [rewritten, log] = rewrite(std::move(work), chain);
       work = std::move(rewritten);
@@ -443,6 +467,11 @@ int run_file(const std::string& path, std::ostream& out, std::ostream& err,
   } catch (const translate_error& e) {
     err << path << ": " << e.what() << '\n';
     return 2;
+  } catch (const std::exception& e) {
+    // Not one of the language's own error kinds: an internal defect.
+    // Loud and named, never a core dump.
+    err << path << ": internal error: " << e.what() << '\n';
+    return 3;
   }
 }
 
