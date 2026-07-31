@@ -34,12 +34,14 @@ CAV 2008, before the contribution claim is final).
 
 ## TODO — engineering
 
-1. **CAC08 translation**: FSP reader emitting separable-fragment
-   `.hsc` (model-only files; drivers via `(input …)`), parameterized
-   subset first (Gas Station / Peterson / Relay / Smokers), then
-   Chiron's pre-flattened files. Artifacts in `examples/cac08/`
-   (`upstream/` tarballs, `curated/` working set). See
-   `cegar_report.md` §CAC08.
+1. **CAC08 campaign**: sweep the 91 translated drivers
+   (`examples/cac08/hsc/`, regenerate via `translate_all.sh`) into a
+   TSV under `experiments/cegar/` — 15 s cap, a timeout is a row —
+   then pin driver `expect` lines from verified rows. Known hot spot
+   to carry as data: `gas_c002_correct_change` blows the cap in the
+   cegar loop (xreach is instant; report §CAC08 finding 1). Larger
+   Chiron sizes come from the tarballs only when a table demands
+   them.
 2. Candidate cleanup when touched next: the `cegar` summary could
    report per-entry rungs (name → index) for cone-of-influence
    tables.
