@@ -1,7 +1,9 @@
 # Certified Component Abstraction on a Shape
 
 *Working draft 3. Standalone: everything used is stated; what is
-imported is imported in §2 and nowhere else.*
+imported is imported in §2 and nowhere else. Every citation was read
+from an archived source; keys resolve in the References, holdings and
+verification notes in `cegar_citations.md`.*
 
 ---
 
@@ -49,8 +51,9 @@ classifier notion, not of the loop); explicit walks; the shape given
 but locality is load-bearing here: "culprit" has an address because
 the shape interns every event somewhere). Leaves are white boxes: the
 system is being model-checked, so its parts are executable. What
-learning buys is not access but *choice of what to represent*: a leaf
-the property never probes stays at the free rung forever.
+learning buys is not access — the black-box concern of model learning
+[Vaa17] — but *choice of what to represent*: a leaf the property never
+probes stays at the free rung forever.
 
 ---
 
@@ -98,7 +101,9 @@ conjunction over the two children's leaves is the conjunction over
 `leaves(ν)`. ∎
 
 **Proposition 1.6 (cut decomposition).** At every cut, `L_ν` is the
-Arnold–Nivat synchronized product of its children's behaviors: events
+Arnold–Nivat synchronized product [AN80, Arn82] of its children's
+behaviors — Nivat's S-synchronization, verbatim: events are vectors of
+per-component letters, an absent component waits. Here: events
 interned at `ν` synchronize both children through their restrictions;
 events interned strictly inside one child pass to it unchanged and
 *skip* the other, wholesale.
@@ -114,7 +119,8 @@ no cut); what the tree adds is an address for every event and every
 failure.
 
 **Definition 1.7 (property).** A safety property is a complete DFA
-`A = (M, E, m_0, δ_A, Bad)` over the root alphabet. A **violation**
+`A = (M, E, m_0, δ_A, Bad)` over the root alphabet — the bad-prefix
+monitor of a safety language in the sense of [AS85]. A **violation**
 is `w ∈ L_V` with `δ_A(m_0, w) ∈ Bad`; the property **holds** if none
 exists.
 
@@ -132,7 +138,7 @@ Everything taken from elsewhere, stated as used.
 **Fact 2.1 (Myhill–Nerode).** For `L ⊆ Σ^*`, let `u ~_L v` iff
 `∀x. (ux ∈ L ⟺ vx ∈ L)`. This is a right congruence; `L` is regular
 iff its index `N(L)` is finite; the quotient is the unique coarsest
-right congruence saturating `L`.
+right congruence saturating `L`. (Standard; see [PP04].)
 
 **Fact 2.2 (prefix-closed targets).** If `L` is prefix-closed then
 `u ∉ L` implies `uΣ^* ∩ L = ∅`: negative information is
@@ -154,9 +160,9 @@ processing a counterexample strictly increases the class count; hence
 (F3) at most `N(L) − 1` counterexamples are ever processed, from all
 sources, over the learner's life. Hypotheses are **not** monotone
 across refinements — a rebuilt congruence may re-admit a previously
-rejected word — and nothing below pretends otherwise. (Angluin; the
-Rivest–Schapire counterexample handling; any member of the family
-with F1–F2 serves.)
+rejected word — and nothing below pretends otherwise. (Angluin
+[Ang87]; the Rivest–Schapire counterexample handling [RS93]; any
+member of the family with F1–F2 serves.)
 
 **Provenance 2.5 (the calculus).** The setting of §1 is the separable
 fragment of the hierarchical shape calculus: events are product
@@ -170,8 +176,9 @@ none of the calculus's theorems, only its setting.
 
 **Deferral 2.6 (the ω target).** For liveness, the classifier of §3
 is replaced by the syntactic invariant of an ω-language — the finite
-algebra classifying lassos, with its own canonicity and
-lasso-membership evaluation, developed in the invariant line of work.
+algebra classifying lassos (the syntactic congruence of ω-languages
+[Arn85, MS97]), with its own canonicity and lasso-membership
+evaluation, developed in the invariant line of work.
 The loop consumes classifiers through three verbs only — membership,
 right action, certification — so the lift is a swap of the §3 notion,
 not a rewrite (§10). This note stays with safety so that every proof
@@ -388,6 +395,18 @@ search order, or the refinement policy — which culprit first,
 whether to batch, when to jump a leaf straight to exact: all satisfy
 T1–T3, so choosing among them is measurement (§9), not proof.
 
+**Remark 4.6 (lineage).** The loop is a CEGAR loop [CGJLV00, CGJLV03]
+with its two heuristic steps replaced by structure. The refiner is not
+predicate discovery [GS97]: the learner's target — the leaf's
+canonical classifier — is fixed in advance, which is what makes T3 a
+budget theorem rather than a convergence hope. And spurious-witness
+analysis is not a simulation against the concrete system: it is the
+descent of T2, which names culprits by executing projections. What
+survives is lazy abstraction's economy [HJMS02] — precision varying
+across the model, just enough to verify the property — obtained here
+per leaf, as the rung profile, rather than per control location as a
+predicate set.
+
 ---
 
 ## 5. Certificates on the shape
@@ -430,7 +449,12 @@ throughout the run, and a witness spurious at one instance refines
 all `k` siblings in lockstep. The certificate for a symmetric system
 carries one leaf lemma per *behavior*, not per instance — and the
 refinement budget is per behavior too, the source of the
-size-independence claimed in §8 and tested in §9.
+size-independence claimed in §8 and tested in §9. Classical symmetry
+reduction [ID96, CEFJ96, ES96] quotients the concrete state space by
+an automorphism group supplied or discovered up front; here no group
+is computed — byte equality of canonical tables *is* the symmetry
+detection, it applies mid-flight to abstractions, and what it deduplicates
+is contracts, learning, and budget, not the product walk.
 
 ---
 
@@ -486,9 +510,12 @@ transition system — an unbounded Petri-net-like structure under a
 wqo with effective pred-basis. Then membership is still one
 execution, and certification is reachability of the upward-closed
 set `{(m, d) : d dead}` in `C_i ×` table — a **coverability**
-question, decidable for WSTS by backward saturation (Abdulla et al.;
-Finkel–Schnoebelen): the contract's "decidable or loud", discharged
-on the decidable side.
+question, decidable for WSTS by backward saturation (Abdulla–Čerāns–
+Jonsson–Tsay [AČJT96, AČJT00]; Finkel–Schnoebelen [FS01]): the
+contract's "decidable or loud", discharged on the decidable side.
+[AČJT96] states the instance we need in so many words: safety
+properties given as the prefix-closed trace set of a finite automaton
+are decidable against a well-structured system.
 
 T1, T2, T5 hold verbatim — their proofs used the contract, not the
 walks. T3 fails, and must: `N(L_i)` is infinite already for one
@@ -608,32 +635,37 @@ net) to measure Q2 at controlled locality.
   explicit checkers of the BEEM ecosystem are reference points, not
   the primary baseline: cross-tool semantics gaps make parity claims
   muddy, and the honest comparison is same-substrate.
-- **Symbolic hierarchical**: the libDDD/ITS-tools lineage
-  (thierrymieg2021 in the library), on the shared corpora — the
+- **Symbolic hierarchical**: the libDDD/ITS-tools lineage [TM21], on
+  the shared corpora — the
   house baseline this repository exists to challenge, run
   bounded-or-skipped per the working rules. Expectation: symbolic
   saturation wins raw state-counting on regular structure; the
   loop's case is local properties, certificates, and regression.
 - **The learned assume-guarantee line**: L\*-learned assumptions for
-  compositional verification (Cobleigh–Giannakopoulou–Păsăreanu and
-  the studies questioning whether learned AG ever beats monolithic —
-  the "breaking up is hard to do" line; *to be acquired into
-  `papers/` before any citation is made*). This is the comparison
-  that frames the paper: their assumption is one interface DFA
-  learned against the rest-of-system as teacher — equivalence
-  queries cost a product; ours is n leaf contracts with leaf-local
+  compositional verification [CGP03], the journal treatment with
+  alphabet refinement and symmetric rules [PGB+08], and the
+  evaluation that frames this paper — "breaking up is hard to do"
+  [CAC08], which tried *all* two-way decompositions of its subjects
+  under two verifiers and found that learned AG verifies larger
+  systems than monolithic checking in only a few cases, and then only
+  a few sizes larger. Extensions made the assumption symbolic
+  [AMN05], minimal [CFC+09], and ω-regular [FCC+08]; none moved the
+  teacher: the assumption is one interface DFA learned against the
+  rest-of-system, membership and equivalence queries each costing a
+  product-sized check. Ours is n leaf contracts with leaf-local
   teachers, canonical at every rung, interned across instances, with
-  an exportable certificate. The prediction to test: their negative
-  result (learning overhead swamps compositional savings) is a
-  property of *where the teacher lives*, and moving every oracle
+  an exportable certificate. The prediction to test: the negative
+  result of [CAC08] (learning overhead swamps compositional savings)
+  is a property of *where the teacher lives*, and moving every oracle
   inside the leaf flips the economics on symmetric and
   property-local instances — and where it does not flip, T3 bounds
   the loss.
 - **Non-learning structural abstraction on the same corpora**:
-  MCC-style reduction disciplines (berthomieu2018 counting-marking
-  reductions, amat2022 polyhedral abstraction, in the library) as
-  representatives of "abstract by rewriting the model, verify the
-  reduct". Not head-to-head on speed — different deliverables — but
+  MCC-style reduction disciplines — counting-marking reductions
+  [BLD18], polyhedral abstraction with SMT [ABD22] and its
+  concurrent-places companion [AC22], stubborn transaction reduction
+  [Laa18] as the POR-flavored relative — as representatives of
+  "abstract by rewriting the model, verify the reduct". Not head-to-head on speed — different deliverables — but
   on what survives the run: their reducts certify via
   per-transformation proofs; our certificate is checkable by a
   program the size of Remark 5.2. A qualitative comparison the
@@ -677,11 +709,16 @@ as such, with the certificate as the compensating deliverable.
    → lasso evaluations; the walk threads acceptance. The three verbs
    (membership, right action, certification) survive; the new
    obligation is ω-certification — inclusion of the leaf's
-   ω-behavior in the hypothesis's — again local.
+   ω-behavior in the hypothesis's — again local. The pieces exist:
+   the syntactic congruence [Arn85, MS97], lasso representations of
+   ω-regular languages [CNP93], learnability of infinitary sets
+   [MP95], and active learners — families of DFAs [AF16, LCZL17],
+   deterministic ω-automata [BL21].
 4. **Symbolic walks.** Step 1 is reachability over a product of
-   small tables; when indices grow, that walk is what hierarchical
-   decision diagrams are for. Nothing above assumed explicitness
-   except the walk.
+   small tables; when indices grow, that walk is what symbolic
+   engines are for — BDDs [Bry86, BCM+92], saturation [CLS01],
+   hierarchical set decision diagrams [TPHK09]. Nothing above
+   assumed explicitness except the walk.
 5. **Refinement-heavy corpora for policy measurement.** Naive random
    models tend to violate on the first witness, so the policy knobs
    of Remark 4.5 never get to diverge. Measuring them needs
@@ -690,9 +727,10 @@ as such, with the certificate as the compensating deliverable.
 
 ---
 
-*Coda.* Three old ideas — CEGAR's refinement discipline,
-assume-guarantee's local obligations, MAT learning's class-splitting
-— arranged so that each supplies what the others lacked: the
+*Coda.* Three old ideas — CEGAR's refinement discipline [CGJLV03],
+assume-guarantee's local obligations (learned, in the line of
+[CGP03]), MAT learning's class-splitting [Ang87] — arranged so that
+each supplies what the others lacked: the
 composition names the culprits (CEGAR loses its heuristic step), the
 learner is the refiner (refinement gains a canonical target and a
 budget), and certification is local (the equivalence oracle loses
@@ -701,3 +739,109 @@ descent, abstractions are canonical objects at every rung, the leaf
 interface is two oracles, and finiteness is one theorem's
 hypothesis, not the architecture's. What the loop knows, it proves;
 what it spends, it counts; what it claims, a smaller program checks.
+
+---
+
+## References
+
+Held in `papers/` of this repository, or (BtL) in the read-only
+`~/git/BuchiToLTL/papers/` archive; stems and per-entry verification
+notes in `cegar_citations.md`. Preprint/report copies are cited
+without a venue rather than with one recalled from memory.
+
+- **[ABD22]** N. Amat, B. Berthomieu, S. Dal Zilio. *A polyhedral
+  abstraction for Petri nets and its application to SMT-based model
+  checking.* 2022 (HAL copy).
+- **[AC22]** N. Amat, L. Chauvet. *Kong: a tool to squash concurrent
+  places.* Petri Nets 2022.
+- **[AČJT96]** P. A. Abdulla, K. Čerāns, B. Jonsson, Y.-K. Tsay.
+  *General decidability theorems for infinite-state systems.* LICS
+  1996.
+- **[AČJT00]** P. A. Abdulla, K. Čerāns, B. Jonsson, Y.-K. Tsay.
+  *Algorithmic analysis of programs with well quasi-ordered domains.*
+  Information and Computation 160:109–127, 2000.
+- **[AF16]** D. Angluin, D. Fisman. *Learning regular omega
+  languages.* Theoretical Computer Science 650:57–72, 2016. (BtL)
+- **[AMN05]** R. Alur, P. Madhusudan, W. Nam. *Symbolic compositional
+  verification by learning assumptions.* CAV 2005, LNCS 3576,
+  pp. 548–562.
+- **[AN80]** A. Arnold, M. Nivat. *Controlling behaviours of systems:
+  some basic concepts and some applications.* 1980.
+- **[Ang87]** D. Angluin. *Learning regular sets from queries and
+  counterexamples.* Information and Computation 75:87–106, 1987. (BtL)
+- **[Arn82]** A. Arnold. *Synchronized behaviours of processes and
+  rational relations.* Acta Informatica 17:21–29, 1982.
+- **[Arn85]** A. Arnold. *A syntactic congruence for rational
+  ω-languages.* Theoretical Computer Science 39:333–335, 1985. (BtL)
+- **[AS85]** B. Alpern, F. B. Schneider. *Defining liveness.*
+  Information Processing Letters 21(4):181–185, 1985. (BtL)
+- **[BCM+92]** J. R. Burch, E. M. Clarke, K. L. McMillan, D. L. Dill,
+  L. J. Hwang. *Symbolic model checking: 10^20 states and beyond.*
+  Information and Computation, 1992. (BtL)
+- **[BL21]** L. Bohn, C. Löding. *Constructing deterministic
+  ω-automata from examples by an extension of the RPNI algorithm.*
+  MFCS 2021. (BtL)
+- **[BLD18]** B. Berthomieu, D. Le Botlan, S. Dal Zilio. *Petri net
+  reductions for counting markings.* 2018 (arXiv:1807.02973 copy).
+- **[Bry86]** R. E. Bryant. *Graph-based algorithms for Boolean
+  function manipulation.* IEEE Transactions on Computers, 1986. (BtL)
+- **[CAC08]** J. M. Cobleigh, G. S. Avrunin, L. A. Clarke. *Breaking
+  up is hard to do: an evaluation of automated assume-guarantee
+  reasoning.* ACM TOSEM 17(2), Article 7, 2008.
+- **[CEFJ96]** E. M. Clarke, R. Enders, T. Filkorn, S. Jha.
+  *Exploiting symmetry in temporal logic model checking.* Formal
+  Methods in System Design 9:77–104, 1996. (BtL)
+- **[CFC+09]** Y.-F. Chen, A. Farzan, E. M. Clarke, Y.-K. Tsay,
+  B.-Y. Wang. *Learning minimal separating DFA's for compositional
+  verification.* TACAS 2009.
+- **[CGJLV00]** E. Clarke, O. Grumberg, S. Jha, Y. Lu, H. Veith.
+  *Counterexample-guided abstraction refinement.* CAV 2000, LNCS 1855.
+- **[CGJLV03]** E. Clarke, O. Grumberg, S. Jha, Y. Lu, H. Veith.
+  *Counterexample-guided abstraction refinement for symbolic model
+  checking.* Journal of the ACM 50(5):752–794, 2003.
+- **[CGP03]** J. M. Cobleigh, D. Giannakopoulou, C. S. Păsăreanu.
+  *Learning assumptions for compositional verification.* TACAS 2003,
+  LNCS 2619, pp. 331–346.
+- **[CLS01]** G. Ciardo, G. Lüttgen, R. Siminiceanu. *Saturation: an
+  efficient iteration strategy for symbolic state-space generation.*
+  TACAS 2001. (BtL)
+- **[CNP93]** H. Calbrix, M. Nivat, A. Podelski. *Ultimately periodic
+  words of rational ω-languages.* MFPS 1993. (BtL)
+- **[ES96]** E. A. Emerson, A. P. Sistla. *Symmetry and model
+  checking.* Formal Methods in System Design 9, 1996. (BtL)
+- **[FCC+08]** A. Farzan, Y.-F. Chen, E. M. Clarke, Y.-K. Tsay,
+  B.-Y. Wang. *Extending automated compositional verification to the
+  full class of omega-regular languages.* TACAS 2008. (BtL)
+- **[FS01]** A. Finkel, Ph. Schnoebelen. *Well-structured transition
+  systems everywhere!* Theoretical Computer Science, 2001.
+- **[GS97]** S. Graf, H. Saïdi. *Construction of abstract state
+  graphs with PVS.* CAV 1997.
+- **[HJMS02]** T. A. Henzinger, R. Jhala, R. Majumdar, G. Sutre.
+  *Lazy abstraction.* POPL 2002.
+- **[ID96]** C. N. Ip, D. L. Dill. *Better verification through
+  symmetry.* Formal Methods in System Design 9:41–75, 1996. (BtL)
+- **[Laa18]** A. Laarman. *Stubborn transaction reduction.* 2018
+  (with-proofs copy).
+- **[LCZL17]** Y. Li, Y.-F. Chen, L. Zhang, D. Liu. *A novel learning
+  algorithm for Büchi automata based on family of DFAs and
+  classification trees.* TACAS 2017. (BtL)
+- **[MP95]** O. Maler, A. Pnueli. *On the learnability of infinitary
+  regular sets.* Information and Computation, 1995. (BtL)
+- **[MS97]** O. Maler, L. Staiger. *On syntactic congruences for
+  ω-languages.* Theoretical Computer Science, 1997. (BtL)
+- **[PGB+08]** C. S. Păsăreanu, D. Giannakopoulou, M. G. Bobaru,
+  J. M. Cobleigh, H. Barringer. *Learning to divide and conquer:
+  applying the L\* algorithm to automate assume-guarantee reasoning.*
+  Formal Methods in System Design 32:175–205, 2008.
+- **[PP04]** D. Perrin, J.-É. Pin. *Infinite Words: Automata,
+  Semigroups, Logic and Games.* Elsevier Academic Press, 2004. (BtL)
+- **[RS93]** R. L. Rivest, R. E. Schapire. *Inference of finite
+  automata using homing sequences.* Information and Computation,
+  1993. (BtL)
+- **[TM21]** Y. Thierry-Mieg. *Symbolic and structural
+  model-checking.* Fundamenta Informaticae 183(3–4):319–343, 2021.
+- **[TPHK09]** Y. Thierry-Mieg, D. Poitrenaud, A. Hamez, F. Kordon.
+  *Hierarchical set decision diagrams and regular models.* TACAS
+  2009. (BtL)
+- **[Vaa17]** F. Vaandrager. *Model learning.* Communications of the
+  ACM, 2017. (BtL)
