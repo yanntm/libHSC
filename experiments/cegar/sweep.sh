@@ -1,121 +1,107 @@
 #!/usr/bin/env bash
-# CEGAR v1 sweep — produces the T-A/T-B, T-C, T-D records of the spec
+# CEGAR sweep — the T-A and T-C records of the spec
 # (research_notes/cegar_spec.md §10) as TSVs in this folder.
 #
+# Family-based: models are the examples/cegar/*_model.hsc files, sized
+# by -DK/-DN. Per row, the parity triangle: the cegar verdict against
+# the symbolic engine (reach + select of the bad atoms), xreach for
+# the concrete count, certcheck on every holds.
+#
 # Usage: ./sweep.sh BUILDDIR   (e.g. ../../build)
-# Every model run is capped at 15 s; a timeout is a row, not a discard.
+# Every run is capped at 15 s; a timeout is a row, not a discard.
 set -u
 BUILD=${1:-../../build}
-CEGAR="$BUILD/tools/cegar/hsc-cegar"
-CHECK="$BUILD/tools/cegar/hsc-certcheck"
 HERE=$(cd "$(dirname "$0")" && pwd)
+HSC=$(cd "$HERE" && cd "$BUILD" && pwd)/tools/hsc
+MODELS=$HERE/../../examples/cegar
 cd "$HERE"
 TMP=$(mktemp -d "$HERE/tmp.XXXX")
 trap 'rm -rf "$TMP"' EXIT
 
 now_ms() { date +%s%3N; }
 
-# One parity+budget row: family, params, seed; runs cegar + mono +
-# certcheck, emits a T-A/T-B line.
-row_ab() {
-  local family=$1 params=$2 seed=$3 cts=$TMP/m.cts cert=$TMP/m.cert
-  # shellcheck disable=SC2086
-  "$CEGAR" gen $family $params -o "$cts" || { echo "genfail" >&2; return; }
-  local run mono status=ok
-  run=$(timeout 15 "$CEGAR" run "$cts" --tsv --cert "$cert") || status=timeout
-  mono=$(timeout 15 "$CEGAR" mono "$cts" --cap 2000000) || status=monotimeout
+# One row: family, model file, size flag, size, cegar options. Runs
+# the cegar driver (with certificate), the symbolic+explicit parity
+# driver, and certcheck on holds. Emits one TSV line.
+row() {
+  local family=$1 model=$2 sizeflag=$3 size=$4 opts=$5
+  local drv=$TMP/drv.hsc par=$TMP/par.hsc chk=$TMP/chk.hsc
+  local proof=$TMP/proof.hsc out sym status=ok
+  printf '(input %s)\n(cegar v (== mon 2) %s)\n(certificate %s)\n' \
+    "$MODELS/$model" "$opts" "$proof" > "$drv"
+  printf '(input %s)\n(reach R)\n(count R)\n(select B R (== mon 2))\n(count B)\n(xreach x)\n' \
+    "$MODELS/$model" > "$par"
+  printf '(input %s)\n(certcheck %s)\n' "$MODELS/$model" "$proof" > "$chk"
+
+  local t0 t1 wall_c wall_p
+  rm -f "$proof"
+  t0=$(now_ms)
+  out=$(timeout 15 "$HSC" "-D$sizeflag=$size" "$drv" 2>/dev/null) || status=cegar_timeout
+  t1=$(now_ms); wall_c=$((t1 - t0))
+  t0=$(now_ms)
+  sym=$(timeout 15 "$HSC" "-D$sizeflag=$size" "$par" 2>/dev/null) || status=${status/ok/parity_timeout}
+  t1=$(now_ms); wall_p=$((t1 - t0))
   if [ "$status" != ok ]; then
-    echo -e "$family\t$params\t$seed\t$status\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-"
+    printf '%s\t%s\t%s\t%s' "$family" "$size" "$opts" "$status"
+    printf '\t-%.0s' {1..15}
+    printf '\n'
     return
   fi
-  local v_c v_m agree cc=-
-  v_c=$(echo "$run" | cut -f1)
-  v_m=$(echo "$mono" | cut -f1)
-  agree=$([ "$v_c" = "$v_m" ] && echo yes || echo NO)
-  if [ "$v_c" = holds ]; then
-    if "$CHECK" "$cts" "$cert" >/dev/null 2>&1; then cc=pass; else cc=FAIL; fi
+  # v cegar VERDICT rounds R cex C/B rungs a/b/c inv I abstract S ns s/r/f
+  local fields
+  fields=$(echo "$out" | awk '
+    $2=="cegar" { split($7, cb, "/");
+      v=$3; ro=$5; c=cb[1]; b=cb[2]; ru=$9; iv=$11; ab=$13; ns=$15; wl="-" }
+    $2=="witness" { wl=NF-2 }
+    END { print v, ro, c, b, ru, iv, ab, ns, wl }')
+  local verdict rounds cex budget rungs inv abs ns wl
+  read -r verdict rounds cex budget rungs inv abs ns wl <<< "$fields"
+  local sym_states sym_bad x_states
+  sym_states=$(echo "$sym" | awk '$1=="R" && $2=="count" {print $3}')
+  sym_bad=$(echo "$sym" | awk '$1=="B" && $2=="count" {print $3}')
+  x_states=$(echo "$sym" | awk '$2=="xreach" {print $3}')
+  local sym_verdict=violation agree cc=-
+  [ "$sym_bad" = 0 ] && sym_verdict=holds
+  agree=$([ "$verdict" = "$sym_verdict" ] && echo yes || echo NO)
+  if [ "$verdict" = holds ]; then
+    if timeout 15 "$HSC" "-D$sizeflag=$size" "$chk" > /dev/null 2>&1; then
+      cc=pass
+    else
+      cc=FAIL
+    fi
   fi
-  echo -e "$family\t$params\t$seed\t$v_c\t$v_m\t$agree\t$cc\t$(echo "$run" | cut -f2-10)\t$(echo "$mono" | cut -f2)"
+  printf '%s\t%s\t%s\tok\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    "$family" "$size" "$opts" "$verdict" "$sym_verdict" "$agree" "$cc" \
+    "$rounds" "$cex" "$budget" "$rungs" "$inv" "$abs" "$wl" \
+    "$sym_states" "$x_states" "$ns" "$wall_c/$wall_p"
 }
 
-# ---------------------------------------------------------------- T-A/T-B
-ab() {
-  local out=ta_tb_parity.tsv
-  echo -e "family\tparams\tseed\tverdict\tmono_verdict\tagree\tcertcheck\trounds\tcex\tbudget\tchaotic\tintermediate\texact\tinv\tabs_states\twitness_len\tmono_states" > "$out"
+HEADER='family\tsize\topts\tstatus\tverdict\tsym_verdict\tagree\tcertcheck\trounds\tcex\tbudget\trungs_c/i/e\tinv\tabs_states\twitness_len\tsym_states\txreach_states\tns_search/replay/refine\twall_ms_cegar/parity'
+
+# ---------------------------------------------------------------- T-A
+ta() {
+  local out=ta_parity.tsv
+  printf "$HEADER\n" > "$out"
   for k in 2 3 5 8; do
-    row_ab clients "$k" - >> "$out"
-    row_ab clients-bug "$k" - >> "$out"
-    row_ab ring "$k" - >> "$out"
+    row clients     clients_model.hsc     K "$k" all >> "$out"
+    row clients-bug clients_bug_model.hsc K "$k" all >> "$out"
+    row ring        ring_model.hsc        N "$k" all >> "$out"
   done
-  for seed in $(seq 1 100); do
-    row_ab rand "3 4 2 5 0.5 $seed" "$seed" >> "$out"
-  done
-  for seed in $(seq 1 100); do
-    row_ab rand "4 5 3 8 0.4 $seed" "$seed" >> "$out"
-  done
-  echo "T-A/T-B done: $out"
+  echo "T-A -> $out"
 }
 
 # ---------------------------------------------------------------- T-C
 tc() {
-  local out=tc_scaling.tsv cts=$TMP/c.cts
-  echo -e "family\tn\tintern\tverdict\trounds\tcex\tinv\tabs_states\tms_run\tmono_states\tms_mono" > "$out"
-  for fam in clients ring; do
-    for n in 2 4 8 16 32 64; do
-      "$CEGAR" gen $fam "$n" -o "$cts"
-      for intern in on off; do
-        local flag=""
-        [ $intern = off ] && flag="--no-intern"
-        local t0 t1 run status=ok
-        t0=$(now_ms)
-        run=$(timeout 15 "$CEGAR" run "$cts" --tsv $flag) || status=timeout
-        t1=$(now_ms)
-        if [ $status = ok ]; then
-          echo -e "$fam\t$n\t$intern\t$(echo "$run" | cut -f1-3)\t$(echo "$run" | cut -f8-9)\t$((t1-t0))\t$(mono_cells "$cts")" >> "$out"
-        else
-          echo -e "$fam\t$n\t$intern\ttimeout\t-\t-\t-\t-\t$((t1-t0))\t-\t-" >> "$out"
-        fi
-      done
-    done
+  local out=tc_scaling.tsv
+  printf "$HEADER\n" > "$out"
+  for n in 2 4 8 16 32 64; do
+    row clients clients_model.hsc K "$n" all >> "$out"
+    row clients clients_model.hsc K "$n" "all no-intern" >> "$out"
+    row ring    ring_model.hsc    N "$n" all >> "$out"
+    row ring    ring_model.hsc    N "$n" "all no-intern" >> "$out"
   done
-  echo "T-C done: $out"
-}
-mono_cells() {
-  local t0 t1 m status=ok
-  t0=$(now_ms)
-  m=$(timeout 15 "$CEGAR" mono "$1" --cap 5000000) || status=timeout
-  t1=$(now_ms)
-  if [ $status = ok ]; then
-    echo -e "$(echo "$m" | cut -f2)\t$((t1-t0))"
-  else
-    echo -e "timeout\t$((t1-t0))"
-  fi
+  echo "T-C -> $out"
 }
 
-# ---------------------------------------------------------------- T-D
-td() {
-  local out=td_policies.tsv cts=$TMP/d.cts
-  echo -e "seed\tpolicy\tjump\tverdict\trounds\tcex\tabs_states\tms" > "$out"
-  for seed in $(seq 1 50); do
-    "$CEGAR" gen rand 3 4 2 5 0.5 "$seed" -o "$cts"
-    for policy in all first cheapest; do
-      for jump in off on; do
-        local flag="" t0 t1 run status=ok
-        [ $jump = on ] && flag="--jump-exact"
-        t0=$(now_ms)
-        run=$(timeout 15 "$CEGAR" run "$cts" --tsv --policy $policy $flag) || status=timeout
-        t1=$(now_ms)
-        if [ $status = ok ]; then
-          echo -e "$seed\t$policy\t$jump\t$(echo "$run" | cut -f1-3)\t$(echo "$run" | cut -f9)\t$((t1-t0))" >> "$out"
-        else
-          echo -e "$seed\t$policy\t$jump\ttimeout\t-\t-\t-\t$((t1-t0))" >> "$out"
-        fi
-      done
-    done
-  done
-  echo "T-D done: $out"
-}
-
-ab
+ta
 tc
-td

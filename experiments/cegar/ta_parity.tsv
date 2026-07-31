@@ -1,0 +1,13 @@
+family	size	opts	status	verdict	sym_verdict	agree	certcheck	rounds	cex	budget	rungs_c/i/e	inv	abs_states	witness_len	sym_states	xreach_states	ns_search/replay/refine	wall_ms_cegar/parity
+clients	2	all	ok	holds	holds	yes	pass	2	3	7	0/0/2	3	3	-	3	3	3330/423/34135	33/33
+clients-bug	2	all	ok	violation	violation	yes	-	2	1	7	1/0/1	0	4	2	5	5	3124/846/9418	31/35
+ring	2	all	ok	holds	holds	yes	pass	3	4	8	0/0/2	4	4	-	4	4	4593/612/55083	34/34
+clients	3	all	ok	holds	holds	yes	pass	2	4	8	0/0/2	4	4	-	4	4	3679/596/81758	35/34
+clients-bug	3	all	ok	violation	violation	yes	-	2	1	8	1/0/1	0	5	2	10	10	3300/606/9008	33/34
+ring	3	all	ok	holds	holds	yes	pass	3	4	8	0/0/2	6	6	-	6	6	5483/688/55529	31/32
+clients	5	all	ok	holds	holds	yes	pass	2	6	10	0/0/2	6	6	-	6	6	4961/649/301964	29/32
+clients-bug	5	all	ok	violation	violation	yes	-	2	1	10	1/0/1	0	7	2	26	26	4025/820/9120	34/34
+ring	5	all	ok	holds	holds	yes	pass	3	4	8	0/0/2	10	10	-	10	10	8328/666/55179	29/31
+clients	8	all	ok	holds	holds	yes	pass	2	9	13	0/0/2	9	9	-	9	9	7112/544/1343335	32/33
+clients-bug	8	all	ok	violation	violation	yes	-	2	1	13	1/0/1	0	10	2	65	65	6582/865/9618	31/34
+ring	8	all	ok	holds	holds	yes	pass	3	4	8	0/0/2	16	16	-	16	16	13296/602/56843	32/28
