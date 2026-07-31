@@ -646,20 +646,27 @@ net) to measure Q2 at controlled locality.
   alphabet refinement and symmetric rules [PGB+08], and the
   evaluation that frames this paper — "breaking up is hard to do"
   [CAC08], which tried *all* two-way decompositions of its subjects
-  under two verifiers and found that learned AG verifies larger
-  systems than monolithic checking in only a few cases, and then only
-  a few sizes larger. Extensions made the assumption symbolic
-  [AMN05], minimal [CFC+09], and ω-regular [FCC+08]; none moved the
-  teacher: the assumption is one interface DFA learned against the
-  rest-of-system, membership and equivalence queries each costing a
-  product-sized check. Ours is n leaf contracts with leaf-local
-  teachers, canonical at every rung, interned across instances, with
-  an exportable certificate. The prediction to test: the negative
-  result of [CAC08] (learning overhead swamps compositional savings)
-  is a property of *where the teacher lives*, and moving every oracle
-  inside the leaf flips the economics on symmetric and
-  property-local instances — and where it does not flip, T3 bounds
-  the loss.
+  under two verifiers and found: the premise checks explored more
+  states than the monolith for the vast majority of decompositions;
+  at the smallest sizes about half the subjects had *no* decomposition
+  beating the monolith; and the generalized best decomposition reached
+  larger systems on only 8 of 32 subjects under FLAVERS, 0 of 30 under
+  LTSA. Extensions made the assumption symbolic [AMN05], minimal
+  [CFC+09], and ω-regular [FCC+08]; none moved the teacher: the
+  assumption is one interface DFA at a two-way split, its oracles
+  answered by the split's sides — membership by simulating the trace
+  on one side, candidacy by model-checking each side — and a side of
+  a two-way split is half the system. Ours is n leaf contracts with
+  leaf-local teachers, canonical at every rung, interned across
+  instances, with an exportable certificate. The prediction to test:
+  the negative result of [CAC08] is a property of *where the teacher
+  and the obligations live* — a two-way split leaves every premise
+  half-system-sized, and the decomposition is a choice made blind,
+  while on a shape the obligations are leaf-sized by construction and
+  the decomposition is the model's own dependency structure. Moving
+  every oracle inside the leaf should flip the economics on symmetric
+  and property-local instances — and where it does not flip, T3
+  bounds the loss.
 - **Non-learning structural abstraction on the same corpora**:
   MCC-style reduction disciplines — counting-marking reductions
   [BLD18], polyhedral abstraction with SMT [ABD22] and its
