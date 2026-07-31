@@ -50,5 +50,5 @@ bridge, none of the loop.
 
 Sources: `src/cegar/` (static library `hsc_cegar`). Tests:
 `tests/cegar/` (own doctest binary; fixtures are `.hsc` literals).
-Model families: `examples/cegar/` and `tests/cegar/gen_rand.py`.
+Model families: `examples/cegar/` (model-only files + drivers).
 Experiment records: `experiments/cegar/`.
