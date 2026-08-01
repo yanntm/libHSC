@@ -113,6 +113,25 @@ struct dom {
   }
 };
 
+/// Widen \p d one step through \p thresholds (guard constants and mod
+/// bounds of its unit): the hull jumps outward to the nearest enclosing
+/// thresholds. False when no strictly larger enclosure exists — the
+/// caller's next step is top.
+bool widen_to_threshold(dom& d, const std::set<value>& thresholds) {
+  if (d.k != dom::kind::set && d.k != dom::kind::interval) return false;
+  const value lo = d.hull_lo();
+  const value hi = d.hull_hi();
+  value wlo = lo;
+  value whi = hi;
+  const auto up = thresholds.upper_bound(hi);  // strictly above the hull
+  if (up != thresholds.end()) whi = *up;
+  const auto down = thresholds.lower_bound(lo);  // strictly below it
+  if (down != thresholds.begin()) wlo = *std::prev(down);
+  if (wlo == lo && whi == hi) return false;  // no progress: give up
+  d.add_interval(wlo, whi);
+  return true;
+}
+
 /// \p d restricted to [\p glo, \p ghi]: exact on sets (holes survive), a
 /// clamp on intervals; bot when the restriction is empty.
 dom restrict_dom(const dom& d, value glo, value ghi) {
@@ -461,6 +480,8 @@ std::vector<domain_report> infer_domains(
   };
   std::vector<job> jobs;
   std::vector<bool> visited(m.pool.size(), false);
+  std::vector<std::set<value>> thresholds(m.arity);  // per root unit
+  bool budget_hit = false;
 
   const auto emit = [&](const term& t, const env_t& env) {
     for (const action& a : t.acts) {
@@ -482,6 +503,8 @@ std::vector<domain_report> infer_domains(
           const lia::iexpr div = n.data()[1];
           if (lia::expr_factory::is_const(div) && ex.value(div) > 0) {
             via_mod[dst] = true;
+            thresholds[dst].insert(0);
+            thresholds[dst].insert(ex.value(div) - 1);
           }
         }
       }
@@ -493,7 +516,10 @@ std::vector<domain_report> infer_domains(
   const std::function<std::set<std::uint32_t>(std::uint32_t, env_t&)> walk =
       [&](std::uint32_t ti, env_t& env) -> std::set<std::uint32_t> {
     std::set<std::uint32_t> w;
-    if (jobs.size() >= kJobCap) return w;  // budget: fallback covers the rest
+    if (jobs.size() >= kJobCap) {  // budget: the fallback covers the rest
+      budget_hit = true;
+      return w;
+    }
     const term& t = m.pool[ti];
     switch (t.k) {
       case term::kind::filter:
@@ -539,9 +565,21 @@ std::vector<domain_report> infer_domains(
     }
   }
 
+  // guard constants become widening thresholds for the units they bound
+  for (const job& j : jobs) {
+    constexpr value kMin = std::numeric_limits<value>::min();
+    constexpr value kMax = std::numeric_limits<value>::max();
+    for (const auto& [pos, b] : j.env) {
+      if (b.first != kMin) thresholds[root[pos]].insert(b.first);
+      if (b.second != kMax) thresholds[root[pos]].insert(b.second);
+    }
+  }
+
   // abstract-evaluation fixpoint; joins only grow, arithmetic may diverge,
-  // so past the round cap every still-growing target widens to top (tops
-  // absorb, so the trailing loop runs at most once per unit)
+  // so past the round cap every still-growing target widens — first
+  // stepwise through its thresholds, then to top. Threshold jumps and
+  // tops are both finite per unit, so the trailing loop terminates.
+  std::vector<bool> widened(m.arity, false);
   bool changed = true;
   for (int round = 0; changed && round < kRounds; ++round) {
     changed = false;
@@ -560,7 +598,10 @@ std::vector<domain_report> infer_domains(
         grew.insert(j.dst);
       }
     }
-    for (const std::uint32_t d : grew) doms[d].to_top();
+    for (const std::uint32_t d : grew) {
+      widened[d] = true;
+      if (!widen_to_threshold(doms[d], thresholds[d])) doms[d].to_top();
+    }
   }
 
   // reports, one per root unit, positions gathered back
@@ -573,6 +614,8 @@ std::vector<domain_report> infer_domains(
     rep.positions = std::move(members[r]);
     rep.assigned = assigned[r];
     rep.via_mod = via_mod[r];
+    rep.widened = widened[r];
+    rep.walk_budget_hit = budget_hit;
     const dom& d = doms[r];
     switch (d.k) {
       case dom::kind::set:

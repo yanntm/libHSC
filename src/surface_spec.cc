@@ -250,7 +250,7 @@ std::vector<unit_domain> analyze_domains(const std::vector<datum>& forms) {
 }
 
 void print_domains(std::ostream& os, const std::vector<unit_domain>& units) {
-  std::size_t nset = 0, nint = 0, ntop = 0, nfrozen = 0;
+  std::size_t nset = 0, nint = 0, ntop = 0, nfrozen = 0, nwidened = 0;
   for (const unit_domain& u : units) {
     const xpl::domain_report& r = u.report;
     os << "xdom " << u.name;
@@ -278,7 +278,9 @@ void print_domains(std::ostream& os, const std::vector<unit_domain>& units) {
     if (u.declared) os << " decl=[" << u.decl_lo << ',' << u.decl_hi << ')';
     else os << " decl=-";
     os << " frozen=" << (r.assigned ? 0 : 1) << " mod=" << (r.via_mod ? 1 : 0);
+    if (r.widened) os << " widened=1";
     nfrozen += r.assigned ? 0 : 1;
+    nwidened += r.widened ? 1 : 0;
     if (r.k == xpl::domain_report::kind::set && r.values.size() <= 32) {
       os << " {";
       for (std::size_t i = 0; i < r.values.size(); ++i) {
@@ -289,8 +291,12 @@ void print_domains(std::ostream& os, const std::vector<unit_domain>& units) {
     os << '\n';
   }
   os << "xdomains units=" << units.size() << " set=" << nset
-     << " interval=" << nint << " top=" << ntop << " frozen=" << nfrozen
-     << '\n';
+     << " interval=" << nint << " top=" << ntop << " frozen=" << nfrozen;
+  if (nwidened) os << " widened=" << nwidened;
+  if (!units.empty() && units.front().report.walk_budget_hit) {
+    os << " walk-budget-hit=1";
+  }
+  os << '\n';
 }
 
 }  // namespace hsc::surface

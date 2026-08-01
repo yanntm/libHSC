@@ -29,6 +29,11 @@ struct domain_report {
   bool assigned = false;  ///< false: frozen — its seeds are its whole life
   bool via_mod = false;   ///< an interval came from `% k` (operand assumed
                           ///< nonnegative, as an index is)
+  bool widened = false;   ///< the fixpoint's round cap fired on this unit:
+                          ///< widened to a guard/mod threshold, or to top
+  bool walk_budget_hit = false;  ///< the gather budget fired (same value on
+                                 ///< every report): some assignments were
+                                 ///< processed constraint-free
   std::vector<value> values;  ///< kind set: ascending
   value lo = 0, hi = 0;       ///< kind interval: inclusive hull
 };

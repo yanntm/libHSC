@@ -163,10 +163,20 @@ Each gathered assignment evaluates abstractly, to a fixpoint:
 
 Joins only grow, but arithmetic can genuinely diverge — a counter
 `x := x + 1` with no bounding guard climbs forever — so the fixpoint
-carries a round cap, and past it every target that is still growing
-goes to top: honestly unbounded. The guarded counter, `x := x + 1`
-under `(< x N)`, converges to `[seed, N]` instead — guards are what
-bound orbits, and the analysis now reads them.
+carries a round cap, and past it every still-growing target
+**widens**: first stepwise through its thresholds — the guard
+constants and mod bounds collected for its unit — then, thresholds
+exhausted, to top: honestly unbounded. The guarded counter,
+`x := x + 1` under `(< x N)`, lands on `[seed, N]` whatever `N` —
+guards are what bound orbits, and the analysis now reads them; the
+round cap is a performance knob, not a precision cliff.
+
+Every boundary is reported, never silent: a set that outgrows its cap
+is visible as the kind change to interval; a unit the round cap
+widened carries a `widened` flag (top-by-widening is distinguishable
+from top-by-unanalyzable); a gather walk that hits its job budget
+flags every report (`walk_budget_hit` — some assignments ran
+constraint-free).
 
 Seeds contribute their values (a never-assigned unit ends as `frozen`:
 its initial values are its whole life). No refinement by reachability —
