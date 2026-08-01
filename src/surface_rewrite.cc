@@ -255,6 +255,50 @@ rewrite_result elide_constants(std::vector<datum> forms) {
   return {std::move(out), true, trace.str()};
 }
 
+rewrite_result declare_domains(std::vector<datum> forms) {
+  // eligible: bare scalar leaves with a finite inferred domain
+  std::map<std::string, std::pair<std::int32_t, std::int32_t>> bounds;
+  std::vector<std::string> defied;
+  for (const unit_domain& u : analyze_domains(forms)) {
+    if (u.declared || u.is_array) continue;
+    const xpl::domain_report& r = u.report;
+    if (r.k == xpl::domain_report::kind::set && !r.values.empty()) {
+      bounds[u.name] = {r.values.front(), r.values.back() + 1};
+    } else if (r.k == xpl::domain_report::kind::interval) {
+      bounds[u.name] = {r.lo, r.hi + 1};
+    } else {
+      defied.push_back(u.name);
+    }
+  }
+  if (bounds.empty()) {
+    return {std::move(forms), false,
+            defied.empty() ? "every leaf already bounded"
+                           : "no domain could be declared"};
+  }
+
+  std::size_t done = 0;
+  for (datum& f : forms) {
+    if (!f.is_list() || f.items().size() != 2 || f.head() != "leaf") continue;
+    const auto it = bounds.find(f.items()[1].text());
+    if (it == bounds.end()) continue;
+    f = datum::list({f.items()[0], f.items()[1],
+                     datum::atom(std::to_string(it->second.first), f.line()),
+                     datum::atom(std::to_string(it->second.second), f.line())},
+                    f.line());
+    ++done;
+  }
+
+  std::ostringstream trace;
+  trace << done << " leaf domain" << (done == 1 ? "" : "s") << " declared";
+  for (const auto& [name, b] : bounds) {
+    trace << "\n  " << name << ": [" << b.first << "," << b.second << ")";
+  }
+  for (const std::string& n : defied) {
+    trace << "\n  note: " << n << " defies analysis; left bare";
+  }
+  return {std::move(forms), done > 0, trace.str()};
+}
+
 std::pair<std::vector<datum>, std::vector<trace_entry>> rewrite(
     std::vector<datum> forms, std::span<const pass> passes) {
   std::vector<trace_entry> log;
@@ -279,6 +323,10 @@ std::vector<pass_def> pass_registry() {
           {"reorder-force", reorder_force},
           {"flatten", flatten},
           {"simplify-arrays", simplify_arrays},
+          {"declare-domains",
+           [](std::vector<datum> f, const datum&) {
+             return declare_domains(std::move(f));
+           }},
           {"decompose-louvain", decompose_louvain}};
 }
 

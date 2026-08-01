@@ -76,6 +76,16 @@ rewrite(std::vector<datum> forms, std::span<const pass> passes);
 [[nodiscard]] rewrite_result simplify_arrays(std::vector<datum> forms,
                                              const datum& directive);
 
+/// \brief `(declare-domains)`: every bare scalar `(leaf NAME)` whose
+/// inferred domain is finite (a value set, or an interval hull) gets the
+/// inference written into its declaration — `(leaf NAME LO HI)`.
+/// Declared bounds are never touched; a leaf whose domain defies
+/// analysis stays bare, with a trace note. Neutral for any run (the
+/// inferred domain over-approximates every assignable value); what it
+/// buys is the finite instance: engines that require declared bounds see
+/// them.
+[[nodiscard]] rewrite_result declare_domains(std::vector<datum> forms);
+
 /// \brief `(decompose-louvain)`: a hierarchical shape from the spec's
 /// own dependency structure — Louvain clustering over the control→write
 /// co-occurrence graph of the events; communities become nested
