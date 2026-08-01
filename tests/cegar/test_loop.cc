@@ -32,7 +32,7 @@ TEST_CASE("the worked example: both entries driven exact, |Inv| = 3") {
   CHECK(r.v.k == verdict::kind::holds);
   CHECK(r.inv_size == 3);
   // The witness g1·g1 indicts server and client both (culprit sets are
-  // search-order dependent — cegar_report.md); interning still
+  // search-order dependent); interning still
   // collapses the clients to one entry, and mon is the property leaf:
   // two entries total, both driven exact.
   CHECK(r.leaves_chaotic == 0);

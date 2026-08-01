@@ -2,8 +2,8 @@
 /// \brief The trusted core: check a certificate document against the
 /// current spec.
 ///
-/// Obligations of `research_notes/cegar_spec.md` §6: one inclusion walk
-/// per distinct leaf (L), plus the inductive-invariant scan (G1–G3) on
+/// Obligations: one inclusion walk per distinct leaf (leaf traces
+/// inside the classifier), plus the inductive-invariant scan (G1–G3) on
 /// the `inv` set. This unit shares the parser and the fragment bridge
 /// with the rest of the system — one grammar, one parser — and none of
 /// the loop's logic: no search, no learner, no canonicalizer.

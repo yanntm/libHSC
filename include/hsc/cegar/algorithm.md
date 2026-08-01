@@ -1,8 +1,7 @@
 # The loop, as implemented
 
-Reference: the spec (`research_notes/cegar_spec.md`) fixes formats,
-oracles and milestones; this file is the code-level strategy. Words
-are vectors of letter indices; a leaf's language `L_i` is the set of
+The code-level strategy of the certified-abstraction loop. Words are
+vectors of letter indices; a leaf's language `L_i` is the set of
 words its partial deterministic `delta` fires to completion —
 nonempty, prefix-closed.
 

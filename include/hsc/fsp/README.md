@@ -19,8 +19,8 @@ The pipeline is MDA-split like the surface and the `dve/` front end:
   evaluated, hiding applied. This is FSP's own first semantic step
   (LTSA compiles each process the same way).
 * **M2M** (`to_surface.hh`, `src/fsp_to_surface.cc`) — the ground LTSs →
-  surface `datum` forms in the **separable fragment** of
-  `research_notes/cegar_spec.md` §5: one leaf per process, one monitor
+  surface `datum` forms in the **separable fragment** the cegar bridge
+  accepts (`hsc/surface/cegar_build.hh`): one leaf per process, one monitor
   leaf for the property, one event per (ground label, target-piece
   tuple). Printing the datums is the `.hsc` serialization (M2T).
 

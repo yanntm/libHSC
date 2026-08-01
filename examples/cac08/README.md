@@ -7,9 +7,7 @@ The benchmark family of
 > 17(2), article 7, 2008.
 
 held here as the **authors' own artifacts**, byte-for-byte as published,
-not as a re-modelling from the paper's prose. Paper text:
-`papers/Cobleigh_Avrunin_Clarke_2008_TOSEM.{pdf,txt}`; citation key
-[CAC08] in `research_notes/cegar_citations.md`.
+not as a re-modelling from the paper's prose.
 
 ## Provenance
 
@@ -28,13 +26,11 @@ http://laser.cs.umass.edu/breakingup-examples/
 ```
 
 which is dead today. Recovered from the Internet Archive: the ten
-tarballs from the crawl of **2010-06-27**, the index page from
-**2011-08-19**. `fetch_upstream.sh` re-fetches them; `upstream/SHA256SUMS`
-pins what was fetched on 2026-07-31. The archived index is kept at
-`experiments/cegar/cac08_acquisition/index_20110819.html`, the CDX
-listing that located it alongside.
+tarballs from the crawl of **2010-06-27**. `fetch_upstream.sh`
+re-fetches them; `upstream/SHA256SUMS` pins what was fetched on
+2026-07-31.
 
-The index page describes each tarball as containing "the properties,
+The archived index page describes each tarball as containing "the properties,
 source code, and information about the generalized decompositions used
 for each subject in our experiments" — all three are present.
 
@@ -85,9 +81,6 @@ has no FSP anywhere (see Gaps below).
   `original/` and `decomposed/` variants.
 
 ## Inventory
-
-`experiments/cegar/cac08_acquisition/inventory.tsv` (regenerate with
-`inventory.py`, which reads the tarballs without extracting).
 
 | system | properties | LTSA sizes | FLAVERS sizes |
 |---|---|---|---|
@@ -179,5 +172,16 @@ sh examples/cac08/translate_all.sh   # needs build/tools/fsp2hsc
 The front end is `tools/fsp2hsc` (package `include/hsc/fsp/`, docs
 there); each model header records its source file, the paper's S1
 decomposition, and the state-name maps. Driver `expect` lines are
-pinned by the campaign (`research_notes/cegar_report.md` §CAC08), not
-by the translator.
+pinned from verified runs (`pin_expects.sh`), not by the translator.
+
+**Verified against the paper.** Sweeping all 91 subjects reproduces
+the published verdicts: every property holds. Wherever all engines
+finish within budget, the cegar, symbolic, and explicit verdicts and
+state counts agree and the emitted certificates check; the deep
+instances exceed small per-phase timeouts, they do not disagree. The
+open question on this corpus is the paper's own negative result —
+whether a *re-encoding* exists (a finer decomposition grain, e.g. the
+store factoring designed in `include/hsc/fsp/algorithm.md` §5) under
+which decomposed verification beats the monolith. Finding one would
+be a result; so far none has been found, which independently confirms
+the paper's conclusion at the process-boundary grain.

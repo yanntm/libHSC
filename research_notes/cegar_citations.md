@@ -1,6 +1,6 @@
 # CEGAR paper — citation registry
 
-Keys as used in `cegar_certified_abstractions_v3.md`. Every **verified**
+Keys as used in `hsc_cegar.md` and `cegar_directions.md`. Every **verified**
 entry was identified from the source text in a local archive: `papers/`
 in this repository unless marked **(BtL)** = `~/git/BuchiToLTL/papers/`
 (read-only holdings). Bibliographic data below is transcribed from the

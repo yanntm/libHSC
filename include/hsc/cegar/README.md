@@ -9,9 +9,8 @@ culprit), refines the culprit with an L\* learner, and ends with either
 a concretely replayed violation or a certificate checkable without the
 loop.
 
-Paper: `research_notes/cegar_certified_abstractions_v3.md`. Spec:
-`research_notes/cegar_spec.md` (v2 scope: finite leaves, safety,
-explicit walks, HSC-native).
+Scope: finite deterministic leaves, safety properties, explicit
+walks, HSC-native.
 
 ## Placement
 
@@ -43,12 +42,11 @@ bridge, none of the loop.
   `publish()` returns the dead-closed, canonicalized hypothesis. The
   observation table is internal state, never an abstraction: the
   loop consumes only published, certified classifiers (the
-  publication discipline, spec §3.2).
+  publication discipline).
 * `loop.hh` — profile (interned per distinct leaf), abstract-product
   search, replay by projection, refine-until-resolved, `run`;
-  certificate emission as `.hsc` s-expression text (spec §6).
+  certificate emission as `.hsc` s-expression text.
 
 Sources: `src/cegar/` (static library `hsc_cegar`). Tests:
 `tests/cegar/` (own doctest binary; fixtures are `.hsc` literals).
 Model families: `examples/cegar/` (model-only files + drivers).
-Experiment records: `experiments/cegar/`.

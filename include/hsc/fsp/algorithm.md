@@ -98,7 +98,7 @@ all-identity tuple (a pure stutter, no successor change), and any label
 some participant has in alphabet but never fires (a globally dead
 label — counted and reported, not emitted). Guards, one atom per leaf;
 writes, one constant per cell: every event is separable by
-construction (spec §5.3).
+construction.
 
 **Tau events.** A process's tau edges compose with nobody: per target
 piece, an event guarding and writing that leaf alone. A tau self-loop
@@ -124,8 +124,8 @@ decomposition if a companion `.txt` was given), per-leaf state maps as
 comments (`; P: 0=START 1=PREPAYING.1.0 …`), the `leaf`/`shape`/`init`
 forms, then the events. The **driver** file: `(input MODEL)`,
 `(cegar v (== mon E))`, `(xreach x)` — verdict and count expectations
-are pinned by the campaign after the first verified run, not guessed by
-the translator.
+are pinned after the first verified run, not guessed by the
+translator.
 
 **Cost note.** Events per label = product over participants of
 (#distinct non-self targets + 1); in the parameterized systems this is
@@ -187,8 +187,8 @@ here justify it.
 ## 6. Oracles
 
 * The composed `.hsc` runs the cegar/symbolic/explicit triangle like any
-  corpus model (spec §5.7, §7): `xreach` and `cegar::mono` pin the
-  induced semantics; a disagreement is a front-end bug.
+  corpus model: `xreach` and `cegar::mono` pin the induced semantics; a
+  disagreement is a front-end bug.
 * Per-process state counts are checked against LTSA's where the paper
   or the artifact states them (the Chiron dispatcher table,
   `examples/cac08/README.md`).

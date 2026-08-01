@@ -26,5 +26,4 @@ Run one:
 
     ./build/tools/hsc examples/cegar/clients.hsc
 
-Spec: `research_notes/cegar_spec.md` (the separable fragment §5, the
-certificate document §6). Package: `include/hsc/cegar/`.
+Package: `include/hsc/cegar/`.
