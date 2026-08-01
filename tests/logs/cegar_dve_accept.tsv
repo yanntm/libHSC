@@ -1,0 +1,276 @@
+adding.1	refused-bound	leaf 'glob_x1' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+adding.2	refused-bound	leaf 'glob_x1' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+adding.3	refused-bound	leaf 'glob_x1' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+adding.4	refused-bound	leaf 'glob_x1' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.04
+adding.5	refused-bound	leaf 'glob_x1' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+adding.6	refused-bound	leaf 'glob_x1' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+at.1	ok-violation	rounds 1	0.03
+at.2	ok-violation	rounds 1	0.03
+at.3	ok-violation	rounds 1	0.03
+at.4	ok-violation	rounds 1	0.03
+at.5	ok-violation	rounds 1	0.03
+at.6	ok-violation	rounds 1	0.03
+at.7	ok-violation	rounds 1	0.03
+bakery.1	refused-array	array access in event P_0_t2_choose_choose guard	0.03
+bakery.2	refused-array	array access in event P_0_t2_choose_choose guard	0.03
+bakery.3	refused-array	array access in event P_0_t2_choose_choose guard	0.03
+bakery.4	refused-array	array access in event P_0_t2_choose_choose guard	0.03
+bakery.5	refused-array	array access in event P_0_t2_choose_choose guard	0.03
+bakery.6	refused-array	array access in event P_0_t2_choose_choose guard	0.03
+bakery.7	refused-array	array access in event P_0_t2_choose_choose guard	0.03
+bakery.8	refused-array	array access in event P_0_t2_choose_choose guard	0.03
+blocks.2	refused-array	event Hand_t8_emptyhand_fullhand: array target (deferred)	0.03
+blocks.3	refused-array	event Hand_t10_emptyhand_fullhand: array target (deferred)	0.03
+blocks.4	refused-array	event Hand_t12_emptyhand_fullhand: array target (deferred)	0.03
+bopdp.1	ok-violation	rounds 4	0.32
+bopdp.2	ok-violation	rounds 4	0.32
+bopdp.3	ok-violation	rounds 4	0.32
+bridge.1	refused-guard	event lets_go_torch_soldier_1_t4_t2: guard atom crosses leaves (non-separable; deferred)	0.03
+bridge.2	refused-guard	event lets_go_torch_soldier_1_t4_t2: guard atom crosses leaves (non-separable; deferred)	0.03
+bridge.3	refused-guard	event lets_go_torch_soldier_1_t4_t2: guard atom crosses leaves (non-separable; deferred)	0.03
+brp.1	refused-guard	event Rout_Receiver_Consumer_t3_t1: guard atom crosses leaves (non-separable; deferred)	0.03
+brp2.1	refused-bound	leaf 'glob_X' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+brp2.2	refused-bound	leaf 'glob_X' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+brp2.3	refused-bound	leaf 'glob_X' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+brp2.4	refused-bound	leaf 'glob_X' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+brp2.5	refused-bound	leaf 'glob_X' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+brp2.6	refused-bound	leaf 'glob_X' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+brp.2	refused-guard	event Rout_Receiver_Consumer_t3_t1: guard atom crosses leaves (non-separable; deferred)	0.03
+brp.3	refused-guard	event Rout_Receiver_Consumer_t3_t1: guard atom crosses leaves (non-separable; deferred)	0.03
+brp.4	refused-guard	event Rout_Receiver_Consumer_t3_t1: guard atom crosses leaves (non-separable; deferred)	0.03
+brp.5	refused-guard	event Rout_Receiver_Consumer_t3_t1: guard atom crosses leaves (non-separable; deferred)	0.03
+brp.6	refused-guard	event Rout_Receiver_Consumer_t3_t1: guard atom crosses leaves (non-separable; deferred)	0.03
+cambridge.1	refused-bound	leaf 'Receiver_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+cambridge.2	refused-bound	leaf 'Receiver_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+cambridge.3	refused-bound	leaf 'Receiver_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.04
+cambridge.4	refused-bound	leaf 'Receiver_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+cambridge.5	refused-bound	leaf 'Receiver_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.04
+cambridge.6	refused-bound	leaf 'Receiver_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+cambridge.7	refused-bound	leaf 'Receiver_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.04
+collision.1	refused-bound	leaf 'User1_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+collision.2	refused-bound	leaf 'User1_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+collision.3	refused-bound	leaf 'User1_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+collision.4	refused-bound	leaf 'User1_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+collision.5	refused-bound	leaf 'User1_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+collision.6	refused-bound	leaf 'User1_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+cyclic_scheduler.1	ok-violation	rounds 1	0.03
+cyclic_scheduler.2	ok-violation	rounds 1	0.03
+cyclic_scheduler.3	ok-violation	rounds 1	0.03
+cyclic_scheduler.4	ok-violation	rounds 1	0.03
+driving_phils.1	refused-bound	leaf 'round_about_i' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+driving_phils.2	refused-bound	leaf 'round_about_i' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+driving_phils.3	refused-bound	leaf 'round_about_i' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+driving_phils.4	refused-bound	leaf 'round_about_i' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+driving_phils.5	refused-bound	leaf 'round_about_i' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+elevator.1	refused-read	event call_0_Person_0_Servis_t7_t1: action on 'Servis_floor' reads another leaf (non-separ	0.03
+elevator2.1	refused-bound	leaf 'glob_p' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+elevator2.2	refused-bound	leaf 'glob_p' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+elevator2.3	refused-bound	leaf 'glob_p' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+elevator.2	refused-read	event call_0_Person_0_Servis_t6_t1: action on 'Servis_floor' reads another leaf (non-separ	0.03
+elevator.3	refused-read	event call_0_Person_0_Servis_t8_t1: action on 'Servis_floor' reads another leaf (non-separ	0.03
+elevator.4	refused-read	event call_0_Person_0_Servis_t6_t1: action on 'Servis_floor' reads another leaf (non-separ	0.03
+elevator.5	refused-read	event call_0_Person_0_Servis_t8_t1: action on 'Servis_floor' reads another leaf (non-separ	0.04
+elevator_planning.2	refused-guard	event Elevator_t2_q_q: guard atom crosses leaves (non-separable; deferred)	0.03
+elevator_planning.3	refused-guard	event Elevator_t2_q_q: guard atom crosses leaves (non-separable; deferred)	0.03
+exit.1	ok-violation	rounds 1	0.03
+exit.2	ok-violation	rounds 1	0.04
+exit.3	ok-violation	rounds 1	0.03
+exit.4	ok-violation	rounds 1	0.03
+exit.5	ok-violation	rounds 1	0.04
+extinction.1	refused-array	event ch_0_in_Node_0_channel_ch_0_t13_t1: array target (deferred)	0.03
+extinction.2	refused-array	event ch_0_in_Node_0_channel_ch_0_t13_t1: array target (deferred)	0.04
+extinction.3	refused-array	event ch_0_in_Node_0_channel_ch_0_t15_t1: array target (deferred)	0.03
+extinction.4	refused-array	event ch_0_in_Node_0_channel_ch_0_t15_t1: array target (deferred)	0.04
+firewire_link.1	refused-guard	event LDcon_0_Link_0_Transres_0_t33_t5: guard atom crosses leaves (non-separable; deferred	0.04
+firewire_link.2	refused-guard	event LDcon_0_Link_0_Transres_0_t33_t5: guard atom crosses leaves (non-separable; deferred	0.04
+firewire_link.3	refused-guard	event LDcon_0_Link_0_Transres_0_t33_t5: guard atom crosses leaves (non-separable; deferred	0.04
+firewire_link.4	refused-guard	event LDcon_0_Link_0_Transres_0_t33_t5: guard atom crosses leaves (non-separable; deferred	0.05
+firewire_link.5	refused-guard	event LDcon_0_Link_0_Transres_0_t33_t5: guard atom crosses leaves (non-separable; deferred	0.05
+firewire_link.6	refused-guard	event LDcon_0_Link_0_Transres_0_t33_t5: guard atom crosses leaves (non-separable; deferred	0.05
+firewire_link.7	refused-guard	event LDcon_0_Link_0_Transres_0_t33_t5: guard atom crosses leaves (non-separable; deferred	0.06
+firewire_tree.1	refused-array	array access in event ch_0_0_in_Node_0_channel_ch_0_0_t18_t1 guard	0.06
+firewire_tree.2	refused-array	array access in event ch_0_0_in_Node_0_channel_ch_0_0_t14_t1 guard	0.04
+firewire_tree.3	refused-array	array access in event ch_0_0_in_Node_0_channel_ch_0_0_t18_t1 guard	0.05
+firewire_tree.4	refused-array	array access in event ch_0_0_in_Node_0_channel_ch_0_0_t20_t1 guard	0.06
+firewire_tree.5	refused-array	array access in event ch_0_0_in_Node_0_channel_ch_0_0_t26_t1 guard	0.14
+fischer.1	ok-violation	rounds 2	0.03
+fischer.2	ok-violation	rounds 2	0.03
+fischer.3	ok-violation	rounds 2	0.03
+fischer.4	ok-violation	rounds 2	0.03
+fischer.5	ok-violation	rounds 2	0.03
+fischer.6	ok-violation	rounds 2	0.03
+fischer.7	ok-violation	rounds 2	0.03
+frogs.1	refused-array	array access in event Toad_t1_q_q guard	0.03
+frogs.2	refused-array	array access in event Toad_t1_q_q guard	0.03
+frogs.3	refused-array	array access in event Toad_t1_q_q guard	0.03
+frogs.4	refused-array	array access in event Toad_t1_q_q guard	0.03
+gear.1	refused-bound	leaf 'glob_toGear' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+gear.2	refused-bound	leaf 'glob_toGear' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+hanoi.1	refused-array	array access in event AtoB_t1_q_q guard	0.03
+hanoi.2	refused-array	array access in event AtoB_t1_q_q guard	0.03
+hanoi.3	refused-array	array access in event AtoB_t1_q_q guard	0.03
+hanoi.4	refused-array	array access in event AtoB_t1_q_q guard	0.03
+iprotocol.1	refused-guard	event Get_Producer_Sender_t2_t4: guard atom crosses leaves (non-separable; deferred)	0.03
+iprotocol.2	refused-guard	event Get_Producer_Sender_t2_t4: guard atom crosses leaves (non-separable; deferred)	0.03
+iprotocol.3	refused-guard	event Get_Producer_Sender_t2_t4: guard atom crosses leaves (non-separable; deferred)	0.03
+iprotocol.4	refused-guard	event Get_Producer_Sender_t2_t4: guard atom crosses leaves (non-separable; deferred)	0.03
+iprotocol.5	refused-guard	event Get_Producer_Sender_t2_t4: guard atom crosses leaves (non-separable; deferred)	0.03
+iprotocol.6	refused-guard	event Get_Producer_Sender_t2_t4: guard atom crosses leaves (non-separable; deferred)	0.03
+iprotocol.7	refused-guard	event Get_Producer_Sender_t2_t4: guard atom crosses leaves (non-separable; deferred)	0.03
+krebs.1	ok-violation	rounds 1	0.03
+krebs.2	ok-violation	rounds 1	0.03
+krebs.3	ok-timeout		15.01
+krebs.4	ok-timeout		15.01
+lamport.1	refused-array	array access in event P_0_t9_q4_q4 guard	0.03
+lamport.2	refused-array	event P_0_t3_q2_q22: array target (deferred)	0.03
+lamport.3	refused-array	array access in event P_0_t9_q4_q4 guard	0.03
+lamport.5	refused-array	array access in event P_0_t9_q4_q4 guard	0.03
+lamport.6	refused-array	event P_0_t3_q2_q22: array target (deferred)	0.03
+lamport.7	refused-array	array access in event P_0_t9_q4_q4 guard	0.03
+lamport.8	refused-array	array access in event P_0_t9_q4_q4 guard	0.03
+lamport_nonatomic.1	refused-read	event done_0_NonatomicVar_0_P_0_t3_t2: action on 'NonatomicVar_0_x' reads another leaf (no	0.03
+lamport_nonatomic.2	refused-read	event done_0_NonatomicVar_0_P_0_t3_t2: action on 'NonatomicVar_0_x' reads another leaf (no	0.03
+lamport_nonatomic.3	refused-read	event done_0_NonatomicVar_0_P_0_t3_t2: action on 'NonatomicVar_0_x' reads another leaf (no	0.03
+lamport_nonatomic.4	refused-read	event done_0_NonatomicVar_0_P_0_t3_t2: action on 'NonatomicVar_0_x' reads another leaf (no	0.04
+lamport_nonatomic.5	refused-read	event done_0_NonatomicVar_0_P_0_t3_t2: action on 'NonatomicVar_0_x' reads another leaf (no	0.04
+lann.1	refused-read	event link_0_in_P_2_channel_link_0_t5_t1: action on 'channel_link_0_v' reads another leaf 	0.03
+lann.2	refused-read	event link_0_in_P_3_channel_link_0_t6_t1: action on 'channel_link_0_v' reads another leaf 	0.03
+lann.3	refused-read	event link_0_in_P_3_channel_link_0_t6_t1: action on 'channel_link_0_v' reads another leaf 	0.03
+lann.4	refused-read	event link_0_in_P_4_channel_link_0_t5_t1: action on 'channel_link_0_v' reads another leaf 	0.03
+lann.5	refused-read	event link_0_in_P_5_channel_link_0_t6_t1: action on 'channel_link_0_v' reads another leaf 	0.03
+lann.6	refused-read	event link_0_in_P_3_channel_link_0_t5_t1: action on 'channel_link_0_v' reads another leaf 	0.03
+lann.7	refused-read	event link_0_in_P_4_channel_link_0_t6_t1: action on 'channel_link_0_v' reads another leaf 	0.03
+lann.8	refused-read	event link_0_in_P_4_channel_link_0_t5_t1: action on 'channel_link_0_v' reads another leaf 	0.03
+leader_election.1	refused-array	event ch_0_in_Node_4_channel_ch_0_t1_t1: array target (deferred)	0.04
+leader_election.2	refused-array	event ch_0_in_Node_4_channel_ch_0_t1_t1: array target (deferred)	0.04
+leader_election.3	refused-array	event ch_0_in_Node_5_channel_ch_0_t1_t1: array target (deferred)	0.04
+leader_election.4	refused-array	event ch_0_in_Node_6_channel_ch_0_t1_t1: array target (deferred)	0.04
+leader_election.5	refused-array	event ch_0_in_Node_7_channel_ch_0_t1_t1: array target (deferred)	0.05
+leader_election.6	refused-array	event ch_0_in_Node_8_channel_ch_0_t1_t1: array target (deferred)	0.05
+leader_filters.1	refused-array	event P_0_t1_p1_p2: array target (deferred)	0.03
+leader_filters.2	refused-array	event P_0_t1_p1_p2: array target (deferred)	0.03
+leader_filters.3	refused-array	event P_0_t1_p1_p2: array target (deferred)	0.03
+leader_filters.4	refused-array	event P_0_t1_p1_p2: array target (deferred)	0.03
+leader_filters.5	refused-array	event P_0_t1_p1_p2: array target (deferred)	0.03
+leader_filters.6	refused-array	event P_0_t1_p1_p2: array target (deferred)	0.03
+leader_filters.7	refused-array	event P_0_t1_p1_p2: array target (deferred)	0.03
+lifts.1	refused-guard	event from_bus_0_Bus_Lift_0_t3_t4: guard atom crosses leaves (non-separable; deferred)	0.04
+lifts.2	refused-guard	event from_bus_0_Bus_Lift_0_t3_t4: guard atom crosses leaves (non-separable; deferred)	0.04
+lifts.3	refused-guard	event from_bus_0_Bus_Lift_0_t4_t4: guard atom crosses leaves (non-separable; deferred)	0.03
+lifts.4	refused-guard	event from_bus_0_Bus_Lift_0_t4_t4: guard atom crosses leaves (non-separable; deferred)	0.03
+lifts.5	refused-guard	event from_bus_0_Bus_Lift_0_t4_t4: guard atom crosses leaves (non-separable; deferred)	0.04
+lifts.6	refused-guard	event from_bus_0_Bus_Lift_0_t5_t4: guard atom crosses leaves (non-separable; deferred)	0.04
+lifts.7	refused-guard	event from_bus_0_Bus_Lift_0_t5_t4: guard atom crosses leaves (non-separable; deferred)	0.04
+lifts.8	refused-guard	event from_bus_0_Bus_Lift_0_t5_t4: guard atom crosses leaves (non-separable; deferred)	0.04
+loyd.1	refused-array	event P_t1_q_q: array target (deferred)	0.03
+loyd.2	refused-array	event P_t1_q_q: array target (deferred)	0.03
+loyd.3	refused-array	event P_t1_q_q: array target (deferred)	0.03
+lup.1	refused-guard	event to_lup0_Timer_lup0_t1_t2: guard atom crosses leaves (non-separable; deferred)	0.03
+lup.2	refused-guard	event to_lup0_Timer_lup0_t1_t2: guard atom crosses leaves (non-separable; deferred)	0.03
+lup.3	refused-guard	event to_lup0_Timer_lup0_t1_t2: guard atom crosses leaves (non-separable; deferred)	0.04
+lup.4	refused-guard	event to_lup0_Timer_lup0_t1_t2: guard atom crosses leaves (non-separable; deferred)	0.03
+mcs.1	refused-read	event P_0_t2_p2_p3: action on 'P_0_pred' reads another leaf (non-separable; deferred)	0.03
+mcs.2	refused-read	event P_0_t2_p2_p3: action on 'P_0_pred' reads another leaf (non-separable; deferred)	0.03
+mcs.3	refused-read	event P_0_t2_p2_p3: action on 'P_0_pred' reads another leaf (non-separable; deferred)	0.03
+mcs.4	refused-read	event P_0_t2_p2_p3: action on 'P_0_pred' reads another leaf (non-separable; deferred)	0.03
+mcs.5	refused-read	event P_0_t2_p2_p3: action on 'P_0_pred' reads another leaf (non-separable; deferred)	0.03
+mcs.6	refused-read	event P_0_t2_p2_p3: action on 'P_0_pred' reads another leaf (non-separable; deferred)	0.03
+msmie.1	refused-read	event master_1_t16_change_r1: action on 'glob_b_0' reads another leaf (non-separable; defe	0.03
+msmie.2	refused-read	event master_1_t14_change_r1: action on 'glob_b_0' reads another leaf (non-separable; defe	0.03
+msmie.3	refused-read	event master_1_t18_change_r1: action on 'glob_b_0' reads another leaf (non-separable; defe	0.04
+msmie.4	refused-read	event master_1_t20_change_r1: action on 'glob_b_0' reads another leaf (non-separable; defe	0.04
+needham.1	refused-bound	leaf 'initiator_0_party_nonce' has no declared bound; the finite instance wants (leaf NAME	0.03
+needham.2	refused-bound	leaf 'initiator_0_party_nonce' has no declared bound; the finite instance wants (leaf NAME	0.03
+needham.3	refused-bound	leaf 'initiator_0_party_nonce' has no declared bound; the finite instance wants (leaf NAME	0.03
+needham.4	refused-bound	leaf 'initiator_0_party_nonce' has no declared bound; the finite instance wants (leaf NAME	0.04
+peg_solitaire.1	ok-violation	rounds 2	0.08
+peg_solitaire.2	ok-cap	abstract search exceeded its cap (1000001 abstract states materialized; the abstraction di	2.61
+peg_solitaire.3	ok-cap	abstract search exceeded its cap (1000001 abstract states materialized; the abstraction di	2.50
+peg_solitaire.4	ok-holds	rounds 2	3.57
+peg_solitaire.5	ok-violation	rounds 2	0.32
+peg_solitaire.6	ok-cap	abstract search exceeded its cap (1000001 abstract states materialized; the abstraction di	2.10
+peterson.1	refused-read	event P_0_t2_wait_q2: action on 'glob_pos_0' reads another leaf (non-separable; deferred)	0.03
+peterson.2	refused-read	event P_0_t2_wait_q2: action on 'glob_pos_0' reads another leaf (non-separable; deferred)	0.03
+peterson.3	refused-read	event P_0_t2_wait_q2: action on 'glob_pos_0' reads another leaf (non-separable; deferred)	0.03
+peterson.4	refused-read	event P_0_t2_wait_q2: action on 'glob_pos_0' reads another leaf (non-separable; deferred)	0.03
+peterson.5	refused-read	event P_0_t2_wait_q2: action on 'glob_pos_0' reads another leaf (non-separable; deferred)	0.03
+peterson.6	refused-read	event P_0_t2_wait_q2: action on 'glob_pos_0' reads another leaf (non-separable; deferred)	0.03
+peterson.7	refused-read	event P_0_t2_wait_q2: action on 'glob_pos_0' reads another leaf (non-separable; deferred)	0.03
+pgm_protocol.1	refused-array	event NR_in_element_NR_t5_t1: array target (deferred)	0.04
+pgm_protocol.2	refused-array	event NR_in_element_NR_t5_t1: array target (deferred)	0.05
+pgm_protocol.3	refused-array	event NR_in_element_NR_t5_t1: array target (deferred)	0.04
+pgm_protocol.4	refused-array	event NR_in_element_NR_t5_t1: array target (deferred)	0.05
+pgm_protocol.5	refused-array	event NR_in_element_NR_t5_t1: array target (deferred)	0.04
+pgm_protocol.6	refused-array	event NR_in_element_NR_t5_t1: array target (deferred)	0.04
+pgm_protocol.7	refused-array	event NR_in_element_NR_t5_t1: array target (deferred)	0.04
+pgm_protocol.8	refused-array	event NR_in_element_NR_t5_t1: array target (deferred)	0.04
+phils.1	ok-violation	rounds 1	0.03
+phils.2	ok-violation	rounds 1	0.03
+phils.3	ok-violation	rounds 1	0.03
+phils.4	ok-violation	rounds 1	0.03
+phils.5	ok-violation	rounds 1	0.03
+phils.6	ok-violation	rounds 1	0.03
+phils.7	ok-violation	rounds 1	0.03
+phils.8	ok-violation	rounds 1	0.03
+pouring.1	ok-violation	rounds 4	0.13
+pouring.2	ok-violation	rounds 5	0.13
+production_cell.1	refused-read	event get_press_Press_Robot_t5_t3: action on 'Robot_B' reads another leaf (non-separable; 	0.03
+production_cell.2	refused-read	event get_press_Press_Robot_t4_t3: action on 'Robot_B' reads another leaf (non-separable; 	0.03
+production_cell.3	refused-read	event get_press_Press_Robot_t8_t3: action on 'Robot_B' reads another leaf (non-separable; 	0.03
+production_cell.4	refused-read	event get_press_Press_Robot_t6_t3: action on 'Robot_B' reads another leaf (non-separable; 	0.03
+production_cell.5	refused-read	event get_press_Press_Robot_t10_t3: action on 'Robot_B' reads another leaf (non-separable;	0.03
+production_cell.6	refused-read	event get_press_Press_Robot_t12_t3: action on 'Robot_B' reads another leaf (non-separable;	0.03
+protocols.1	refused-read	event K_in_Sender_channel_K_t2_t1: action on 'channel_K_v' reads another leaf (non-separab	0.03
+protocols.2	refused-read	event K_in_Sender_channel_K_t2_t1: action on 'channel_K_v' reads another leaf (non-separab	0.03
+protocols.3	refused-read	event K_in_Sender_channel_K_t2_t1: action on 'channel_K_v' reads another leaf (non-separab	0.03
+protocols.4	refused-read	event K_in_Sender_channel_K_t2_t1: action on 'channel_K_v' reads another leaf (non-separab	0.03
+protocols.5	refused-read	event K_in_Sender_channel_K_t2_t1: action on 'channel_K_v' reads another leaf (non-separab	0.03
+public_subscribe.1	refused-guard	event ccToUserAdmin_0_CC_UserAdmin_0_t19_t1: guard atom crosses leaves (non-separable; def	0.03
+public_subscribe.2	refused-guard	event ccToUserAdmin_0_CC_UserAdmin_0_t29_t1: guard atom crosses leaves (non-separable; def	0.03
+public_subscribe.3	refused-guard	event ccToUserAdmin_0_CC_UserAdmin_0_t29_t1: guard atom crosses leaves (non-separable; def	0.03
+public_subscribe.4	refused-guard	event ccToUserAdmin_0_CC_UserAdmin_0_t29_t1: guard atom crosses leaves (non-separable; def	0.03
+public_subscribe.5	refused-guard	event ccToUserAdmin_0_CC_UserAdmin_0_t39_t1: guard atom crosses leaves (non-separable; def	0.03
+reader_writer.1	ok-violation	rounds 1	0.03
+reader_writer.2	ok-violation	rounds 1	0.03
+reader_writer.3	ok-violation	rounds 1	0.04
+resistance.1	refused-bound	leaf 'glob_actual_resistance' has no declared bound; the finite instance wants (leaf NAME 	0.03
+resistance.2	refused-bound	leaf 'glob_actual_resistance' has no declared bound; the finite instance wants (leaf NAME 	0.03
+rether.1	refused-array	event grant_Bandwidth_Node_0_t3_t10: array target (deferred)	0.03
+rether.2	refused-array	event grant_Bandwidth_Node_0_t3_t10: array target (deferred)	0.03
+rether.3	refused-array	event grant_Bandwidth_Node_0_t3_t10: array target (deferred)	0.03
+rether.4	refused-array	event grant_Bandwidth_Node_0_t3_t9: array target (deferred)	0.03
+rether.5	refused-array	event grant_Bandwidth_Node_0_t3_t10: array target (deferred)	0.03
+rether.6	refused-array	event grant_Bandwidth_Node_0_t3_t9: array target (deferred)	0.03
+rether.7	refused-array	event grant_Bandwidth_Node_0_t3_t10: array target (deferred)	0.04
+rushhour.1	refused-array	array access in event Car_hor_1_t1_q_q guard	0.03
+rushhour.2	refused-array	array access in event Red_car_t1_q_q guard	0.03
+rushhour.3	refused-array	array access in event Red_car_t1_q_q guard	0.03
+rushhour.4	refused-array	array access in event Red_car_t1_q_q guard	0.03
+sokoban.1	refused-array	array access in event P_t2_q_q guard	0.03
+sokoban.2	refused-array	array access in event P_t2_q_q guard	0.03
+sokoban.3	refused-array	array access in event P_t2_q_q guard	0.03
+sorter.1	refused-guard	event ArmControler_t1_AC0_AC0: guard atom crosses leaves (non-separable; deferred)	0.03
+sorter.2	refused-guard	event ArmControler_t1_AC0_AC0: guard atom crosses leaves (non-separable; deferred)	0.03
+sorter.3	refused-guard	event ArmControler_t1_AC0_AC0: guard atom crosses leaves (non-separable; deferred)	0.03
+sorter.4	refused-guard	event ArmControler_t1_AC0_AC0: guard atom crosses leaves (non-separable; deferred)	0.04
+sorter.5	refused-guard	event ArmControler_t1_AC0_AC0: guard atom crosses leaves (non-separable; deferred)	0.03
+synapse.1	refused-bound	leaf 'Application_0_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+synapse.2	refused-bound	leaf 'Application_0_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.04
+synapse.3	refused-bound	leaf 'Application_0_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+synapse.4	refused-bound	leaf 'Application_0_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.03
+synapse.5	refused-bound	leaf 'Application_0_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.04
+synapse.6	refused-bound	leaf 'Application_0_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.04
+synapse.7	refused-bound	leaf 'Application_0_m' has no declared bound; the finite instance wants (leaf NAME LO HI)	0.04
+szymanski.1	refused-array	array access in event P_0_t2_p2_p2 guard	0.03
+szymanski.2	refused-array	array access in event P_0_t2_p2_p2 guard	0.03
+szymanski.3	refused-array	array access in event P_0_t2_p2_p2 guard	0.03
+szymanski.4	refused-array	array access in event P_0_t2_p2_p2 guard	0.03
+szymanski.5	refused-array	array access in event P_0_t2_p2_p2 guard	0.03
+telephony.1	refused-read	event User_0_t2_idle_q_i: action on 'glob_partner_0' reads another leaf (non-separable; de	0.03
+telephony.2	refused-read	event User_0_t2_idle_q_i: action on 'glob_partner_0' reads another leaf (non-separable; de	0.03
+telephony.3	refused-read	event User_0_t2_idle_q_i: action on 'glob_partner_0' reads another leaf (non-separable; de	0.03
+telephony.4	refused-read	event User_0_t2_idle_q_i: action on 'glob_partner_0' reads another leaf (non-separable; de	0.03
+telephony.5	refused-read	event User_0_t2_idle_q_i: action on 'glob_partner_0' reads another leaf (non-separable; de	0.03
+telephony.6	refused-read	event User_0_t2_idle_q_i: action on 'glob_partner_0' reads another leaf (non-separable; de	0.03
+telephony.7	refused-read	event User_0_t2_idle_q_i: action on 'glob_partner_0' reads another leaf (non-separable; de	0.04
+telephony.8	refused-read	event User_0_t2_idle_q_i: action on 'glob_partner_0' reads another leaf (non-separable; de	0.03

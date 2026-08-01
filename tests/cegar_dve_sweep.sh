@@ -4,7 +4,7 @@
 # engine commands), append (declare-domains) and a trivial one-leaf cegar
 # probe, run under a per-model timeout, and classify the outcome:
 #   ok-violation / ok-holds  — the bridge accepted; the loop ran
-#   ok-timeout               — accepted, loop exceeded the budget
+#   ok-timeout / ok-cap      — accepted; the loop hit the time or state cap
 #   refused-bound            — a leaf domain defied inference
 #   refused-guard            — a guard atom crosses leaves
 #   refused-read             — an action rhs reads another leaf
@@ -54,6 +54,7 @@ for f in examples/divine/hsc/*.hsc; do
     line=$(echo "$outp" | grep -m1 'cegar:')
     detail=$(echo "$line" | sed 's/.*cegar: //' | cut -c1-90)
     case "$line" in
+      *"exceeded its cap"*)         status=ok-cap ;;
       *"no declared bound"*)        status=refused-bound ;;
       *"guard atom crosses"*)       status=refused-guard ;;
       *"reads another leaf"*)       status=refused-read ;;
