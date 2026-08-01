@@ -51,8 +51,12 @@ target_link_libraries(dve2hsc PRIVATE hsc::hsc CLI11::CLI11)
 target_compile_options(dve2hsc PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>)
 
-# The FSP (LTSA / CAC08) importer.
-add_executable(fsp2hsc fsp2hsc.cc)
+# The FSP (LTSA / CAC08) importer. The FSP translation units live here,
+# not in the hsc library: benchmark-format code stays out of the main.
+add_executable(fsp2hsc fsp2hsc.cc
+  ${PROJECT_SOURCE_DIR}/src/fsp_parser.cc
+  ${PROJECT_SOURCE_DIR}/src/fsp_ground.cc
+  ${PROJECT_SOURCE_DIR}/src/fsp_to_surface.cc)
 target_link_libraries(fsp2hsc PRIVATE hsc::hsc CLI11::CLI11)
 target_compile_options(fsp2hsc PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>)
