@@ -25,9 +25,15 @@ for f in examples/divine/hsc/*.hsc; do
   m=$(basename "$f" .hsc)
   p="$WORK/$m.hsc"
   sed '/^(reach/,$d' "$f" > "$p"
-  leaf=$(grep -m1 '^(leaf' "$p" | awk '{print $2}' | tr -d ')')
+  # property leaf: the first scalar leaf with a non-constant domain (a
+  # constant leaf is elided by simplify-constants and cannot carry the atom)
+  "$HSC" --domains "$p" 2>/dev/null | awk \
+    '/^xdom /{if (!($0~/kind=set/ && $0~/ size=1 /) && !($0~/kind=top/))
+       print $2}' > "$WORK/ok-units"
+  leaf=$(grep '^(leaf' "$p" | awk '{print $2}' | tr -d ')' |
+         grep -m1 -Fxf "$WORK/ok-units")
   if [ -z "$leaf" ]; then
-    printf '%s\terror\tno-leaf\t0\n' "$m" >> "$OUT"; continue
+    printf '%s\terror\tno-usable-leaf\t0\n' "$m" >> "$OUT"; continue
   fi
   printf '(declare-domains)\n(cegar v (== %s 1))\n' "$leaf" >> "$p"
   t0=$(date +%s.%N)
