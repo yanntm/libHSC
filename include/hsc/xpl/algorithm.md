@@ -133,24 +133,46 @@ Per unit, an abstract value in the lattice
 
     bot  ⊑  set(V)  (|V| ≤ cap)  ⊑  interval[lo,hi]  ⊑  top
 
-fed by the assignments that target it, each classified once:
+fed by the assignments that target it. Assignments are gathered by
+walking every event's term tree. Along a seq path, filter guards
+contribute **var–constant constraints** (conjunction atoms `x ⋈ c`,
+either operand order); a constraint dies when a later update writes
+its position. An update's right-hand sides read the update's
+pre-state, so all actions of one update share one environment. Alt
+branches walk under copies of the inherited environment (a branch's
+guards never leak out; its writes invalidate for what follows). A job
+budget bounds the walk; any update the walk misses is processed
+constraint-free — the fallback is sound, just blunter.
+
+Each gathered assignment evaluates abstractly, to a fixpoint:
 
 * `x := c` — the constant joins the set;
-* `x := y`, `x := (at a e)` — a **copy edge** from y's (a's) unit: the
-  source domain propagates, to a fixpoint over the edges;
-* `x := e % k` (k a constant) — the interval `[0, k)`, tagged `mod`
-  (assumes the operand nonnegative, as an index is; the tag keeps the
-  assumption visible);
-* a boolean-valued rhs — the set `{0, 1}`;
+* `x := y`, `x := (at a e)` — the source unit's domain joins,
+  **restricted** by the live constraints on `y` (exact on sets, so
+  holes survive; a clamp on intervals; an empty restriction
+  contributes nothing);
+* arithmetic — `+ − ×`, `/` and `%` by a positive constant, a boolean
+  rhs as `{0, 1}` — evaluates over the operands' current domains under
+  the live constraints: exact enumeration when the operand combination
+  count is small, interval corner arithmetic else; overflow is top;
+* `x := e % k` keeps the `mod` tag: `[0, k)` assumes the operand
+  nonnegative, as an index is, and the tag keeps the assumption
+  visible;
 * `havoc x lo hi` — `[lo, hi)` as a set when small, interval else;
-* anything else — top: a counter `x := x + 1` is *honestly* unbounded
-  here; this pass detects enumerated state, not bounded arithmetic.
+* anything else (`pow`, bit ops, an unanalyzable operand) — top.
+
+Joins only grow, but arithmetic can genuinely diverge — a counter
+`x := x + 1` with no bounding guard climbs forever — so the fixpoint
+carries a round cap, and past it every target that is still growing
+goes to top: honestly unbounded. The guarded counter, `x := x + 1`
+under `(< x N)`, converges to `[seed, N]` instead — guards are what
+bound orbits, and the analysis now reads them.
 
 Seeds contribute their values (a never-assigned unit ends as `frozen`:
-its initial values are its whole life). Guards contribute nothing —
-no refinement by reachability, this is decoration, not verification.
-A set that outgrows the cap degrades to its interval hull; every join
-only grows, contributions are finite, so the fixpoint terminates.
+its initial values are its whole life). No refinement by reachability —
+guards restrict what an assignment can *read*, they never shrink a
+unit's own domain; this is decoration, not verification. A set that
+outgrows the cap degrades to its interval hull.
 
 What the data answers: the proportion of units statically bounded, the
 size distribution of the small domains, and the **holes** — a set kept

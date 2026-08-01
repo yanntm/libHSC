@@ -1,13 +1,16 @@
 /// \file domains.cc
-/// \brief Domain inference: union-find units, one classification pass over
-/// the assignments, then a worklist fixpoint over the copy edges.
-/// `algorithm.md` §5.
+/// \brief Domain inference: union-find units, assignments gathered by an
+/// event-tree walk that carries guard constraints, then an abstract
+/// evaluation fixpoint with a round cap. `algorithm.md` §5.
 
 #include "hsc/xpl/domains.hh"
 
 #include <algorithm>
-#include <deque>
+#include <functional>
+#include <limits>
+#include <map>
 #include <set>
+#include <span>
 
 namespace hsc::xpl {
 
@@ -16,6 +19,17 @@ namespace {
 /// Sets larger than this degrade to their interval hull. Generous: the
 /// point is to keep sentinel holes visible, not to bound memory tightly.
 constexpr std::size_t kSetCap = 4096;
+
+/// Exact-enumeration budget of one arithmetic evaluation: past this many
+/// operand combinations, corners of the interval hulls.
+constexpr std::size_t kComboCap = 4096;
+
+/// Gathered-assignment budget across all events; past it, the remaining
+/// updates process constraint-free (sound, blunter).
+constexpr std::size_t kJobCap = 20000;
+
+/// Fixpoint rounds before every still-growing target widens to top.
+constexpr int kRounds = 200;
 
 // --- the abstract value ----------------------------------------------------
 
@@ -83,13 +97,14 @@ struct dom {
     return false;
   }
 
- private:
   [[nodiscard]] value hull_lo() const {
     return k == kind::set ? *vals.begin() : lo;
   }
   [[nodiscard]] value hull_hi() const {
     return k == kind::set ? *vals.rbegin() : hi;
   }
+
+ private:
   void to_interval() {
     lo = *vals.begin();
     hi = *vals.rbegin();
@@ -97,6 +112,111 @@ struct dom {
     k = kind::interval;
   }
 };
+
+/// \p d restricted to [\p glo, \p ghi]: exact on sets (holes survive), a
+/// clamp on intervals; bot when the restriction is empty.
+dom restrict_dom(const dom& d, value glo, value ghi) {
+  dom out;
+  switch (d.k) {
+    case dom::kind::bot:
+      break;
+    case dom::kind::top:
+      out.add_interval(glo, ghi);
+      break;
+    case dom::kind::set:
+      for (const value v : d.vals) {
+        if (v >= glo && v <= ghi) out.add_value(v);
+      }
+      break;
+    case dom::kind::interval: {
+      const value l = std::max(d.lo, glo);
+      const value h = std::min(d.hi, ghi);
+      if (l <= h) out.add_interval(l, h);
+      break;
+    }
+  }
+  return out;
+}
+
+/// Live guard constraints: position → inclusive [lo, hi].
+using env_t = std::map<std::uint32_t, std::pair<value, value>>;
+
+/// Gather var–constant constraints from the conjunction atoms of \p g
+/// into \p env, intersecting with what is already there. Disjunctions,
+/// negations and var–var atoms contribute nothing.
+void constrain(const lia::expr_factory& ex, lia::bexpr g, env_t& env) {
+  if (g == lia::btrue || g == lia::bfalse || g == lia::bundef) return;
+  const lia::bkind k = ex.bool_kind(g);
+  const lia::expr_node& n = ex.bool_node(g);
+  if (k == lia::bkind::conj) {
+    for (const lia::bexpr c : n.operands()) constrain(ex, c, env);
+    return;
+  }
+  if (k != lia::bkind::eq && k != lia::bkind::lt && k != lia::bkind::leq &&
+      k != lia::bkind::gt && k != lia::bkind::geq) {
+    return;
+  }
+  const auto side = [&](lia::iexpr e,
+                        bool* is_var) -> std::pair<std::uint32_t, value> {
+    if (lia::expr_factory::is_const(e)) {
+      *is_var = false;
+      return {0, ex.value(e)};
+    }
+    if (e != lia::iundef) {
+      const lia::expr_node& sn = ex.node(e);
+      if (static_cast<lia::ikind>(sn.kind) == lia::ikind::var) {
+        *is_var = true;
+        return {static_cast<std::uint32_t>(sn.payload), 0};
+      }
+    }
+    *is_var = false;
+    return {0, 0};
+  };
+  bool lv = false;
+  bool rv = false;
+  const auto l = side(n.data()[0], &lv);
+  const auto r = side(n.data()[1], &rv);
+  if (lv == rv) return;  // var–var or const–const: nothing usable
+  const std::uint32_t pos = lv ? l.first : r.first;
+  const value c = lv ? r.second : l.second;
+  constexpr value kMin = std::numeric_limits<value>::min();
+  constexpr value kMax = std::numeric_limits<value>::max();
+  value lo = kMin;
+  value hi = kMax;
+  lia::bkind rel = k;  // orient as `var rel c`
+  if (!lv) {  // c rel var: flip
+    if (k == lia::bkind::lt) rel = lia::bkind::gt;
+    if (k == lia::bkind::leq) rel = lia::bkind::geq;
+    if (k == lia::bkind::gt) rel = lia::bkind::lt;
+    if (k == lia::bkind::geq) rel = lia::bkind::leq;
+  }
+  switch (rel) {
+    case lia::bkind::eq:
+      lo = hi = c;
+      break;
+    case lia::bkind::lt:
+      if (c == kMin) return;
+      hi = c - 1;
+      break;
+    case lia::bkind::leq:
+      hi = c;
+      break;
+    case lia::bkind::gt:
+      if (c == kMax) return;
+      lo = c + 1;
+      break;
+    case lia::bkind::geq:
+      lo = c;
+      break;
+    default:
+      return;
+  }
+  auto [it, fresh] = env.emplace(pos, std::pair<value, value>{lo, hi});
+  if (!fresh) {
+    it->second.first = std::max(it->second.first, lo);
+    it->second.second = std::min(it->second.second, hi);
+  }
+}
 
 // --- union-find over positions ---------------------------------------------
 
@@ -118,6 +238,171 @@ struct uf {
   }
   void unite_all(std::span<const std::uint32_t> ps) {
     for (std::size_t i = 1; i < ps.size(); ++i) unite(ps[0], ps[i]);
+  }
+};
+
+/// Abstract evaluation of an rhs over the units' current domains, under
+/// the live guard constraints. Exact set enumeration while the operand
+/// combination count stays under `kComboCap`; interval corners else;
+/// overflow and unhandled operators are top.
+struct evaler {
+  const lia::expr_factory& ex;
+  const std::vector<dom>& doms;
+  const std::vector<std::uint32_t>& root;  ///< position → unit root
+  const env_t& env;
+
+  [[nodiscard]] dom eval(lia::iexpr e) const {
+    if (lia::expr_factory::is_const(e)) {
+      dom d;
+      d.add_value(ex.value(e));
+      return d;
+    }
+    if (e == lia::iundef) {
+      dom d;
+      d.to_top();
+      return d;
+    }
+    const lia::expr_node& n = ex.node(e);
+    switch (static_cast<lia::ikind>(n.kind)) {
+      case lia::ikind::constant: {
+        dom d;
+        d.add_value(static_cast<value>(n.payload));
+        return d;
+      }
+      case lia::ikind::var: {
+        const auto pos = static_cast<std::uint32_t>(n.payload);
+        const dom& d = doms[root[pos]];
+        const auto it = env.find(pos);
+        if (it == env.end()) return d;
+        return restrict_dom(d, it->second.first, it->second.second);
+      }
+      case lia::ikind::array:  // the value read is some cell of a's unit
+        return doms[root[n.data()[1]]];
+      case lia::ikind::wrap_bool: {
+        dom d;
+        d.add_value(0);
+        d.add_value(1);
+        return d;
+      }
+      case lia::ikind::mod: {  // e % k, k a positive constant: [0, k)
+        const lia::iexpr div = n.data()[1];
+        if (lia::expr_factory::is_const(div) && ex.value(div) > 0) {
+          const value k = ex.value(div);
+          // a wrap that cannot fire passes the operand through unwrapped —
+          // the byte-arithmetic pattern `(j+1) % 256` under a guard on j
+          const dom a = eval(n.data()[0]);
+          if ((a.k == dom::kind::set || a.k == dom::kind::interval) &&
+              a.hull_lo() >= 0 && a.hull_hi() < k) {
+            return a;
+          }
+          dom d;
+          d.add_interval(0, k - 1);
+          return d;
+        }
+        return top();
+      }
+      case lia::ikind::div: {  // e / k, k a positive constant
+        const lia::iexpr div = n.data()[1];
+        if (!lia::expr_factory::is_const(div) || ex.value(div) <= 0) {
+          return top();
+        }
+        const value k = ex.value(div);
+        const dom a = eval(n.data()[0]);
+        return map1(a, [k](long long v) { return v / k; });
+      }
+      case lia::ikind::plus:
+        return fold(n.operands(),
+                    [](long long a, long long b) { return a + b; });
+      case lia::ikind::mult:
+        return fold(n.operands(),
+                    [](long long a, long long b) { return a * b; });
+      case lia::ikind::minus: {
+        const dom a = eval(n.data()[0]);
+        const dom b = eval(n.data()[1]);
+        return combine(a, b, [](long long x, long long y) { return x - y; });
+      }
+      default:  // pow, bit ops, …: unanalyzed
+        return top();
+    }
+  }
+
+ private:
+  static dom top() {
+    dom d;
+    d.to_top();
+    return d;
+  }
+
+  static bool fits(long long v) {
+    return v >= std::numeric_limits<value>::min() &&
+           v <= std::numeric_limits<value>::max();
+  }
+
+  /// Apply \p op to every value of \p a (set) or its hull ends (interval).
+  template <class Op>
+  static dom map1(const dom& a, Op op) {
+    dom out;
+    if (a.k == dom::kind::bot) return out;
+    if (a.k == dom::kind::top) return top();
+    if (a.k == dom::kind::set) {
+      for (const value v : a.vals) {
+        const long long r = op(static_cast<long long>(v));
+        if (!fits(r)) return top();
+        out.add_value(static_cast<value>(r));
+      }
+      return out;
+    }
+    const long long r1 = op(static_cast<long long>(a.lo));
+    const long long r2 = op(static_cast<long long>(a.hi));
+    if (!fits(r1) || !fits(r2)) return top();
+    out.add_interval(static_cast<value>(std::min(r1, r2)),
+                     static_cast<value>(std::max(r1, r2)));
+    return out;
+  }
+
+  /// a ∘ b: exact when both are sets small enough, corner arithmetic else.
+  template <class Op>
+  static dom combine(const dom& a, const dom& b, Op op) {
+    dom out;
+    if (a.k == dom::kind::bot || b.k == dom::kind::bot) return out;
+    if (a.k == dom::kind::top || b.k == dom::kind::top) return top();
+    if (a.k == dom::kind::set && b.k == dom::kind::set &&
+        a.vals.size() * b.vals.size() <= kComboCap) {
+      for (const value x : a.vals) {
+        for (const value y : b.vals) {
+          const long long r =
+              op(static_cast<long long>(x), static_cast<long long>(y));
+          if (!fits(r)) return top();
+          out.add_value(static_cast<value>(r));
+        }
+      }
+      return out;
+    }
+    long long lo = std::numeric_limits<long long>::max();
+    long long hi = std::numeric_limits<long long>::min();
+    for (const long long x : {static_cast<long long>(a.hull_lo()),
+                              static_cast<long long>(a.hull_hi())}) {
+      for (const long long y : {static_cast<long long>(b.hull_lo()),
+                                static_cast<long long>(b.hull_hi())}) {
+        const long long r = op(x, y);
+        lo = std::min(lo, r);
+        hi = std::max(hi, r);
+      }
+    }
+    if (!fits(lo) || !fits(hi)) return top();
+    out.add_interval(static_cast<value>(lo), static_cast<value>(hi));
+    return out;
+  }
+
+  /// Left fold of \p op over n-ary operands.
+  template <class Op>
+  dom fold(std::span<const std::uint32_t> ops, Op op) const {
+    dom acc = eval(ops[0]);
+    for (std::size_t i = 1; i < ops.size(); ++i) {
+      acc = combine(acc, eval(ops[i]), op);
+      if (acc.k == dom::kind::top) return acc;
+    }
+    return acc;
   }
 };
 
@@ -156,21 +441,30 @@ std::vector<domain_report> infer_domains(
   std::vector<dom> doms(m.arity);
   std::vector<bool> assigned(m.arity, false);
   std::vector<bool> via_mod(m.arity, false);
-  std::vector<std::pair<std::uint32_t, std::uint32_t>> edges;  // src → dst
+  std::vector<std::uint32_t> root(m.arity);
+  for (std::uint32_t p = 0; p < m.arity; ++p) root[p] = u.find(p);
 
   // seeds: every unit starts from its initial values
   for (const word& s : seeds) {
     for (std::uint32_t p = 0; p < s.size(); ++p) {
-      doms[u.find(p)].add_value(s[p]);
+      doms[root[p]].add_value(s[p]);
     }
   }
 
-  // one classification pass over the assignments
+  // gather the assignments by walking every event's term tree, carrying
+  // the live guard constraints; havoc joins directly (no rhs to evaluate)
   const lia::expr_factory& ex = *m.ex;
-  for (const term& t : m.pool) {
-    if (t.k != term::kind::update) continue;
+  struct job {
+    const action* act = nullptr;
+    env_t env;
+    std::uint32_t dst = 0;
+  };
+  std::vector<job> jobs;
+  std::vector<bool> visited(m.pool.size(), false);
+
+  const auto emit = [&](const term& t, const env_t& env) {
     for (const action& a : t.acts) {
-      const std::uint32_t dst = u.find(a.lhs.cells.front());
+      const std::uint32_t dst = root[a.lhs.cells.front()];
       assigned[dst] = true;
       if (a.k == action::kind::havoc) {
         if (a.hi <= a.lo) continue;  // empty range assigns nothing
@@ -181,57 +475,92 @@ std::vector<domain_report> infer_domains(
         }
         continue;
       }
-      const lia::iexpr rhs = a.rhs;
-      if (lia::expr_factory::is_const(rhs)) {
-        doms[dst].add_value(ex.value(rhs));
-        continue;
-      }
-      if (rhs == lia::iundef) {
-        doms[dst].to_top();
-        continue;
-      }
-      const lia::expr_node& n = ex.node(rhs);
-      switch (static_cast<lia::ikind>(n.kind)) {
-        case lia::ikind::constant:
-          doms[dst].add_value(static_cast<value>(n.payload));
-          break;
-        case lia::ikind::var:  // x := y — a copy edge
-          edges.emplace_back(u.find(static_cast<std::uint32_t>(n.payload)),
-                             dst);
-          break;
-        case lia::ikind::array:  // x := (at a e) — a copy from a's unit
-          edges.emplace_back(u.find(n.data()[1]), dst);
-          break;
-        case lia::ikind::mod: {  // x := e % k — [0, k), operand nonnegative
+      if (!lia::expr_factory::is_const(a.rhs) && a.rhs != lia::iundef) {
+        const lia::expr_node& n = ex.node(a.rhs);
+        const auto k = static_cast<lia::ikind>(n.kind);
+        if (k == lia::ikind::mod) {  // keep the visible-assumption tag
           const lia::iexpr div = n.data()[1];
           if (lia::expr_factory::is_const(div) && ex.value(div) > 0) {
-            doms[dst].add_interval(0, ex.value(div) - 1);
             via_mod[dst] = true;
-          } else {
-            doms[dst].to_top();
           }
-          break;
         }
-        case lia::ikind::wrap_bool:  // a boolean read as 0/1
-          doms[dst].add_value(0);
-          doms[dst].add_value(1);
-          break;
-        default:  // arithmetic: honestly unconstrained (a counter stays top)
-          doms[dst].to_top();
-          break;
       }
+      jobs.push_back({&a, env, dst});
+    }
+  };
+
+  // returns the positions written in the subtree; env evolves along a seq
+  const std::function<std::set<std::uint32_t>(std::uint32_t, env_t&)> walk =
+      [&](std::uint32_t ti, env_t& env) -> std::set<std::uint32_t> {
+    std::set<std::uint32_t> w;
+    if (jobs.size() >= kJobCap) return w;  // budget: fallback covers the rest
+    const term& t = m.pool[ti];
+    switch (t.k) {
+      case term::kind::filter:
+        constrain(ex, t.guard, env);
+        break;
+      case term::kind::update:
+        visited[ti] = true;
+        emit(t, env);
+        for (const action& a : t.acts) {
+          for (const std::uint32_t c : a.lhs.cells) {
+            w.insert(c);
+            env.erase(c);
+          }
+        }
+        break;
+      case term::kind::seq:
+        for (const std::uint32_t k : t.kids) {
+          const auto kw = walk(k, env);
+          w.insert(kw.begin(), kw.end());
+        }
+        break;
+      case term::kind::alt:
+        for (const std::uint32_t k : t.kids) {
+          env_t branch = env;  // a branch's guards never leak out
+          const auto kw = walk(k, branch);
+          w.insert(kw.begin(), kw.end());
+        }
+        for (const std::uint32_t c : w) env.erase(c);  // its writes do
+        break;
+      case term::kind::abort:
+        break;
+    }
+    return w;
+  };
+  for (const event& e : m.events) {
+    env_t env;
+    walk(e.root, env);
+  }
+  // updates the walk missed (unreachable, or past the budget): guard-free
+  for (std::size_t ti = 0; ti < m.pool.size(); ++ti) {
+    if (m.pool[ti].k == term::kind::update && !visited[ti]) {
+      emit(m.pool[ti], env_t{});
     }
   }
 
-  // fixpoint over the copy edges: joins only grow, so this terminates
-  std::sort(edges.begin(), edges.end());
-  edges.erase(std::unique(edges.begin(), edges.end()), edges.end());
+  // abstract-evaluation fixpoint; joins only grow, arithmetic may diverge,
+  // so past the round cap every still-growing target widens to top (tops
+  // absorb, so the trailing loop runs at most once per unit)
   bool changed = true;
+  for (int round = 0; changed && round < kRounds; ++round) {
+    changed = false;
+    for (const job& j : jobs) {
+      const dom v = evaler{ex, doms, root, j.env}.eval(j.act->rhs);
+      if (v.k != dom::kind::bot) changed |= doms[j.dst].join(v);
+    }
+  }
   while (changed) {
     changed = false;
-    for (const auto& [src, dst] : edges) {
-      if (src != dst) changed |= doms[dst].join(doms[src]);
+    std::set<std::uint32_t> grew;
+    for (const job& j : jobs) {
+      const dom v = evaler{ex, doms, root, j.env}.eval(j.act->rhs);
+      if (v.k != dom::kind::bot && doms[j.dst].join(v)) {
+        changed = true;
+        grew.insert(j.dst);
+      }
     }
+    for (const std::uint32_t d : grew) doms[d].to_top();
   }
 
   // reports, one per root unit, positions gathered back
