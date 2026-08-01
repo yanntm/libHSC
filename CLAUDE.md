@@ -31,7 +31,7 @@ Paper drafts :
 
 1. the paper itself. Written up. Depending on advancement, a rough draft to polished.
 As it progresses towards a paper outline : abstract=teaser, 1 : define title, the problem, why its important, contributions, outline of paper. 2. Context : any definition we need to define ourselves but that is not original in this paper, subsections ok. 3+ contributions ~7. related work 8. Conclusion
-papers/ holds our library as both pdf, and .txt extracts of it, we don't cite unless we read the paper we cite.
+`~/git/Library` holds our library, start from its `INDEX.md`; we don't cite unless we read the paper we cite.
 2. a spec or experiments file to drive engineering, and in later stages, data collection.
 It is precise and contains milestones for dev, and description of tables/experiments to perform.
 3. a report file with the engineering team response to the specification.
@@ -131,7 +131,7 @@ If you find issues or bias in an experiment report it to user.
 
 A session will start with one of two roles :
 
-1. Theory : you will read papers/ and only markdown in research_notes essentially.
+1. Theory : you will read `~/git/Library` (start from its `INDEX.md`) and only markdown in research_notes essentially.
 You solve issues on paper, prove, hand work examples, predict outcomes, write the spec that drives engineering.
 Never looks at actual code base, preserves its context from technical detail to do better math.
 Reads engineering reports on its spec, feedbacks on them by appending a response paragraph where necessary, and by revising spec.
