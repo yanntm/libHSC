@@ -337,6 +337,42 @@ std::vector<domain_report> infer_domains(
   std::vector<std::uint32_t> root(m.arity);
   for (std::uint32_t p = 0; p < m.arity; ++p) root[p] = u.find(p);
 
+  // per root unit, the declared window: the union of the members'
+  // [lo, hi) declarations, present only when every member declares. A
+  // write outside a declared bound is a run error, never a state, so a
+  // unit's domain can never leave its window — "top" for a declared
+  // unit means its whole window, and every join clips to it.
+  std::vector<std::optional<std::pair<value, value>>> decl_win(m.arity);
+  if (!declared.empty()) {
+    std::vector<std::vector<std::uint32_t>> members_of(m.arity);
+    for (std::uint32_t p = 0; p < m.arity; ++p) {
+      members_of[root[p]].push_back(p);
+    }
+    for (std::uint32_t r = 0; r < m.arity; ++r) {
+      if (members_of[r].empty()) continue;
+      value clo = kMax;
+      value chi = kMin;
+      bool all = true;
+      for (const std::uint32_t p : members_of[r]) {
+        if (!declared[p]) {
+          all = false;
+          break;
+        }
+        clo = std::min(clo, declared[p]->first);
+        chi = std::max(chi, static_cast<value>(declared[p]->second - 1));
+      }
+      if (all && clo <= chi) decl_win[r] = {clo, chi};
+    }
+  }
+  // an unanalyzable assignment blunts to the declared window, top else
+  const auto blunt = [&](std::uint32_t dst) {
+    if (decl_win[dst]) {
+      doms[dst].add_interval(decl_win[dst]->first, decl_win[dst]->second);
+    } else {
+      doms[dst].to_top();
+    }
+  };
+
   // seeds: every unit starts from its initial values
   for (const word& s : seeds) {
     for (std::uint32_t p = 0; p < s.size(); ++p) {
@@ -351,6 +387,8 @@ std::vector<domain_report> infer_domains(
     std::uint32_t src = 0, dst = 0;
     value rlo = kMin, rhi = kMax;  ///< restriction on the read
     value shift = 0;
+    bool check = false;  ///< an unguarded genuine shift: allowed only when
+                         ///< it cannot diverge (dst declared, or acyclic)
   };
   std::vector<edge> edges;
   const lia::expr_factory& ex = *m.ex;
@@ -374,13 +412,13 @@ std::vector<domain_report> infer_domains(
         continue;
       }
       if (rhs == lia::iundef) {
-        doms[dst].to_top();
+        blunt(dst);
         continue;
       }
       // the single-var affine shape: x := v [± consts] — an edge from v's
-      // unit, restricted by the live constraints on v; a genuine shift
-      // needs the advancing side bounded by a guard, else it diverges and
-      // the honest answer is top
+      // unit, restricted by the live constraints on v. A genuine shift
+      // whose advancing side no guard bounds diverges on a cycle; the
+      // check defers that decision to the cycle test below.
       if (const auto vo = var_offset(ex, rhs)) {
         const auto [pos, off] = *vo;
         value rlo = kMin;
@@ -389,11 +427,9 @@ std::vector<domain_report> infer_domains(
           rlo = it->second.first;
           rhi = it->second.second;
         }
-        if ((off > 0 && rhi == kMax) || (off < 0 && rlo == kMin)) {
-          doms[dst].to_top();
-          continue;
-        }
-        edges.push_back({root[pos], dst, rlo, rhi, off});
+        const bool unguarded =
+            (off > 0 && rhi == kMax) || (off < 0 && rlo == kMin);
+        edges.push_back({root[pos], dst, rlo, rhi, off, unguarded});
         continue;
       }
       const lia::expr_node& n = ex.node(rhs);
@@ -402,7 +438,7 @@ std::vector<domain_report> infer_domains(
           doms[dst].add_value(static_cast<value>(n.payload));
           break;
         case lia::ikind::array:  // x := (at a e) — a copy from a's unit
-          edges.push_back({root[n.data()[1]], dst, kMin, kMax, 0});
+          edges.push_back({root[n.data()[1]], dst, kMin, kMax, 0, false});
           break;
         case lia::ikind::mod: {  // x := e % k — [0, k), operand nonnegative
           const lia::iexpr div = n.data()[1];
@@ -410,7 +446,7 @@ std::vector<domain_report> infer_domains(
             doms[dst].add_interval(0, ex.value(div) - 1);
             via_mod[dst] = true;
           } else {
-            doms[dst].to_top();
+            blunt(dst);
           }
           break;
         }
@@ -418,9 +454,9 @@ std::vector<domain_report> infer_domains(
           doms[dst].add_value(0);
           doms[dst].add_value(1);
           break;
-        default:  // other arithmetic: honestly unconstrained here; a
-                  // declared bound still clips it at the end
-          doms[dst].to_top();
+        default:  // other arithmetic: honestly unconstrained here; the
+                  // declared window is all a declared unit can hold
+          blunt(dst);
           break;
       }
     }
@@ -479,48 +515,59 @@ std::vector<domain_report> infer_domains(
     }
   }
 
-  // fixpoint over the edges. Terminates without any cap: plain copies
-  // invent no values, and a shifted edge's output lives inside its own
-  // constant window shifted — every unit's hull stays within a fixed
-  // finite range determined by the direct facts and the edge windows.
+  // an unguarded shift can only diverge by feeding itself: if its
+  // destination has a declared window (every join clips to it) or cannot
+  // reach back to its source through the edges, it is safe; on a cycle
+  // into an undeclared unit, the honest answer is top and the edge goes
+  const auto reaches = [&](std::uint32_t from, std::uint32_t to) {
+    std::set<std::uint32_t> seen{from};
+    std::vector<std::uint32_t> stack{from};
+    while (!stack.empty()) {
+      const std::uint32_t n = stack.back();
+      stack.pop_back();
+      if (n == to) return true;
+      for (const edge& e : edges) {
+        if (e.src == n && seen.insert(e.dst).second) stack.push_back(e.dst);
+      }
+    }
+    return false;
+  };
+  std::erase_if(edges, [&](const edge& e) {
+    if (!e.check || e.shift == 0 || decl_win[e.dst]) return false;
+    if (!reaches(e.dst, e.src)) return false;
+    doms[e.dst].to_top();
+    return true;
+  });
+
+  // fixpoint over the edges, every join clipped to the destination's
+  // declared window. Terminates without any cap: copies invent no
+  // values, guarded shifts live inside their constant window shifted,
+  // and the surviving unguarded shifts either land in a declared window
+  // or sit on no cycle — every hull stays within a fixed finite range.
   bool changed = true;
   while (changed) {
     changed = false;
     for (const edge& e : edges) {
-      const dom v = restrict_shift(doms[e.src], e.rlo, e.rhi, e.shift);
+      dom v = restrict_shift(doms[e.src], e.rlo, e.rhi, e.shift);
+      if (decl_win[e.dst]) {
+        v = restrict_shift(v, decl_win[e.dst]->first,
+                           decl_win[e.dst]->second, 0);
+      }
       if (v.k != dom::kind::bot) changed |= doms[e.dst].join(v);
     }
   }
 
-  // declared bounds clip: a write outside a declared [lo, hi) is a run
-  // error, never a state, so stored values cannot leave it. A merged
-  // unit clips to the union of its members' declarations, and only when
-  // every member declares.
-  if (!declared.empty()) {
-    std::vector<std::vector<std::uint32_t>> members_of(m.arity);
-    for (std::uint32_t p = 0; p < m.arity; ++p) {
-      members_of[root[p]].push_back(p);
-    }
-    for (std::uint32_t r = 0; r < m.arity; ++r) {
-      if (members_of[r].empty()) continue;
-      value clo = kMax;
-      value chi = kMin;
-      bool all = true;
-      for (const std::uint32_t p : members_of[r]) {
-        if (!declared[p]) {
-          all = false;
-          break;
-        }
-        clo = std::min(clo, declared[p]->first);
-        chi = std::max(chi, static_cast<value>(declared[p]->second - 1));
-      }
-      if (!all || clo > chi) continue;
-      if (doms[r].k == dom::kind::top) {
-        doms[r] = dom{};
-        doms[r].add_interval(clo, chi);
-      } else {
-        doms[r] = restrict_shift(doms[r], clo, chi, 0);
-      }
+  // final clip: direct facts (a constant written on a dead branch, a
+  // havoc range wider than the declaration) may still exceed a declared
+  // window; stored values cannot
+  for (std::uint32_t r = 0; r < m.arity; ++r) {
+    if (!decl_win[r]) continue;
+    if (doms[r].k == dom::kind::top) {
+      doms[r] = dom{};
+      doms[r].add_interval(decl_win[r]->first, decl_win[r]->second);
+    } else if (doms[r].k != dom::kind::bot) {
+      doms[r] = restrict_shift(doms[r], decl_win[r]->first,
+                               decl_win[r]->second, 0);
     }
   }
 

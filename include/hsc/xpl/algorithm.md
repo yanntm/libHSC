@@ -149,9 +149,13 @@ The rules, per assignment occurrence:
 * `x := c` — the constant joins the set;
 * `x := v [± consts]`, `x := (at a e)` — an **edge** from the source
   unit, carrying the live restriction on `v` and the constant shift.
-  A genuine shift needs the guard to bound its advancing side
-  (`x := x + 1` under `(< x N)`); unguarded it diverges, and the
-  honest answer is top;
+  A genuine shift can only diverge by feeding itself, so it is kept
+  when any of three structural facts holds: a guard bounds its
+  advancing side (`x := x + 1` under `(< x N)`), the destination has
+  a declared window (every join clips to it), or the destination
+  cannot reach back to the source through the edges (no cycle). On a
+  cycle into an undeclared unit with no guard, the honest answer is
+  top;
 * `x := e % k` (k a positive constant) — the interval `[0, k)`,
   tagged `mod` (assumes the operand nonnegative, as an index is; the
   tag keeps the assumption visible);
@@ -163,16 +167,18 @@ The rules, per assignment occurrence:
 
 Then one fixpoint over the edges propagates: each edge joins its
 source's domain restricted to the edge's window and shifted (exact on
-sets — holes survive; a clamp on intervals). It terminates with no
-cap: plain copies invent no values, and a shifted edge's output lives
-inside its own constant window shifted — every hull stays within a
-fixed range determined by the direct facts and the edge windows.
+sets — holes survive; a clamp on intervals), the join clipped to the
+destination's **declared window**. It terminates with no cap: copies
+invent no values, guarded shifts live inside their constant window
+shifted, and the surviving unguarded shifts either land in a declared
+window or sit on no cycle — every hull stays within a fixed finite
+range.
 
-Last, the **declared-bound clip**: a write outside a declared
-`[lo, hi)` is a run error, never a state, so stored values cannot
-leave it — every unit whose members all declare is clipped to the
-union of their declarations. A declared byte stays a byte no matter
-what arithmetic feeds it.
+The declared window is the semantic anchor: a write outside a
+declared `[lo, hi)` is a run error, never a state, so stored values
+cannot leave it — a unit whose members all declare is clipped to the
+union of their declarations, "top" for it means its whole window, and
+a declared byte stays a byte no matter what arithmetic feeds it.
 
 Seeds contribute their values (a never-assigned unit ends as `frozen`:
 its initial values are its whole life). No refinement by reachability —
