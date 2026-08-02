@@ -1,7 +1,8 @@
 /// \file domains.cc
-/// \brief Domain inference: union-find units, assignments gathered by an
-/// event-tree walk that carries guard constraints, then an abstract
-/// evaluation fixpoint with a round cap. `algorithm.md` §5.
+/// \brief Domain inference: union-find units, one classification walk
+/// over the events carrying guard constraints, then a fixpoint over the
+/// (restricted, possibly shifted) copy edges. Structural throughout — no
+/// expression evaluation, no widening. `algorithm.md` §5.
 
 #include "hsc/xpl/domains.hh"
 
@@ -9,8 +10,9 @@
 #include <functional>
 #include <limits>
 #include <map>
+#include <optional>
 #include <set>
-#include <span>
+#include <utility>
 
 namespace hsc::xpl {
 
@@ -20,16 +22,8 @@ namespace {
 /// point is to keep sentinel holes visible, not to bound memory tightly.
 constexpr std::size_t kSetCap = 4096;
 
-/// Exact-enumeration budget of one arithmetic evaluation: past this many
-/// operand combinations, corners of the interval hulls.
-constexpr std::size_t kComboCap = 4096;
-
-/// Gathered-assignment budget across all events; past it, the remaining
-/// updates process constraint-free (sound, blunter).
-constexpr std::size_t kJobCap = 20000;
-
-/// Fixpoint rounds before every still-growing target widens to top.
-constexpr int kRounds = 200;
+constexpr value kMin = std::numeric_limits<value>::min();
+constexpr value kMax = std::numeric_limits<value>::max();
 
 // --- the abstract value ----------------------------------------------------
 
@@ -113,44 +107,44 @@ struct dom {
   }
 };
 
-/// Widen \p d one step through \p thresholds (guard constants and mod
-/// bounds of its unit): the hull jumps outward to the nearest enclosing
-/// thresholds. False when no strictly larger enclosure exists — the
-/// caller's next step is top.
-bool widen_to_threshold(dom& d, const std::set<value>& thresholds) {
-  if (d.k != dom::kind::set && d.k != dom::kind::interval) return false;
-  const value lo = d.hull_lo();
-  const value hi = d.hull_hi();
-  value wlo = lo;
-  value whi = hi;
-  const auto up = thresholds.upper_bound(hi);  // strictly above the hull
-  if (up != thresholds.end()) whi = *up;
-  const auto down = thresholds.lower_bound(lo);  // strictly below it
-  if (down != thresholds.begin()) wlo = *std::prev(down);
-  if (wlo == lo && whi == hi) return false;  // no progress: give up
-  d.add_interval(wlo, whi);
-  return true;
+/// Saturating value addition (shifts are small; saturation keeps hulls
+/// sound at the extremes without an overflow case).
+value sat_add(value a, value b) {
+  const long long r = static_cast<long long>(a) + b;
+  if (r < kMin) return kMin;
+  if (r > kMax) return kMax;
+  return static_cast<value>(r);
 }
 
-/// \p d restricted to [\p glo, \p ghi]: exact on sets (holes survive), a
-/// clamp on intervals; bot when the restriction is empty.
-dom restrict_dom(const dom& d, value glo, value ghi) {
+/// \p d restricted to [\p glo, \p ghi], then shifted by \p o: exact on
+/// sets (holes survive), a clamp on intervals; bot when the restriction
+/// is empty. A restricted top is the window itself — the read was inside
+/// it; an unrestricted top stays top.
+dom restrict_shift(const dom& d, value glo, value ghi, value o) {
   dom out;
   switch (d.k) {
     case dom::kind::bot:
       break;
     case dom::kind::top:
-      out.add_interval(glo, ghi);
+      if (glo == kMin && ghi == kMax) {
+        out.to_top();
+      } else {
+        out.add_interval(glo == kMin ? kMin : sat_add(glo, o),
+                         ghi == kMax ? kMax : sat_add(ghi, o));
+      }
       break;
     case dom::kind::set:
       for (const value v : d.vals) {
-        if (v >= glo && v <= ghi) out.add_value(v);
+        if (v >= glo && v <= ghi) out.add_value(sat_add(v, o));
       }
       break;
     case dom::kind::interval: {
       const value l = std::max(d.lo, glo);
       const value h = std::min(d.hi, ghi);
-      if (l <= h) out.add_interval(l, h);
+      if (l <= h) {
+        out.add_interval(l == kMin ? kMin : sat_add(l, o),
+                         h == kMax ? kMax : sat_add(h, o));
+      }
       break;
     }
   }
@@ -198,12 +192,10 @@ void constrain(const lia::expr_factory& ex, lia::bexpr g, env_t& env) {
   if (lv == rv) return;  // var–var or const–const: nothing usable
   const std::uint32_t pos = lv ? l.first : r.first;
   const value c = lv ? r.second : l.second;
-  constexpr value kMin = std::numeric_limits<value>::min();
-  constexpr value kMax = std::numeric_limits<value>::max();
   value lo = kMin;
   value hi = kMax;
   lia::bkind rel = k;  // orient as `var rel c`
-  if (!lv) {  // c rel var: flip
+  if (!lv) {           // c rel var: flip
     if (k == lia::bkind::lt) rel = lia::bkind::gt;
     if (k == lia::bkind::leq) rel = lia::bkind::geq;
     if (k == lia::bkind::gt) rel = lia::bkind::lt;
@@ -237,6 +229,52 @@ void constrain(const lia::expr_factory& ex, lia::bexpr g, env_t& env) {
   }
 }
 
+/// `var + Σ consts` / `var − const` recognizer: the single-source affine
+/// shape the edge rule accepts. Returns the var position and the signed
+/// offset; nullopt for anything else.
+std::optional<std::pair<std::uint32_t, value>> var_offset(
+    const lia::expr_factory& ex, lia::iexpr e) {
+  if (e == lia::iundef || lia::expr_factory::is_const(e)) return std::nullopt;
+  const lia::expr_node& n = ex.node(e);
+  const auto k = static_cast<lia::ikind>(n.kind);
+  if (k == lia::ikind::var) {
+    return std::pair{static_cast<std::uint32_t>(n.payload), value{0}};
+  }
+  if (k == lia::ikind::plus) {
+    std::optional<std::uint32_t> var;
+    long long off = 0;
+    for (const lia::iexpr op : n.operands()) {
+      if (lia::expr_factory::is_const(op)) {
+        off += ex.value(op);
+        continue;
+      }
+      if (op == lia::iundef) return std::nullopt;
+      const lia::expr_node& on = ex.node(op);
+      if (static_cast<lia::ikind>(on.kind) != lia::ikind::var || var) {
+        return std::nullopt;  // second variable, or a nested operator
+      }
+      var = static_cast<std::uint32_t>(on.payload);
+    }
+    if (!var || off < kMin || off > kMax) return std::nullopt;
+    return std::pair{*var, static_cast<value>(off)};
+  }
+  if (k == lia::ikind::minus) {
+    const lia::iexpr a = n.data()[0];
+    const lia::iexpr b = n.data()[1];
+    if (a == lia::iundef || lia::expr_factory::is_const(a)) return std::nullopt;
+    const lia::expr_node& an = ex.node(a);
+    if (static_cast<lia::ikind>(an.kind) != lia::ikind::var ||
+        !lia::expr_factory::is_const(b)) {
+      return std::nullopt;
+    }
+    const long long off = -static_cast<long long>(ex.value(b));
+    if (off < kMin || off > kMax) return std::nullopt;
+    return std::pair{static_cast<std::uint32_t>(an.payload),
+                     static_cast<value>(off)};
+  }
+  return std::nullopt;
+}
+
 // --- union-find over positions ---------------------------------------------
 
 struct uf {
@@ -260,171 +298,6 @@ struct uf {
   }
 };
 
-/// Abstract evaluation of an rhs over the units' current domains, under
-/// the live guard constraints. Exact set enumeration while the operand
-/// combination count stays under `kComboCap`; interval corners else;
-/// overflow and unhandled operators are top.
-struct evaler {
-  const lia::expr_factory& ex;
-  const std::vector<dom>& doms;
-  const std::vector<std::uint32_t>& root;  ///< position → unit root
-  const env_t& env;
-
-  [[nodiscard]] dom eval(lia::iexpr e) const {
-    if (lia::expr_factory::is_const(e)) {
-      dom d;
-      d.add_value(ex.value(e));
-      return d;
-    }
-    if (e == lia::iundef) {
-      dom d;
-      d.to_top();
-      return d;
-    }
-    const lia::expr_node& n = ex.node(e);
-    switch (static_cast<lia::ikind>(n.kind)) {
-      case lia::ikind::constant: {
-        dom d;
-        d.add_value(static_cast<value>(n.payload));
-        return d;
-      }
-      case lia::ikind::var: {
-        const auto pos = static_cast<std::uint32_t>(n.payload);
-        const dom& d = doms[root[pos]];
-        const auto it = env.find(pos);
-        if (it == env.end()) return d;
-        return restrict_dom(d, it->second.first, it->second.second);
-      }
-      case lia::ikind::array:  // the value read is some cell of a's unit
-        return doms[root[n.data()[1]]];
-      case lia::ikind::wrap_bool: {
-        dom d;
-        d.add_value(0);
-        d.add_value(1);
-        return d;
-      }
-      case lia::ikind::mod: {  // e % k, k a positive constant: [0, k)
-        const lia::iexpr div = n.data()[1];
-        if (lia::expr_factory::is_const(div) && ex.value(div) > 0) {
-          const value k = ex.value(div);
-          // a wrap that cannot fire passes the operand through unwrapped —
-          // the byte-arithmetic pattern `(j+1) % 256` under a guard on j
-          const dom a = eval(n.data()[0]);
-          if ((a.k == dom::kind::set || a.k == dom::kind::interval) &&
-              a.hull_lo() >= 0 && a.hull_hi() < k) {
-            return a;
-          }
-          dom d;
-          d.add_interval(0, k - 1);
-          return d;
-        }
-        return top();
-      }
-      case lia::ikind::div: {  // e / k, k a positive constant
-        const lia::iexpr div = n.data()[1];
-        if (!lia::expr_factory::is_const(div) || ex.value(div) <= 0) {
-          return top();
-        }
-        const value k = ex.value(div);
-        const dom a = eval(n.data()[0]);
-        return map1(a, [k](long long v) { return v / k; });
-      }
-      case lia::ikind::plus:
-        return fold(n.operands(),
-                    [](long long a, long long b) { return a + b; });
-      case lia::ikind::mult:
-        return fold(n.operands(),
-                    [](long long a, long long b) { return a * b; });
-      case lia::ikind::minus: {
-        const dom a = eval(n.data()[0]);
-        const dom b = eval(n.data()[1]);
-        return combine(a, b, [](long long x, long long y) { return x - y; });
-      }
-      default:  // pow, bit ops, …: unanalyzed
-        return top();
-    }
-  }
-
- private:
-  static dom top() {
-    dom d;
-    d.to_top();
-    return d;
-  }
-
-  static bool fits(long long v) {
-    return v >= std::numeric_limits<value>::min() &&
-           v <= std::numeric_limits<value>::max();
-  }
-
-  /// Apply \p op to every value of \p a (set) or its hull ends (interval).
-  template <class Op>
-  static dom map1(const dom& a, Op op) {
-    dom out;
-    if (a.k == dom::kind::bot) return out;
-    if (a.k == dom::kind::top) return top();
-    if (a.k == dom::kind::set) {
-      for (const value v : a.vals) {
-        const long long r = op(static_cast<long long>(v));
-        if (!fits(r)) return top();
-        out.add_value(static_cast<value>(r));
-      }
-      return out;
-    }
-    const long long r1 = op(static_cast<long long>(a.lo));
-    const long long r2 = op(static_cast<long long>(a.hi));
-    if (!fits(r1) || !fits(r2)) return top();
-    out.add_interval(static_cast<value>(std::min(r1, r2)),
-                     static_cast<value>(std::max(r1, r2)));
-    return out;
-  }
-
-  /// a ∘ b: exact when both are sets small enough, corner arithmetic else.
-  template <class Op>
-  static dom combine(const dom& a, const dom& b, Op op) {
-    dom out;
-    if (a.k == dom::kind::bot || b.k == dom::kind::bot) return out;
-    if (a.k == dom::kind::top || b.k == dom::kind::top) return top();
-    if (a.k == dom::kind::set && b.k == dom::kind::set &&
-        a.vals.size() * b.vals.size() <= kComboCap) {
-      for (const value x : a.vals) {
-        for (const value y : b.vals) {
-          const long long r =
-              op(static_cast<long long>(x), static_cast<long long>(y));
-          if (!fits(r)) return top();
-          out.add_value(static_cast<value>(r));
-        }
-      }
-      return out;
-    }
-    long long lo = std::numeric_limits<long long>::max();
-    long long hi = std::numeric_limits<long long>::min();
-    for (const long long x : {static_cast<long long>(a.hull_lo()),
-                              static_cast<long long>(a.hull_hi())}) {
-      for (const long long y : {static_cast<long long>(b.hull_lo()),
-                                static_cast<long long>(b.hull_hi())}) {
-        const long long r = op(x, y);
-        lo = std::min(lo, r);
-        hi = std::max(hi, r);
-      }
-    }
-    if (!fits(lo) || !fits(hi)) return top();
-    out.add_interval(static_cast<value>(lo), static_cast<value>(hi));
-    return out;
-  }
-
-  /// Left fold of \p op over n-ary operands.
-  template <class Op>
-  dom fold(std::span<const std::uint32_t> ops, Op op) const {
-    dom acc = eval(ops[0]);
-    for (std::size_t i = 1; i < ops.size(); ++i) {
-      acc = combine(acc, eval(ops[i]), op);
-      if (acc.k == dom::kind::top) return acc;
-    }
-    return acc;
-  }
-};
-
 /// Union the cells of every array node reachable in \p e — an array is
 /// one unit wherever it is touched.
 void unite_array_nodes(const lia::expr_factory& ex, lia::iexpr e, uf& u) {
@@ -445,7 +318,8 @@ void unite_array_nodes(const lia::expr_factory& ex, lia::iexpr e, uf& u) {
 
 std::vector<domain_report> infer_domains(
     const model& m, std::span<const word> seeds,
-    std::span<const std::vector<std::uint32_t>> groups) {
+    std::span<const std::vector<std::uint32_t>> groups,
+    std::span<const std::optional<std::pair<value, value>>> declared) {
   uf u(m.arity);
   for (const auto& g : groups) u.unite_all(g);
   for (const term& t : m.pool) {
@@ -470,20 +344,18 @@ std::vector<domain_report> infer_domains(
     }
   }
 
-  // gather the assignments by walking every event's term tree, carrying
-  // the live guard constraints; havoc joins directly (no rhs to evaluate)
-  const lia::expr_factory& ex = *m.ex;
-  struct job {
-    const action* act = nullptr;
-    env_t env;
-    std::uint32_t dst = 0;
+  // classification: one pass per assignment occurrence. Direct facts join
+  // immediately; reads become edges — restricted by the guard constraints
+  // live at that occurrence, shifted for the single-var affine shape.
+  struct edge {
+    std::uint32_t src = 0, dst = 0;
+    value rlo = kMin, rhi = kMax;  ///< restriction on the read
+    value shift = 0;
   };
-  std::vector<job> jobs;
-  std::vector<bool> visited(m.pool.size(), false);
-  std::vector<std::set<value>> thresholds(m.arity);  // per root unit
-  bool budget_hit = false;
+  std::vector<edge> edges;
+  const lia::expr_factory& ex = *m.ex;
 
-  const auto emit = [&](const term& t, const env_t& env) {
+  const auto classify = [&](const term& t, const env_t& env) {
     for (const action& a : t.acts) {
       const std::uint32_t dst = root[a.lhs.cells.front()];
       assigned[dst] = true;
@@ -496,38 +368,80 @@ std::vector<domain_report> infer_domains(
         }
         continue;
       }
-      if (!lia::expr_factory::is_const(a.rhs) && a.rhs != lia::iundef) {
-        const lia::expr_node& n = ex.node(a.rhs);
-        const auto k = static_cast<lia::ikind>(n.kind);
-        if (k == lia::ikind::mod) {  // keep the visible-assumption tag
+      const lia::iexpr rhs = a.rhs;
+      if (lia::expr_factory::is_const(rhs)) {
+        doms[dst].add_value(ex.value(rhs));
+        continue;
+      }
+      if (rhs == lia::iundef) {
+        doms[dst].to_top();
+        continue;
+      }
+      // the single-var affine shape: x := v [± consts] — an edge from v's
+      // unit, restricted by the live constraints on v; a genuine shift
+      // needs the advancing side bounded by a guard, else it diverges and
+      // the honest answer is top
+      if (const auto vo = var_offset(ex, rhs)) {
+        const auto [pos, off] = *vo;
+        value rlo = kMin;
+        value rhi = kMax;
+        if (const auto it = env.find(pos); it != env.end()) {
+          rlo = it->second.first;
+          rhi = it->second.second;
+        }
+        if ((off > 0 && rhi == kMax) || (off < 0 && rlo == kMin)) {
+          doms[dst].to_top();
+          continue;
+        }
+        edges.push_back({root[pos], dst, rlo, rhi, off});
+        continue;
+      }
+      const lia::expr_node& n = ex.node(rhs);
+      switch (static_cast<lia::ikind>(n.kind)) {
+        case lia::ikind::constant:
+          doms[dst].add_value(static_cast<value>(n.payload));
+          break;
+        case lia::ikind::array:  // x := (at a e) — a copy from a's unit
+          edges.push_back({root[n.data()[1]], dst, kMin, kMax, 0});
+          break;
+        case lia::ikind::mod: {  // x := e % k — [0, k), operand nonnegative
           const lia::iexpr div = n.data()[1];
           if (lia::expr_factory::is_const(div) && ex.value(div) > 0) {
+            doms[dst].add_interval(0, ex.value(div) - 1);
             via_mod[dst] = true;
-            thresholds[dst].insert(0);
-            thresholds[dst].insert(ex.value(div) - 1);
+          } else {
+            doms[dst].to_top();
           }
+          break;
         }
+        case lia::ikind::wrap_bool:  // a boolean read as 0/1
+          doms[dst].add_value(0);
+          doms[dst].add_value(1);
+          break;
+        default:  // other arithmetic: honestly unconstrained here; a
+                  // declared bound still clips it at the end
+          doms[dst].to_top();
+          break;
       }
-      jobs.push_back({&a, env, dst});
     }
   };
 
-  // returns the positions written in the subtree; env evolves along a seq
+  // walk every event's term tree with the live constraints: filters add
+  // them, an update reads its pre-state and then kills the constraints of
+  // what it wrote, alt branches fork the environment (a branch's guards
+  // never leak out; its writes invalidate for what follows)
+  std::vector<bool> visited(m.pool.size(), false);
   const std::function<std::set<std::uint32_t>(std::uint32_t, env_t&)> walk =
       [&](std::uint32_t ti, env_t& env) -> std::set<std::uint32_t> {
-    std::set<std::uint32_t> w;
-    if (jobs.size() >= kJobCap) {  // budget: the fallback covers the rest
-      budget_hit = true;
-      return w;
-    }
     const term& t = m.pool[ti];
+    std::set<std::uint32_t> w;
     switch (t.k) {
       case term::kind::filter:
         constrain(ex, t.guard, env);
         break;
       case term::kind::update:
         visited[ti] = true;
-        emit(t, env);
+        classify(t, env);
         for (const action& a : t.acts) {
           for (const std::uint32_t c : a.lhs.cells) {
             w.insert(c);
@@ -543,11 +457,11 @@ std::vector<domain_report> infer_domains(
         break;
       case term::kind::alt:
         for (const std::uint32_t k : t.kids) {
-          env_t branch = env;  // a branch's guards never leak out
+          env_t branch = env;
           const auto kw = walk(k, branch);
           w.insert(kw.begin(), kw.end());
         }
-        for (const std::uint32_t c : w) env.erase(c);  // its writes do
+        for (const std::uint32_t c : w) env.erase(c);
         break;
       case term::kind::abort:
         break;
@@ -558,49 +472,55 @@ std::vector<domain_report> infer_domains(
     env_t env;
     walk(e.root, env);
   }
-  // updates the walk missed (unreachable, or past the budget): guard-free
   for (std::size_t ti = 0; ti < m.pool.size(); ++ti) {
     if (m.pool[ti].k == term::kind::update && !visited[ti]) {
-      emit(m.pool[ti], env_t{});
+      const env_t none;
+      classify(m.pool[ti], none);
     }
   }
 
-  // guard constants become widening thresholds for the units they bound
-  for (const job& j : jobs) {
-    constexpr value kMin = std::numeric_limits<value>::min();
-    constexpr value kMax = std::numeric_limits<value>::max();
-    for (const auto& [pos, b] : j.env) {
-      if (b.first != kMin) thresholds[root[pos]].insert(b.first);
-      if (b.second != kMax) thresholds[root[pos]].insert(b.second);
-    }
-  }
-
-  // abstract-evaluation fixpoint; joins only grow, arithmetic may diverge,
-  // so past the round cap every still-growing target widens — first
-  // stepwise through its thresholds, then to top. Threshold jumps and
-  // tops are both finite per unit, so the trailing loop terminates.
-  std::vector<bool> widened(m.arity, false);
+  // fixpoint over the edges. Terminates without any cap: plain copies
+  // invent no values, and a shifted edge's output lives inside its own
+  // constant window shifted — every unit's hull stays within a fixed
+  // finite range determined by the direct facts and the edge windows.
   bool changed = true;
-  for (int round = 0; changed && round < kRounds; ++round) {
-    changed = false;
-    for (const job& j : jobs) {
-      const dom v = evaler{ex, doms, root, j.env}.eval(j.act->rhs);
-      if (v.k != dom::kind::bot) changed |= doms[j.dst].join(v);
-    }
-  }
   while (changed) {
     changed = false;
-    std::set<std::uint32_t> grew;
-    for (const job& j : jobs) {
-      const dom v = evaler{ex, doms, root, j.env}.eval(j.act->rhs);
-      if (v.k != dom::kind::bot && doms[j.dst].join(v)) {
-        changed = true;
-        grew.insert(j.dst);
-      }
+    for (const edge& e : edges) {
+      const dom v = restrict_shift(doms[e.src], e.rlo, e.rhi, e.shift);
+      if (v.k != dom::kind::bot) changed |= doms[e.dst].join(v);
     }
-    for (const std::uint32_t d : grew) {
-      widened[d] = true;
-      if (!widen_to_threshold(doms[d], thresholds[d])) doms[d].to_top();
+  }
+
+  // declared bounds clip: a write outside a declared [lo, hi) is a run
+  // error, never a state, so stored values cannot leave it. A merged
+  // unit clips to the union of its members' declarations, and only when
+  // every member declares.
+  if (!declared.empty()) {
+    std::vector<std::vector<std::uint32_t>> members_of(m.arity);
+    for (std::uint32_t p = 0; p < m.arity; ++p) {
+      members_of[root[p]].push_back(p);
+    }
+    for (std::uint32_t r = 0; r < m.arity; ++r) {
+      if (members_of[r].empty()) continue;
+      value clo = kMax;
+      value chi = kMin;
+      bool all = true;
+      for (const std::uint32_t p : members_of[r]) {
+        if (!declared[p]) {
+          all = false;
+          break;
+        }
+        clo = std::min(clo, declared[p]->first);
+        chi = std::max(chi, static_cast<value>(declared[p]->second - 1));
+      }
+      if (!all || clo > chi) continue;
+      if (doms[r].k == dom::kind::top) {
+        doms[r] = dom{};
+        doms[r].add_interval(clo, chi);
+      } else {
+        doms[r] = restrict_shift(doms[r], clo, chi, 0);
+      }
     }
   }
 
@@ -614,8 +534,6 @@ std::vector<domain_report> infer_domains(
     rep.positions = std::move(members[r]);
     rep.assigned = assigned[r];
     rep.via_mod = via_mod[r];
-    rep.widened = widened[r];
-    rep.walk_budget_hit = budget_hit;
     const dom& d = doms[r];
     switch (d.k) {
       case dom::kind::set:

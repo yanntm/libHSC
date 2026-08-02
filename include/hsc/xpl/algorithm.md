@@ -133,56 +133,52 @@ Per unit, an abstract value in the lattice
 
     bot  ⊑  set(V)  (|V| ≤ cap)  ⊑  interval[lo,hi]  ⊑  top
 
-fed by the assignments that target it. Assignments are gathered by
-walking every event's term tree. Along a seq path, filter guards
-contribute **var–constant constraints** (conjunction atoms `x ⋈ c`,
-either operand order); a constraint dies when a later update writes
-its position. An update's right-hand sides read the update's
-pre-state, so all actions of one update share one environment. Alt
-branches walk under copies of the inherited environment (a branch's
-guards never leak out; its writes invalidate for what follows). A job
-budget bounds the walk; any update the walk misses is processed
-constraint-free — the fallback is sound, just blunter.
+fed by the assignments that target it, each classified **once**,
+structurally — no expression evaluation, no widening. The
+classification runs as a walk of every event's term tree carrying the
+live **guard constraints**: filters contribute var–constant atoms
+(`x ⋈ c`, either operand order, conjunctions only); an update reads
+its pre-state and then kills the constraints of the positions it
+wrote; alt branches — the `if` inside an event — fork the environment
+(a branch's guards never leak out; its writes invalidate for what
+follows). An update the walk does not reach classifies
+constraint-free.
 
-Each gathered assignment evaluates abstractly, to a fixpoint:
+The rules, per assignment occurrence:
 
 * `x := c` — the constant joins the set;
-* `x := y`, `x := (at a e)` — the source unit's domain joins,
-  **restricted** by the live constraints on `y` (exact on sets, so
-  holes survive; a clamp on intervals; an empty restriction
-  contributes nothing);
-* arithmetic — `+ − ×`, `/` and `%` by a positive constant, a boolean
-  rhs as `{0, 1}` — evaluates over the operands' current domains under
-  the live constraints: exact enumeration when the operand combination
-  count is small, interval corner arithmetic else; overflow is top;
-* `x := e % k` keeps the `mod` tag: `[0, k)` assumes the operand
-  nonnegative, as an index is, and the tag keeps the assumption
-  visible;
+* `x := v [± consts]`, `x := (at a e)` — an **edge** from the source
+  unit, carrying the live restriction on `v` and the constant shift.
+  A genuine shift needs the guard to bound its advancing side
+  (`x := x + 1` under `(< x N)`); unguarded it diverges, and the
+  honest answer is top;
+* `x := e % k` (k a positive constant) — the interval `[0, k)`,
+  tagged `mod` (assumes the operand nonnegative, as an index is; the
+  tag keeps the assumption visible);
+* a boolean-valued rhs — the set `{0, 1}`;
 * `havoc x lo hi` — `[lo, hi)` as a set when small, interval else;
-* anything else (`pow`, bit ops, an unanalyzable operand) — top.
+* anything else — top: multi-variable arithmetic is *honestly*
+  unconstrained here; this pass detects enumerated state and
+  guard-bounded motion, not general arithmetic.
 
-Joins only grow, but arithmetic can genuinely diverge — a counter
-`x := x + 1` with no bounding guard climbs forever — so the fixpoint
-carries a round cap, and past it every still-growing target
-**widens**: first stepwise through its thresholds — the guard
-constants and mod bounds collected for its unit — then, thresholds
-exhausted, to top: honestly unbounded. The guarded counter,
-`x := x + 1` under `(< x N)`, lands on `[seed, N]` whatever `N` —
-guards are what bound orbits, and the analysis now reads them; the
-round cap is a performance knob, not a precision cliff.
+Then one fixpoint over the edges propagates: each edge joins its
+source's domain restricted to the edge's window and shifted (exact on
+sets — holes survive; a clamp on intervals). It terminates with no
+cap: plain copies invent no values, and a shifted edge's output lives
+inside its own constant window shifted — every hull stays within a
+fixed range determined by the direct facts and the edge windows.
 
-Every boundary is reported, never silent: a set that outgrows its cap
-is visible as the kind change to interval; a unit the round cap
-widened carries a `widened` flag (top-by-widening is distinguishable
-from top-by-unanalyzable); a gather walk that hits its job budget
-flags every report (`walk_budget_hit` — some assignments ran
-constraint-free).
+Last, the **declared-bound clip**: a write outside a declared
+`[lo, hi)` is a run error, never a state, so stored values cannot
+leave it — every unit whose members all declare is clipped to the
+union of their declarations. A declared byte stays a byte no matter
+what arithmetic feeds it.
 
 Seeds contribute their values (a never-assigned unit ends as `frozen`:
 its initial values are its whole life). No refinement by reachability —
 guards restrict what an assignment can *read*, they never shrink a
 unit's own domain; this is decoration, not verification. A set that
-outgrows the cap degrades to its interval hull.
+outgrows the cap degrades to its interval hull, visible as the kind.
 
 What the data answers: the proportion of units statically bounded, the
 size distribution of the small domains, and the **holes** — a set kept

@@ -10,7 +10,9 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <span>
+#include <utility>
 #include <vector>
 
 #include "hsc/xpl/interpret/model.hh"
@@ -29,11 +31,6 @@ struct domain_report {
   bool assigned = false;  ///< false: frozen — its seeds are its whole life
   bool via_mod = false;   ///< an interval came from `% k` (operand assumed
                           ///< nonnegative, as an index is)
-  bool widened = false;   ///< the fixpoint's round cap fired on this unit:
-                          ///< widened to a guard/mod threshold, or to top
-  bool walk_budget_hit = false;  ///< the gather budget fired (same value on
-                                 ///< every report): some assignments were
-                                 ///< processed constraint-free
   std::vector<value> values;  ///< kind set: ascending
   value lo = 0, hi = 0;       ///< kind interval: inclusive hull
 };
@@ -41,9 +38,14 @@ struct domain_report {
 /// Infer per-unit domains of \p m. Units are scalar positions merged with
 /// \p groups (the declared arrays) and with every multi-cell target or
 /// array node — one domain per array, never refined per cell. \p seeds
-/// contribute their values (the initial states).
+/// contribute their values (the initial states). \p declared carries each
+/// position's declared `[lo, hi)` bound where one exists (empty span: no
+/// declarations): stored values cannot leave a declared bound (writes
+/// outside it are run errors), so every unit whose members all declare is
+/// clipped to the union of their declarations.
 [[nodiscard]] std::vector<domain_report> infer_domains(
     const model& m, std::span<const word> seeds,
-    std::span<const std::vector<std::uint32_t>> groups);
+    std::span<const std::vector<std::uint32_t>> groups,
+    std::span<const std::optional<std::pair<value, value>>> declared = {});
 
 }  // namespace hsc::xpl
