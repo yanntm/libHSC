@@ -121,9 +121,18 @@ def event_multiplier(
                 sup = support(atom, units)
                 if len(sup) <= 1:
                     continue
-                # enumerate all but the widest unit of the atom
-                widest = max(sup, key=lambda u: sizes.get(u) or 1 << 30)
-                enumerate_units |= sup - {widest}
+                # one unit per atom may stay symbolic: an unbounded unit
+                # must take that slot if present; otherwise, to keep the
+                # union of enumerated units small, exempt a unit not yet
+                # enumerated, the widest among those
+                unbounded = {u for u in sup if sizes.get(u) is None}
+                if unbounded:
+                    exempt = next(iter(unbounded))
+                else:
+                    fresh = sup - enumerate_units
+                    pool = fresh if fresh else sup
+                    exempt = max(pool, key=lambda u: sizes.get(u) or 0)
+                enumerate_units |= sup - {exempt}
         elif clause[0] == "do":
             for act in clause[1:]:
                 if not isinstance(act, list) or len(act) < 3:
