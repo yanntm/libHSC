@@ -10,6 +10,7 @@
 #include <optional>
 #include <set>
 #include <sstream>
+#include <tuple>
 
 #include "hsc/surface/spec.hh"
 
@@ -256,47 +257,90 @@ rewrite_result elide_constants(std::vector<datum> forms) {
 }
 
 rewrite_result declare_domains(std::vector<datum> forms) {
-  // eligible: bare scalar leaves with a finite inferred domain
-  std::map<std::string, std::pair<std::int32_t, std::int32_t>> bounds;
-  std::vector<std::string> defied;
-  for (const unit_domain& u : analyze_domains(forms)) {
-    if (u.declared || u.is_array) continue;
-    const xpl::domain_report& r = u.report;
-    if (r.k == xpl::domain_report::kind::set && !r.values.empty()) {
-      bounds[u.name] = {r.values.front(), r.values.back() + 1};
-    } else if (r.k == xpl::domain_report::kind::interval) {
-      bounds[u.name] = {r.lo, r.hi + 1};
-    } else {
-      defied.push_back(u.name);
+  // bare scalar leaves gain their inferred domain as a declaration;
+  // declared ones tighten to the inferred hull. Never widened, and
+  // tightening is sound: the inference over-approximates every
+  // assignable value, so no firing write becomes an out-of-bounds
+  // error. Holes inside the hull are not this pass's business.
+  std::map<std::string, std::vector<std::string>> array_cells;
+  for (const datum& f : forms) {
+    if (!f.is_list() || f.head() != "array" || f.items().size() < 3) continue;
+    std::vector<std::string>& cells = array_cells[f.items()[1].text()];
+    for (std::size_t i = 2; i < f.items().size(); ++i) {
+      cells.push_back(f.items()[i].text());
     }
   }
-  if (bounds.empty()) {
+  std::map<std::string, std::pair<std::int32_t, std::int32_t>> fresh;
+  std::map<std::string,
+           std::tuple<std::int32_t, std::int32_t, std::int32_t, std::int32_t>>
+      tighter;  // name → old lo, old hi, new lo, new hi
+  std::vector<std::string> defied;
+  for (const unit_domain& u : analyze_domains(forms)) {
+    const xpl::domain_report& r = u.report;
+    std::int32_t lo = 0;
+    std::int32_t hi = 0;  // exclusive
+    bool finite = true;
+    if (r.k == xpl::domain_report::kind::set && !r.values.empty()) {
+      lo = r.values.front();
+      hi = r.values.back() + 1;
+    } else if (r.k == xpl::domain_report::kind::interval) {
+      lo = r.lo;
+      hi = r.hi + 1;
+    } else {
+      finite = false;
+    }
+    // an array is one unit: its hull redeclares every cell leaf
+    const std::vector<std::string> one{u.name};
+    const std::vector<std::string>& targets =
+        u.is_array ? array_cells[u.name] : one;
+    for (const std::string& t : targets) {
+      if (!u.declared) {
+        if (finite) fresh[t] = {lo, hi};
+        else defied.push_back(t);
+      } else if (finite && (lo > u.decl_lo || hi < u.decl_hi)) {
+        tighter[t] = {u.decl_lo, u.decl_hi, lo, hi};
+      }
+    }
+  }
+  if (fresh.empty() && tighter.empty()) {
     return {std::move(forms), false,
-            defied.empty() ? "every leaf already bounded"
+            defied.empty() ? "every leaf domain already tight"
                            : "no domain could be declared"};
   }
 
-  std::size_t done = 0;
-  for (datum& f : forms) {
-    if (!f.is_list() || f.items().size() != 2 || f.head() != "leaf") continue;
-    const auto it = bounds.find(f.items()[1].text());
-    if (it == bounds.end()) continue;
+  const auto redeclare = [](datum& f, std::int32_t lo, std::int32_t hi) {
     f = datum::list({f.items()[0], f.items()[1],
-                     datum::atom(std::to_string(it->second.first), f.line()),
-                     datum::atom(std::to_string(it->second.second), f.line())},
+                     datum::atom(std::to_string(lo), f.line()),
+                     datum::atom(std::to_string(hi), f.line())},
                     f.line());
-    ++done;
+  };
+  for (datum& f : forms) {
+    if (!f.is_list() || f.head() != "leaf" || f.items().size() < 2) continue;
+    const std::string& name = f.items()[1].text();
+    if (f.items().size() == 2) {
+      if (const auto it = fresh.find(name); it != fresh.end()) {
+        redeclare(f, it->second.first, it->second.second);
+      }
+    } else if (f.items().size() == 4) {
+      if (const auto it = tighter.find(name); it != tighter.end()) {
+        redeclare(f, std::get<2>(it->second), std::get<3>(it->second));
+      }
+    }
   }
 
   std::ostringstream trace;
-  trace << done << " leaf domain" << (done == 1 ? "" : "s") << " declared";
-  for (const auto& [name, b] : bounds) {
+  trace << fresh.size() << " declared, " << tighter.size() << " tightened";
+  for (const auto& [name, b] : fresh) {
     trace << "\n  " << name << ": [" << b.first << "," << b.second << ")";
+  }
+  for (const auto& [name, t] : tighter) {
+    trace << "\n  " << name << ": [" << std::get<0>(t) << "," << std::get<1>(t)
+          << ") -> [" << std::get<2>(t) << "," << std::get<3>(t) << ")";
   }
   for (const std::string& n : defied) {
     trace << "\n  note: " << n << " defies analysis; left bare";
   }
-  return {std::move(forms), done > 0, trace.str()};
+  return {std::move(forms), true, trace.str()};
 }
 
 std::pair<std::vector<datum>, std::vector<trace_entry>> rewrite(

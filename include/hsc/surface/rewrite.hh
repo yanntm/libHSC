@@ -78,12 +78,15 @@ rewrite(std::vector<datum> forms, std::span<const pass> passes);
 
 /// \brief `(declare-domains)`: every bare scalar `(leaf NAME)` whose
 /// inferred domain is finite (a value set, or an interval hull) gets the
-/// inference written into its declaration — `(leaf NAME LO HI)`.
-/// Declared bounds are never touched; a leaf whose domain defies
+/// inference written into its declaration — `(leaf NAME LO HI)` — and
+/// every declared leaf whose inferred hull is strictly tighter is
+/// re-declared to the hull. Never widened; a leaf whose domain defies
 /// analysis stays bare, with a trace note. Neutral for any run (the
-/// inferred domain over-approximates every assignable value); what it
-/// buys is the finite instance: engines that require declared bounds see
-/// them.
+/// inference over-approximates every assignable value, so no firing
+/// write becomes an out-of-bounds error); what it buys is the finite
+/// instance at its true size: engines whose costs scale with the
+/// declared domain — leaf state counts, letter induction — stop paying
+/// for values a leaf never holds.
 [[nodiscard]] rewrite_result declare_domains(std::vector<datum> forms);
 
 /// \brief `(decompose-louvain)`: a hierarchical shape from the spec's

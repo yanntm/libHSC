@@ -310,9 +310,11 @@ migrate to their true affinities). `(flatten)` erases hierarchy;
 `(simplify-arrays)` dissolves arrays that never see a dynamic index, so
 supports stop over-approximating. `(declare-domains)` writes the
 inferred domain (§8b's machinery) of every bare scalar leaf into its
-declaration — `(leaf NAME LO HI)` — so engines that require declared
-bounds (`cegar`, §8d) accept specs whose front end left leaves open;
-declared bounds are never touched. Every pass reports; identity
+declaration — `(leaf NAME LO HI)` — and tightens every declared leaf
+to its inferred hull (never widens): engines that require declared
+bounds (`cegar`, §8d) accept specs whose front end left leaves open,
+and engines whose costs scale with the domain stop paying for values
+a leaf never holds. Every pass reports; identity
 included.
 
 `hsc --rewrite model.hsc` runs the chain on any file and prints the
