@@ -110,13 +110,24 @@ class runner {
     if (kw == "cegar") return do_cegar(f);
     if (kw == "certificate") return do_certificate(f);
     if (kw == "certcheck") return do_certcheck(f);
-    if (kw == "print-spec") {  // the current spec, post-chain, runnable
+    if (kw == "print-spec") {
+      // `(print-spec [FILE])`: the current spec, post-chain, runnable;
+      // to FILE (relative to the working directory) instead of stdout
+      // when named.
+      std::ofstream sink;
+      if (f.items().size() == 2 && f.items()[1].is_atom()) {
+        sink.open(f.items()[1].text(), std::ios::binary);
+        if (!sink) fail(f, "print-spec: cannot open " + f.items()[1].text());
+      } else if (f.items().size() != 1) {
+        fail(f, "print-spec takes at most one file name");
+      }
+      std::ostream& dst = sink.is_open() ? sink : out_;
       for (const datum& g : *forms_) {
         if (g.is_list() && !g.items().empty() && g.head() == "print-spec") {
           continue;  // not part of the spec it prints
         }
-        write(out_, g);
-        out_ << '\n';
+        write(dst, g);
+        dst << '\n';
       }
       return;
     }
@@ -485,6 +496,52 @@ int run_file(const std::string& path, std::ostream& out, std::ostream& err,
     // Not one of the language's own error kinds: an internal defect.
     // Loud and named, never a core dump.
     err << path << ": internal error: " << e.what() << '\n';
+    return 3;
+  }
+}
+
+int run_session(const std::vector<session_arg>& args, std::ostream& out,
+                std::ostream& err,
+                const std::map<std::string, long long>& params) {
+  // The root session: each file argument as an `(input PATH)` form, each
+  // inline argument as its parsed forms, in invocation order. From there
+  // the pipeline is `run_file`'s: splice, expand, translate.
+  std::vector<datum> root;
+  std::size_t nth = 0;
+  for (const session_arg& a : args) {
+    if (a.is_file) {
+      root.push_back(
+          datum::list({datum::atom("input", 0), datum::atom(a.text, 0)}, 0));
+      continue;
+    }
+    ++nth;
+    try {
+      for (datum& f : parse(a.text)) root.push_back(std::move(f));
+    } catch (const parse_error& e) {
+      err << "-e #" << nth << ": parse error: " << e.what() << '\n';
+      return 2;
+    }
+  }
+  const std::string label =
+      args.size() == 1 && args.front().is_file ? args.front().text : "session";
+  try {
+    std::vector<std::filesystem::path> stack;
+    const std::vector<datum> forms =
+        expand(splice_inputs(std::move(root),
+                             std::filesystem::current_path(), stack),
+               /*families=*/true, params);
+    return translate(forms, out) == 0 ? 0 : 1;
+  } catch (const parse_error& e) {
+    err << label << ": parse error: " << e.what() << '\n';
+    return 2;
+  } catch (const expand_error& e) {
+    err << label << ": expand error: " << e.what() << '\n';
+    return 2;
+  } catch (const translate_error& e) {
+    err << label << ": " << e.what() << '\n';
+    return 2;
+  } catch (const std::exception& e) {
+    err << label << ": internal error: " << e.what() << '\n';
     return 3;
   }
 }

@@ -13,6 +13,7 @@
 #include <iosfwd>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "hsc/surface/sexpr.hh"
 
@@ -43,5 +44,21 @@ int translate(const std::vector<datum>& forms, std::ostream& out);
 /// translate error, or failed `expect`.
 int run_file(const std::string& path, std::ostream& out, std::ostream& err,
              const std::map<std::string, long long>& params = {});
+
+/// \brief One command-line argument of a session: a `.hsc` file, or inline
+/// `.hsc` text (`-e`). Order is invocation order.
+struct session_arg {
+  bool is_file;      ///< file path (spliced as `(input PATH)`) vs inline text
+  std::string text;  ///< the path, or the inline forms
+};
+
+/// \brief Run the concatenation of \p args as one session, in order. The
+/// invocation grammar is sugar over `input`: a file argument behaves
+/// exactly as `(input PATH)` at that position — relative paths resolve
+/// against the current directory — and an inline argument as its parsed
+/// forms. \return process exit code as `run_file`.
+int run_session(const std::vector<session_arg>& args, std::ostream& out,
+                std::ostream& err,
+                const std::map<std::string, long long>& params = {});
 
 }  // namespace hsc::surface
