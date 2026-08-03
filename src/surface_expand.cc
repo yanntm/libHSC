@@ -726,7 +726,7 @@ class expander {
   /// `(blocked [spine|rec] G BINDER CELL+)`: the grain sugar over a
   /// component family — the libITS scalar-set grouping strategies as shape
   /// constructors, lowered to plain sorts (the translator is untouched,
-  /// `--expand` shows the grouping).
+  /// `(print-spec)` shows the grouping).
   ///
   /// Default and `spine` (DEPTH1): one grouping level — consecutive blocks
   /// of G components, balanced over balanced blocks (resp. spine of spine

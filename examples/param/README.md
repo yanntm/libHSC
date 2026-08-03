@@ -1,7 +1,7 @@
 # `examples/param/` — parametric surface samples
 
 Each file is one template over a size `param`, self-checking via `expect`;
-`hsc --expand FILE` prints the flat `.hsc` it denotes. The parametric
+`hsc FILE -e '(print-spec)'` prints the flat `.hsc` it denotes. The parametric
 forms are documented in `doc/hsc_manual.md` (user view) and
 `include/hsc/surface/algorithm.md` (compile map).
 

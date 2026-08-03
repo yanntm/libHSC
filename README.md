@@ -29,16 +29,20 @@ test — exit code 0 means all expectations held.
 
 ```sh
 ./build/tools/hsc examples/models/ring4.hsc
-./build/tools/hsc -DN=10 examples/param/philo.hsc   # parametric, N overridden
-./build/tools/hsc --expand examples/param/hanoi.hsc # print the flat form
-./build/tools/hsc --explicit examples/models/ring4.hsc  # explicit engine
+./build/tools/hsc -DN=10 examples/param/philo.hsc     # parametric, N overridden
+./build/tools/hsc examples/param/hanoi.hsc -e '(print-spec)'  # the flat form
+./build/tools/hsc model.hsc driver.hsc                # one session, spliced in order
 ```
 
+Positional files and `-e` forms splice in command-line order into one
+session — each file exactly as `(input FILE)` would; the language, not
+the tool, says what runs (see `doc/hsc_manual.md`).
+
 The **explicit engine** (`include/hsc/xpl/`) runs the same models by
-concrete-state enumeration — `--explicit` on any file, or `(xreach …)`
-in-file — an independent oracle and debugging companion to the symbolic
-engine: exact counts on small instances, runnable witnesses, loud precise
-runtime errors.
+concrete-state enumeration — `(xreach …)` beside a `(reach …)` makes any
+file its own differential — an independent oracle and debugging
+companion to the symbolic engine: exact counts on small instances,
+runnable witnesses, loud precise runtime errors.
 
 **Verify with a proof.** `(cegar NAME QATOM+)` runs certified component
 abstraction on the model: each leaf carries a learned, certified

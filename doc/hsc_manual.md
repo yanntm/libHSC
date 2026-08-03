@@ -6,9 +6,15 @@ state space. The `hsc` CLI runs one file end to end:
 
 ```
 ./build/tools/hsc model.hsc              # run: declarations, events, queries
-./build/tools/hsc --expand model.hsc     # print the flat form of a parametric model
 ./build/tools/hsc -DN=20 model.hsc       # override a (param N …) from the command line
+./build/tools/hsc model.hsc driver.hsc   # one session: the files splice in order
+./build/tools/hsc model.hsc -e '(xdomains)'   # inline forms splice the same way
 ```
+
+The invocation grammar is sugar over the language's own `input` (§3):
+each positional file behaves exactly as `(input FILE)` at that position,
+each `-e` argument as its parsed forms — one session, in command-line
+order. Everything beyond parameter binding is said in the language.
 
 Exit code 0 means every `(expect …)` in the file held; nonzero means an
 error or a failed expectation — **a model file is a self-checking test**.
@@ -174,8 +180,9 @@ lazy `&&`/`||` a C modeller expects.
 ## 7. The parametric layer
 
 Before translation, a rewrite pass eliminates the parametric forms — the
-translator never sees them. `--expand` prints its output: flat, diffable,
-runnable `.hsc`.
+translator never sees them. `(print-spec)` shows what the translator
+will see: flat, diffable, runnable `.hsc` (families excepted — an event
+family survives expansion as a `(family …)` form, itself runnable).
 
 ```lisp
 (param N 5)                  ; a named compile-time integer; -DN=… overrides
@@ -247,7 +254,7 @@ certificate; `unfold` always enumerates.
 (flatten)                    ; directive: the flat spine of the frontier, §8c
 (simplify-arrays)            ; directive: dissolve statically-accessed arrays, §8c
 (decompose-louvain)          ; directive: hierarchical shape by clustering, §8c
-(print-spec)                 ; print the current spec, post-chain, as .hsc
+(print-spec [FILE])          ; the current spec, post-chain, as .hsc; to FILE or stdout
 (bill)                       ; meters: nodes, terms, caches, time
 ```
 
@@ -286,10 +293,17 @@ reported with the event, the cause, and the offending state as a runnable
 three-valued as in the symbolic engine: `(and (> i 0) (== (at tab i) …))`
 is false at `i = 0`, not an error.
 
-`hsc --explicit model.hsc` runs an unmodified file on the explicit engine:
-each `(reach NAME …)` becomes `(xreach NAME …)`, and the file's own
-`count`/`expect` lines then read the explicit result — output lines match
-the symbolic run, so a corpus differential is a diff of outputs.
+The two engines share one session, so a differential is a spec, not a
+diff of outputs: run both against the same model, pin both to the same
+oracle, and the file checks itself.
+
+```lisp
+(input peterson.1.hsc)       ; the model, untouched
+(reach R saturate)           ; symbolic
+(xreach X)                   ; explicit
+(expect R 12498)             ; one oracle,
+(expect X 12498)             ; two engines
+```
 
 ## 8c. The rewrite chain
 
@@ -317,10 +331,12 @@ and engines whose costs scale with the domain stop paying for values
 a leaf never holds. Every pass reports; identity
 included.
 
-`hsc --rewrite model.hsc` runs the chain on any file and prints the
-rewritten spec as runnable `.hsc` text (traces on stderr);
-`hsc --domains model.hsc` prints the inferred domains without running
-anything.
+To see a chain's work on any model without editing it, splice the
+directives at the command line: `hsc model.hsc -e '(declare-domains)
+(print-spec)'` prints the rewritten spec as runnable `.hsc` (traces on
+stderr), and `hsc model.hsc -e '(xdomains)'` prints the inferred
+domains. Both compose with a driver file instead of `-e` when the
+experiment deserves a name.
 
 ## 8d. Certified abstraction: `cegar`, `certificate`, `certcheck`
 

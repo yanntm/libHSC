@@ -46,7 +46,7 @@ class expand_error : public std::runtime_error {
 /// range, one binder) is NOT enumerated: it is emitted as a
 /// `(family NAME N CLAUSE…)` form, accesses rewritten to `(at@ ARRAY δ)`,
 /// for the translator to build by recursion instead of by instance.
-/// `families = false` (the `--expand` dump) enumerates everything.
+/// `families = false` enumerates everything.
 ///
 /// \p overrides substitutes a `param`'s declared value by name (the
 /// `-DN=…` command line): the file's expression is ignored for an
