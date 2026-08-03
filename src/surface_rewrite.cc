@@ -354,10 +354,6 @@ std::pair<std::vector<datum>, std::vector<trace_entry>> rewrite(
   return {std::move(forms), std::move(log)};
 }
 
-std::vector<pass> default_chain() {
-  return {{"simplify-constants", elide_constants}};
-}
-
 std::vector<pass_def> pass_registry() {
   return {{"simplify-constants",
            [](std::vector<datum> f, const datum&) {

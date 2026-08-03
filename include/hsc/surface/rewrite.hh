@@ -106,8 +106,4 @@ struct pass_def {
 /// Every pass a directive can invoke, by name.
 [[nodiscard]] std::vector<pass_def> pass_registry();
 
-/// The default chain, in order — the passes `--rewrite` runs unasked.
-/// Opt-in encodings (hotbit) are not in it.
-[[nodiscard]] std::vector<pass> default_chain();
-
 }  // namespace hsc::surface
