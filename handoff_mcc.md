@@ -77,7 +77,42 @@ Also: never overwrite `run_oar.sh` while its submission loop runs (it
 truncated this campaign's submission; nothing was lost, `docs/CLUSTER.md`
 now says so).
 
-## Next actions after E1
+## Counting record: done, and what is next
+
+The mechanism is in place end to end (design: `HSC_PLAN.md` sections 10 to
+13; results: `libHSC_in_MCC.md`).
+
+* **PNET** carries optional named blocks (8-byte name, uint32 length, KERS
+  payload), read only when asked for, unknown names skipped, absence meaning
+  "not available". No version or flag: extensibility is by new names.
+* **ITS-Tools** carries them on `SparsePetriNet` as an `EnumMap` keyed by the
+  `NetBlock` enum (null until used, O(1) presence), through
+  `StructuralReduction` and back via `readFrom`; `dropTransitions` drops the
+  record with a logged reason, since a removed transition's arcs cannot be
+  attributed to a survivor. The unfolder attaches `TMULT` under
+  `ReductionType.STATESPACE`: its presence is the switch.
+* **`hsc-pn`** weights its arc count by `TMULT` and reports TRANSITIONS only
+  with evidence that the net's arcs are those of the net it came from
+  (always from PNML, from PNET only with the block). `tests/pnet_block.py`
+  writes a block; `pn_samples` checks that doubled weights double the count.
+* **`HscRunner.runStateSpace`** answers the four values from ITS-Tools on the
+  net before the transition-removing rules: BART-COL-002 gives 17424, 1, 274
+  and 53328, all matching the oracle, in 120 s.
+
+Next, in order of value:
+
+1. **Ghost contributors** (`GHOSTPT`, `GMULT`): keep a dropped transition's
+   pre-arc vector and weight so the arc count survives the reductions, which
+   would let the fast reduced run answer all four. The rules to audit and how
+   are in `HSC_PLAN.md` section 11.
+2. **`PCOEF` and weighted counting**: a place standing for K places of a free
+   SCC contributes C(m+K-1, K-1); the counting fold takes a per-leaf weight
+   (about 30 lines on `cardinal_as`), and then reduced nets can answer STATES
+   exactly. This is the step toward the polyhedra counting of Berthomieu,
+   restricted to fibres that factorise.
+3. **NUPN as blocks**: a places-by-units matrix plus a parent column, so the
+   PNET path stops losing the hierarchy and reclustering.
+4. The campaign work below.
 
 ## Next actions after E1
 
