@@ -19,7 +19,11 @@ not the domain, is what the calculus sees: `core/support.hh` is that window.
   split from outside. Small and closed on purpose: it covers a Petri
   transition (`m >= w` then `m -= w`) and a Hanoi move (`pos == a` then
   `pos := b`), which is the whole non-crossing fragment. Only pushforwards
-  appear; the theory contract exports no preimage and none is wanted.
+  appear; the theory contract exports no preimage. The theory does offer
+  `invert_local` (`core/algorithm.md` §9): the converse of a term restricted
+  to a finite domain, spelled in the same language plus the one action a
+  converse needs and a model does not — `choose(S)`, `x := any value of a
+  set`, of which the range havoc is the interval case.
 
 ## Pending
 

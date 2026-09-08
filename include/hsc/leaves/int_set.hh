@@ -51,6 +51,8 @@ enum class int_action : std::uint8_t {
   havoc,   ///< x := any value of [arg, (int32)b): the ALT of the range's
            ///< assignments as one term — the pushforward image is the
            ///< whole interval
+  choose,  ///< x := any value of the set `b` (an int_set code): the general
+           ///< form of havoc, what the converse of an assignment needs
 };
 
 /// How a term is built.
@@ -74,8 +76,9 @@ enum class int_guard : std::uint8_t {
 /// transition (`m >= w` then `m -= w`) and a Hanoi move (`pos == a` then
 /// `pos := b`). A guard is symbolic (an interned expression, evaluated on
 /// the values present — no domain is materialized) or an extensional set
-/// where the model genuinely enumerates. Only pushforwards appear: the theory contract
-/// exports no preimage and none is wanted.
+/// where the model genuinely enumerates. Only pushforwards appear; the
+/// converse of a term is spelled in this same language (`invert_local`),
+/// with `choose` as the one action a converse needs that a model does not.
 struct int_term {
   int_shape shape = int_shape::primitive;
   int_action action = int_action::keep;
@@ -145,7 +148,16 @@ class int_set_theory final : public core::support_algebra {
   /// `x := any value of [lo, hi)`, guarded by \p g: the ALT of the range's
   /// assignments, carried as one term. An empty range is the zero term.
   core::code havoc_if(lia::bexpr g, std::int32_t lo, std::int32_t hi);
+  /// `x := any value of \p set`, guarded by the extensional \p guard
+  /// (`none` for no guard). An empty \p set is the zero term.
+  core::code choose(core::code guard, core::code set);
   ///@}
+
+  /// \brief The converse of \p term restricted to \p domain
+  /// (`core/algorithm.md` §9): guards intersect the domain and become
+  /// extensional; `assign`, `havoc`, `apply` turn into `choose`; `shift`
+  /// reverses; `sum` and `lfp` pointwise.
+  core::code invert_local(core::code term, core::code domain) override;
 
   /// The elements of \p set on which \p g evaluates to true (⊥ excludes).
   core::code filter(core::code set, lia::bexpr g);

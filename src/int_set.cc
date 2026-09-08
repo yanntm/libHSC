@@ -152,6 +152,86 @@ core::code int_set_theory::havoc_if(lia::bexpr g, std::int32_t lo,
                              static_cast<core::code>(hi)});
 }
 
+core::code int_set_theory::choose(core::code guard, core::code set) {
+  if (set == core::none) return keep_if(lia::bfalse);  // nothing to pick: 0
+  const int_guard g = guard == core::none ? int_guard::none : int_guard::set;
+  return terms_.get(
+      int_term{int_shape::primitive, int_action::choose, g, 0, guard, set});
+}
+
+core::code int_set_theory::invert_local(core::code term, core::code domain) {
+  if (term == 0) return 0;  // id is self-converse
+  const core::code zero = keep_if(lia::bfalse);
+  if (domain == core::none) return zero;
+  const int_term t = terms_[term];  // copy: interning below may grow terms_
+  if (t.shape == int_shape::sum) {
+    return term_sum(invert_local(t.a, domain), invert_local(t.b, domain));
+  }
+  if (t.shape == int_shape::lfp) return term_lfp(invert_local(t.a, domain));
+
+  // The guard, as the extensional set of domain values passing it.
+  core::code passing = domain;
+  switch (t.gkind) {
+    case int_guard::none: break;
+    case int_guard::set: passing = meet(domain, t.a); break;
+    case int_guard::symbolic: passing = filter(domain, t.a); break;
+  }
+  if (passing == core::none) return zero;
+
+  switch (t.action) {
+    case int_action::keep:
+      return keep(passing);
+    case int_action::assign:
+      // {(v, c) : g(v)} reversed: from c, any passing v
+      return choose(singleton(t.arg), passing);
+    case int_action::shift: {
+      // {(v, v + delta) : g(v)} reversed: from v + delta back to v; the
+      // guard is the passing set shifted.
+      const auto from = elements(passing);
+      std::vector<std::int32_t> out;
+      out.reserve(from.size());
+      for (const std::int32_t v : from) {
+        std::int32_t nv;
+        if (__builtin_add_overflow(v, t.arg, &nv)) {
+          throw overflow_error("int32 overflow inverting a shift by " +
+                               std::to_string(t.arg));
+        }
+        out.push_back(nv);
+      }
+      return shift(of_sorted(out), -t.arg);
+    }
+    case int_action::xform: {
+      // {(v, e(v)) : g(v)} reversed: one choose per image value.
+      std::map<std::int32_t, std::vector<std::int32_t>> back;
+      for (const std::int32_t v : elements(passing)) {
+        const std::int32_t env[] = {v};
+        bool undef = false;
+        std::int64_t r = exprs_.eval_int(t.b, env, undef);
+        if (undef) continue;
+        if (t.arg != 0) {
+          r = ((r % t.arg) + t.arg) % t.arg;
+        } else if (r < INT32_MIN || r > INT32_MAX) {
+          throw overflow_error("int32 overflow inverting a transform");
+        }
+        back[static_cast<std::int32_t>(r)].push_back(v);
+      }
+      core::code acc = zero;
+      for (auto& [u, vs] : back) {
+        const core::code c = choose(singleton(u), of(vs));
+        acc = acc == zero ? c : term_sum(acc, c);
+      }
+      return acc;
+    }
+    case int_action::havoc:
+      // {(v, u) : g(v), u in [lo, hi)} reversed
+      return choose(interval(t.arg, static_cast<std::int32_t>(t.b)), passing);
+    case int_action::choose:
+      // {(v, u) : g(v), u in S} reversed: from S, any passing v
+      return choose(t.b, passing);
+  }
+  return zero;
+}
+
 core::code int_set_theory::filter(core::code set, lia::bexpr g) {
   if (set == core::none || g == lia::bfalse) return core::none;
   if (g == lia::btrue) return set;
@@ -261,6 +341,9 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
     case int_action::havoc:
       // any value of the range, whatever passed the guard
       return interval(t.arg, static_cast<std::int32_t>(t.b));
+    case int_action::choose:
+      // any value of the set, whatever passed the guard
+      return t.b;
   }
   return core::none;
 }
