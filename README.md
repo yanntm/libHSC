@@ -16,7 +16,8 @@ cmake -S . -B build && cmake --build build -j
 ctest --test-dir build          # the full suite, ~25 s
 ```
 
-Needs a C++23 compiler and network on first configure (google sparsehash,
+Needs a C++23 compiler, GMP with its C++ wrapper (`libgmp-dev`, `gmp-devel`
+or `brew install gmp`) and network on first configure (google sparsehash,
 doctest and CLI11 are fetched into `deps/`); the PNML importers additionally
 need expat and are skipped without it.
 

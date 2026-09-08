@@ -1,5 +1,6 @@
 #!/bin/bash
-# The CI build: a static libexpat, then libHSC configured with HSC_STATIC,
+# The CI build: a static libexpat, GMP (the system's or a static build), then
+# libHSC configured with HSC_STATIC,
 # its test suite as a gate, and the stripped tool binaries in website/.
 # Run it locally to reproduce what the CI publishes; it uses its own build
 # tree (build-static/) and prefix (usr/local/), both git-ignored.
@@ -37,10 +38,30 @@ if [ ! -f "$PREFIX/lib/libexpat.a" ]; then
   rm -rf "expat-$EXPAT_VERSION" "expat-$EXPAT_VERSION.tar.gz"
 fi
 
+# --- GMP (static): the system's development package when present, else built here ---
+GMP_VERSION=6.3.0
+have_gmp=0
+for d in "$PREFIX" /usr /usr/local "$(brew --prefix 2>/dev/null)"; do
+  [ -n "$d" ] && [ -f "$d/include/gmpxx.h" ] && have_gmp=1
+done
+if [ "$have_gmp" = 0 ]; then
+  echo "=== Building GMP $GMP_VERSION (needs m4) ==="
+  cd "$SCRIPT_DIR"
+  if [ ! -f "gmp-$GMP_VERSION.tar.xz" ]; then
+    wget -q --tries=5 --waitretry=5 "https://ftp.gnu.org/gnu/gmp/gmp-$GMP_VERSION.tar.xz"
+  fi
+  rm -rf "gmp-$GMP_VERSION"
+  tar xf "gmp-$GMP_VERSION.tar.xz"
+  ( cd "gmp-$GMP_VERSION" && ./configure --quiet --enable-cxx --enable-fat --disable-shared \
+        --prefix="$PREFIX" && make -j"$JOBS" > /dev/null && make install > /dev/null )
+  rm -rf "gmp-$GMP_VERSION" "gmp-$GMP_VERSION.tar.xz"
+fi
+BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
+
 # --- libHSC ---
 echo "=== Building libHSC ==="
 cd "$SCRIPT_DIR"
-cmake -S . -B "$BUILD" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PREFIX" \
+cmake -S . -B "$BUILD" -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PREFIX;$BREW_PREFIX" \
     -DHSC_STATIC=ON -DHSC_BUILD_BENCH=OFF -DHSC_BUILD_TESTS=ON
 cmake --build "$BUILD" -j"$JOBS"
 

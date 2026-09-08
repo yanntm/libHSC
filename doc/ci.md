@@ -1,8 +1,9 @@
 # The CI: published binaries
 
 `.github/workflows/linux.yml` and `osx.yml` run on every push to `master`.
-Each runs `build_hsc.sh` at the repository root (a static libexpat, then
-libHSC with `HSC_STATIC=ON`, the test suite as a gate, stripped binaries in
+Each runs `build_hsc.sh` at the repository root (a static libexpat, GMP from
+the runner's package manager, or built from source when absent, then libHSC
+with `HSC_STATIC=ON`, the test suite as a gate, stripped binaries in
 `website/`) and deploys `website/` to a branch of this repository:
 
 | runner | branch | linking |
@@ -43,7 +44,7 @@ container checks that before a push:
 
 ```
 podman run --rm -v "$PWD":/src:Z -w /src ubuntu:24.04 bash -c \
-  'apt-get -qq update && apt-get -qq install -y build-essential cmake git wget > /dev/null && bash build_hsc.sh'
+  'apt-get -qq update && apt-get -qq install -y build-essential cmake git wget libgmp-dev > /dev/null && bash build_hsc.sh'
 ```
 
 The container writes into the mounted tree (`build-static/`, `usr/`,
