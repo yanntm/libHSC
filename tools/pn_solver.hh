@@ -48,6 +48,13 @@ class solver {
   /// simply not reported rather than reported low.
   void set_arcs_countable(bool countable) { arcs_countable_ = countable; }
 
+  /// What constant places removed by the producer held (PNET's `PDROP`).
+  /// Those tokens sit in every marking, so they add to the per-marking total,
+  /// and each value is a candidate for the largest marking of a place.
+  void set_dropped_tokens(std::vector<long long> held) {
+    dropped_ = std::move(held);
+  }
+
   /// Feed a batch of forms given as text; returns the lines it produced.
   std::vector<std::string> feed(const std::string& text) {
     session_.feed(hsc::surface::parse(text));
@@ -141,11 +148,12 @@ class solver {
     return false;
   }
 
-  /// `STATE_SPACE MAX_TOKEN_IN_PLACE`: the largest marking of any place.
+  /// `STATE_SPACE MAX_TOKEN_IN_PLACE`: the largest marking of any place,
+  /// the removed constant places among them.
   void max_tokens(std::ostream& out) {
-    out << "STATE_SPACE MAX_TOKEN_IN_PLACE "
-        << value_of(feed("(max-value R)"), "R max-value ") << TECHNIQUES
-        << std::endl;
+    long long most = std::stoll(value_of(feed("(max-value R)"), "R max-value "));
+    for (const long long held : dropped_) most = std::max(most, held);
+    out << "STATE_SPACE MAX_TOKEN_IN_PLACE " << most << TECHNIQUES << std::endl;
   }
 
   /// The four lines of the MCC StateSpace examination.
@@ -155,8 +163,10 @@ class solver {
     max_tokens(out);
     ::petri::expr::LinearAtom all;
     for (std::size_t p = 0; p < net_.getPlaceCount(); ++p) all.addTerm(p, 1);
-    out << "STATE_SPACE MAX_TOKEN_PER_MARKING " << maximum(all, -1) << TECHNIQUES
-        << std::endl;
+    long long constant = 0;
+    for (const long long held : dropped_) constant += held;
+    out << "STATE_SPACE MAX_TOKEN_PER_MARKING " << maximum(all, -1) + constant
+        << TECHNIQUES << std::endl;
     if (!arcs_countable_) {
       std::cerr << "TRANSITIONS not reported: this net carries no evidence "
                    "that its arcs are those of the net it came from\n";
@@ -202,6 +212,7 @@ class solver {
   bool verbose_;
   std::vector<long long> mult_;  ///< empty means every multiplicity is 1
   bool arcs_countable_ = true;
+  std::vector<long long> dropped_;  ///< markings of removed constant places
   std::ostringstream buf_;
   hsc::surface::session session_;
   std::size_t counter_ = 0;

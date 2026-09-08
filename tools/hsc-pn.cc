@@ -162,6 +162,24 @@ int main(int argc, char** argv) {
     }
   }
 
+  // PDROP: what the constant places the producer removed were holding. Their
+  // tokens are in every marking, so they belong in the two token values.
+  std::vector<long long> dropped_tokens;
+  if (const MatrixCol<int>* pd = PNETIO<int>::find(blocks, "PDROP")) {
+    if (pd->getColumnCount() > 0) {
+      const SparseArray<int>& col = pd->getColumn(0);
+      for (std::size_t k = 0; k < col.size(); ++k) {
+        dropped_tokens.push_back(col.valueAt(k));
+      }
+    }
+    if (!quiet) {
+      long long sum = 0;
+      for (const long long v : dropped_tokens) sum += v;
+      std::cerr << "PDROP: " << dropped_tokens.size()
+                << " removed constant places holding " << sum << " tokens\n";
+    }
+  }
+
   hsc::petri::emit_options opts;
   opts.exam = hsc::petri::examination::model_only;
   // a transition that cannot change the marking adds nothing to the fixpoint;
@@ -210,6 +228,7 @@ int main(int argc, char** argv) {
     hsc::pn::solver solver(*net, effective_bound, verbose);
     if (!mult.empty()) solver.set_multiplicities(std::move(mult));
     solver.set_arcs_countable(arcs_countable);
+    if (!dropped_tokens.empty()) solver.set_dropped_tokens(std::move(dropped_tokens));
     for (const std::string& l : solver.feed(model.str())) {
       if (verbose) std::cerr << l << '\n';
     }

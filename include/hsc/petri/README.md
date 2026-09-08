@@ -39,7 +39,9 @@ shared by the two projects.
   tree as s-expressions, indices or names). Its `README.md` and
   `algorithm.md` are upstream's.
 * `io/` — `SparseMatrixIO.h`, `PNETIO.h`: KERS matrices and the PNET binary
-  net container.
+  net container, with `io/PNET.md` specifying that container (header, the
+  three mandatory blocks, and the optional named blocks that say what a
+  producer knows about the net's provenance).
 
 The invariant *solver* (`InvariantMiddle`/`Calculator`/`Heuristic`/`RowSigns`),
 the walk engine and the CTL checker are **not** vendored.
