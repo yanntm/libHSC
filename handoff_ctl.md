@@ -7,18 +7,15 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 
 ## Engineering — next
 
-1. **The inverse** (`core/algorithm.md` §9; M3 of the directions note).
-   `int_set` local inverses with the declared domain as context — `keep`
-   as is, `shift` with the guard translated, `assign` / `apply` / `havoc`
-   through a new *havoc over a set* local term; structural inversion of op
-   terms (`node`, `sum`, `compose`, `lfp`, `expr` refused loudly); the
-   `pred(R) ⊆ R` test and per-event `meet(·, R)` protection. Then the model
-   gets `pred_events`, `(pred NAME EVTERM SOURCE)` joins the surface, and
-   the `restrict` leaves answer: `ctl_ring.hsc` P9 and `ctl_counter.hsc` Q6
-   flip from `UNKNOWN` to their verdicts (P9 TRUE, Q6 TRUE).
-2. **`hsc-pn` CTL examinations** (M4): vendored `CtlFormula` to `(ctl …)`
-   text through `props_to_surface`; differential vs `its-ctl` on
-   `examples/mcc` and PetriSpot `bench/models` `.solved`.
+1. **`hsc-pn` CTL examinations** (M4): `PropertyKind::CTL` in
+   `tools/pn_solver.hh` — the vendored `CtlFormula` rendered as `(ctl NAME …)`
+   text through `props_to_surface` (atoms as `select` atoms, `Deadlock` as
+   `(deadlock)`), the verdict read back from the session's `NAME ctl …` line;
+   `UNKNOWN` stays silent (no `FORMULA` line). Check against the `.solved`
+   oracles of PetriSpot `bench/models/*/CTL*` and add CTL samples to the
+   `pn_samples` test.
+2. **Measure** the inverse on the MCC nets: how many events get protected by
+   `within(R)` per model, backward set sizes vs `R`, time of `invert_events`.
 3. Then the optimisations on the produced questions: `has_image`, the
    constrained-closure rewrite (M5).
 
@@ -30,12 +27,17 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 
 ## Done
 
-* Directions note; `ctl/` docs; `core/algorithm.md` §8–§9.
+* Directions note; `ctl/` docs; `core/algorithm.md` §8–§9;
+  `research_notes/invert.md`.
 * `ctl/formula.hh`, `ctl/forward.hh`: DAG, NNF, existential dual, the VIS
   rules to a question tree; the and-rule sends the right conjunct forward
   (a choice to re-examine, `ctl/algorithm.md` §4).
-* `op_kind::gfp` in core; `ctl/checker.hh`: set expressions and backward
-  `Sat` over an abstract model, saturated constrained closures, deadlock
-  semantics, refusal without inverted events.
-* Surface `(ctl …)`, `(expect-ctl …)`, `(gfp …)`, `(deadlock)`; manual §8f;
-  `examples/models/ctl_ring.hsc`, `ctl_counter.hsc` (18 verdicts, ctest).
+* `op_kind::gfp`, `op_kind::within`; `core::inverter` (structural converse
+  relative to a potential); `support_algebra::invert_local` (optional,
+  default refuses); `int_set` `choose` and `invert_local`.
+* `ctl/checker.hh`: set expressions and backward `Sat`, saturated
+  constrained closures, deadlock semantics, refusal without inverted events.
+* Surface `(ctl …)`, `(expect-ctl …)`, `(gfp …)`, `(invert …)`,
+  `(deadlock)`; manual §8f; `examples/models/ctl_ring.hsc`,
+  `ctl_counter.hsc` (21 verdicts + backward checks, ctest); the inverse
+  differential over 150 random models in `tests/test_operations.cc`.
