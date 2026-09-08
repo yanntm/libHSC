@@ -39,6 +39,7 @@ target_sources(hsc PRIVATE
   surface_xpl.cc
   surface_cegar.cc
   surface_certcheck.cc
+  surface_ctl.cc
   surface_spec.cc
   dve_parser.cc
   dve_to_surface.cc
@@ -54,4 +55,5 @@ target_sources(hsc PRIVATE
   xpl/domains.cc
   ctl/formula.cc
   ctl/forward.cc
+  ctl/checker.cc
 )

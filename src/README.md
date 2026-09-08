@@ -18,13 +18,17 @@ By package:
   (`surface_translator.hh` internal header, bodies in
   `surface_translate.cc` declarations/dispatch, `surface_events.cc` event
   compiler and algebra, `surface_families.cc` certified families,
-  `surface_query.cc` commands); `surface_run.cc` the runner (public
+  `surface_query.cc` commands, `surface_ctl.cc` the CTL commands);
+  `surface_run.cc` the runner (public
   entry, knows both engines); `surface_spec.cc` declarations as data +
   domain analysis; `surface_rewrite.cc` the rewrite chain;
   `surface_xpl.cc` event forms → the explicit model.
 * xpl — `xpl/eval.cc`, `xpl/model.cc`, `xpl/fire.cc`, `xpl/engine.cc`: the
   explicit engine — concrete evaluation, supports, the term interpreter,
   visitor-driven BFS (see `include/hsc/xpl/`).
+* ctl — `ctl/formula.cc`, `ctl/forward.cc`, `ctl/checker.cc`: the CTL
+  formula DAG, the forward conversion, the evaluator over an abstract model
+  (see `include/hsc/ctl/`).
 * petri — `petri_nupn.cc`, `petri_to_surface.cc`, `petri_decompose.cc`,
   and the vendored `louvain/`: PNML/NUPN import and unit-tree decomposition.
 * dve — `dve_parser.cc` (T2M), `dve_to_surface.cc` (M2M + M2T): the BEEM

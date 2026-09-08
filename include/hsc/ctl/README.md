@@ -36,5 +36,5 @@ from, not a dependency.
   deadlock-terminated path semantics of the contest, the verdict.
 
 Sources: `src/ctl/`. Tests: `tests/test_ctl.cc` (the conversion on hand
-formulas; verdicts against the explicit engine on small models through the
-surface).
+formulas) and the self-checking `examples/models/ctl_ring.hsc`,
+`ctl_counter.hsc` (verdicts hand-checked, through the surface's `(ctl …)`).
