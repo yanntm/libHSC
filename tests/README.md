@@ -17,7 +17,8 @@ values.
   matters. Random shapes, random models, and the calculus's own equations as
   the oracle: `saturate == naive fixpoint` over 200 random models,
   `compose` against hand-sequenced application, `sum` against union, `id`
-  against nothing. Diagrams are canonical, so "these two computations agree"
+  against nothing, and the inverse of every event against a brute-force
+  converse over the enumerated reachable states. Diagrams are canonical, so "these two computations agree"
   is an integer comparison and any disagreement is a real semantic
   difference. Saturation reorganises the entire evaluation; this is the only
   thing that says it did not change the answer.

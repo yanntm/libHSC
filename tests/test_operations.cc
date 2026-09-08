@@ -122,6 +122,83 @@ TEST_CASE("saturation computes the same fixpoint as naive iteration") {
   }
 }
 
+/// Every word of \p c, as a value vector in frontier order.
+void words_of(core::manager& mgr, leaves::int_set_theory& theory,
+              core::shape_code sort, core::code c,
+              std::vector<std::int32_t>& acc,
+              std::vector<std::vector<std::int32_t>>& out) {
+  switch (mgr.shapes().kind(sort)) {
+    case core::shape_kind::unit:
+      out.push_back(acc);
+      return;
+    case core::shape_kind::leaf:
+      for (const std::int32_t v : theory.elements(c)) {
+        acc.push_back(v);
+        out.push_back(acc);
+        acc.pop_back();
+      }
+      return;
+    case core::shape_kind::pair: {
+      const core::shape_code hs = mgr.shapes().head(sort);
+      const core::shape_code ts = mgr.shapes().tail(sort);
+      for (const core::arc& a : mgr.diagrams().arcs(c)) {
+        std::vector<std::vector<std::int32_t>> heads;
+        std::vector<std::int32_t> hacc;
+        words_of(mgr, theory, hs, a.prime, hacc, heads);
+        for (const auto& h : heads) {
+          const std::size_t mark = acc.size();
+          acc.insert(acc.end(), h.begin(), h.end());
+          words_of(mgr, theory, ts, a.sub, acc, out);
+          acc.resize(mark);
+        }
+      }
+      return;
+    }
+  }
+}
+
+TEST_CASE("the inverse of a term is the converse relation on the reachable set") {
+  for (std::uint64_t seed = 1; seed <= 150; ++seed) {
+    core::manager mgr;
+    auto [index, theory] = mgr.import<leaves::int_set_theory>();
+    std::mt19937_64 rng(seed);
+    const model m = random_model(mgr, theory, index, rng);
+    core::diagram_engine& diagrams = mgr.diagrams();
+    const core::code reach = diagrams.apply_local(
+        core::saturate(mgr, m.sort, m.events), m.start);
+
+    std::vector<std::vector<std::int32_t>> states;
+    std::vector<std::int32_t> acc;
+    words_of(mgr, theory, m.sort, reach, acc, states);
+
+    core::inverter inv(mgr);
+    for (const core::code e : m.events) {
+      const core::code pe = inv(m.sort, e, reach);
+      // Targets: the image of e, and a few random states of R.
+      std::vector<core::code> targets{diagrams.apply_local(e, reach)};
+      for (int i = 0; i < 2 && !states.empty(); ++i) {
+        std::size_t next = 0;
+        targets.push_back(point(mgr, theory, m.sort,
+                                states[rng() % states.size()], next));
+      }
+      for (const core::code b : targets) {
+        // Brute force: the reachable states with a successor in b.
+        core::code brute = core::none;
+        for (const auto& w : states) {
+          std::size_t next = 0;
+          const core::code pt = point(mgr, theory, m.sort, w, next);
+          if (diagrams.meet(diagrams.apply_local(e, pt), b) != core::none) {
+            brute = diagrams.join(brute, pt);
+          }
+        }
+        const core::code got =
+            diagrams.meet(diagrams.apply_local(pe, b), reach);
+        CHECK(got == brute);
+      }
+    }
+  }
+}
+
 TEST_CASE("composition of terms is composition of their actions") {
   for (std::uint64_t seed = 1; seed <= 100; ++seed) {
     core::manager mgr;
