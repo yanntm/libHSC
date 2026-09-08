@@ -34,6 +34,8 @@ if(HSC_BUILD_TESTS)
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/states.hsc)
   add_test(NAME surface_altseq
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/altseq.hsc)
+  add_test(NAME surface_count_exact
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/count_exact.hsc)
   # cegar/: the certified-abstraction commands, self-checking (the ring
   # driver writes its proof into the test's working directory).
   add_test(NAME cegar_clients

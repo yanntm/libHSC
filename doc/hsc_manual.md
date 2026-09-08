@@ -236,13 +236,13 @@ certificate; `unfold` always enumerates.
 (reach NAME [saturate|naive] [EVTERM] [from RESULT])
 (apply NAME EVTERM SOURCE)   ; one-step image, no closure
 (select NAME SOURCE QATOM+)  ; the subset satisfying every atom
-(count NAME)                 ; state count (a double — it is an order of magnitude)
+(count NAME [exact])         ; state count: a double (an order of magnitude), or the exact integer
 (nodes NAME)                 ; diagram nodes — the representation size
 (max-value NAME)             ; largest value any leaf holds in NAME
 (print NAME)
 (get-witness NAME)           ; one state, printed as a re-runnable (word …)
 (get-states NAME [K])        ; up to K states (default 10), one per line
-(expect NAME N)              ; assert count == N; nonzero exit on miss
+(expect NAME N)              ; assert count == N; nonzero exit on miss (N above 32 bits: exact)
 (states [NAME])              ; the count in MCC output format
 (xreach NAME [from RESULT] [cap INT])  ; the explicit engine, §8b
 (cegar NAME QATOM+ [all|first|cheapest] [jump-exact] [cap INT])  ; §8d
@@ -382,7 +382,8 @@ exports, re-checks, and cross-checks the count explicitly).
   `HAZARDS.md` H2). A value leaving int32 raises `overflow_error`;
   `(states)` then prints `CANNOT_COMPUTE` rather than a wrong count.
 * `count` is a `double`: exact up to ~15 significant digits, an order of
-  magnitude beyond.
+  magnitude beyond. `(count NAME exact)` and `(states)` compute the integer
+  itself (GMP).
 
 ## 10. Where models come from
 

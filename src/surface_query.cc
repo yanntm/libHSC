@@ -226,8 +226,8 @@ void translator::do_states(const datum& form) {
   try {
     const code r = form.items().size() > 1 ? named(form.items()[1])
                                            : run_reach(false);
-    out_ << "STATE_SPACE STATES " << std::fixed << std::setprecision(0)
-         << mgr_.diagrams().cardinal(r) << TECHNIQUES;
+    out_ << "STATE_SPACE STATES " << mgr_.diagrams().cardinal_exact(r)
+         << TECHNIQUES;
   } catch (const hsc::overflow_error& e) {
     out_ << "STATE_SPACE STATES CANNOT_COMPUTE\n";
     std::cerr << "overflow: " << e.what() << '\n';
@@ -300,11 +300,23 @@ void translator::do_select(const datum& form) {
   results_[name] = cur;
 }
 
+/// `(count NAME [exact])`: the cardinal, a double unless `exact` asks for
+/// the integer itself.
 void translator::do_count(const datum& form) {
   const std::string& name = sym(arg(form, 1, "result name"));
   const code c = named(arg(form, 1, "result name"));
-  out_ << name << " count " << std::fixed << std::setprecision(0)
-       << mgr_.diagrams().cardinal(c) << '\n';
+  const bool exact = form.items().size() > 2 &&
+                     sym(arg(form, 2, "count modifier")) == "exact";
+  if (form.items().size() > 2 && !exact) {
+    fail(form.items()[2], "count accepts the single modifier `exact`");
+  }
+  out_ << name << " count ";
+  if (exact) {
+    out_ << mgr_.diagrams().cardinal_exact(c);
+  } else {
+    out_ << std::fixed << std::setprecision(0) << mgr_.diagrams().cardinal(c);
+  }
+  out_ << '\n';
 }
 
 void translator::do_nodes(const datum& form) {
@@ -320,11 +332,30 @@ void translator::do_print(const datum& form) {
   out_ << '\n';
 }
 
+/// `(expect NAME N)`: N within 32 bits is compared to the double cardinal;
+/// a larger literal is compared exactly.
 void translator::do_expect(const datum& form) {
   const std::string& name = sym(arg(form, 1, "result name"));
   const code c = named(arg(form, 1, "result name"));
-  const double want = static_cast<double>(as_int(arg(form, 2, "count")));
-  const double got = mgr_.diagrams().cardinal(c);
+  const datum& lit = arg(form, 2, "count");
+  if (is_integer(lit)) {
+    const double want = static_cast<double>(as_int(lit));
+    const double got = mgr_.diagrams().cardinal(c);
+    if (got == want) {
+      out_ << "ok " << name << " == " << want << '\n';
+    } else {
+      out_ << "FAIL " << name << " expected " << want << " got " << got
+           << '\n';
+      ++failures_;
+    }
+    return;
+  }
+  if (!lit.is_atom() || lit.text().empty() ||
+      lit.text().find_first_not_of("0123456789") != std::string::npos) {
+    fail(lit, "expected a non-negative integer literal");
+  }
+  const mpz_class want(lit.text());
+  const mpz_class got = mgr_.diagrams().cardinal_exact(c);
   if (got == want) {
     out_ << "ok " << name << " == " << want << '\n';
   } else {
