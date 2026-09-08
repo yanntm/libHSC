@@ -99,8 +99,10 @@ int main(int argc, char** argv) {
 
   // --- the net and its shape ---
   std::unique_ptr<SparsePetriNet<int>> net;
+  PNETIO<int>::Blocks blocks;  // the optional named blocks of a PNET
   try {
-    net.reset(pnml.empty() ? PNETIO<int>::read(pnet) : loadXML<int>(pnml));
+    net.reset(pnml.empty() ? PNETIO<int>::read(pnet, &blocks)
+                           : loadXML<int>(pnml));
     if (!net) {
       std::cerr << "failed to load the net\n";
       return 1;
@@ -126,8 +128,39 @@ int main(int argc, char** argv) {
     return 2;
   }
 
+  // TMULT: what each transition stands for in the producer's original net.
+  // Stored as weight - 1, so an absent entry is 1 (INTEROP.md section 3).
+  std::vector<long long> mult;
+  if (const MatrixCol<int>* tm = PNETIO<int>::find(blocks, "TMULT")) {
+    if (tm->getRowCount() != net->getTransitionCount() ||
+        tm->getColumnCount() != 1) {
+      std::cerr << "TMULT is " << tm->getRowCount() << " x "
+                << tm->getColumnCount() << ", expected "
+                << net->getTransitionCount() << " x 1\n";
+      return 1;
+    }
+    mult.assign(net->getTransitionCount(), 1);
+    const SparseArray<int>& col = tm->getColumn(0);
+    for (std::size_t k = 0; k < col.size(); ++k) {
+      if (col.valueAt(k) < 0) {
+        std::cerr << "TMULT holds a negative weight for transition "
+                  << col.keyAt(k) << '\n';
+        return 1;
+      }
+      mult[col.keyAt(k)] = 1LL + col.valueAt(k);
+    }
+    if (!quiet) {
+      std::cerr << "TMULT: " << col.size() << " of "
+                << net->getTransitionCount()
+                << " transitions stand for more than one\n";
+    }
+  }
+
   hsc::petri::emit_options opts;
   opts.exam = hsc::petri::examination::model_only;
+  // a transition that cannot change the marking adds nothing to the fixpoint;
+  // its guard is still read from the net for deadlock and for arc counting
+  opts.skip_no_effect = true;
   opts.bound = bound;
   int effective_bound = bound;
   for (int m : net->getMarks()) effective_bound = std::max(effective_bound, m + 1);
@@ -169,6 +202,7 @@ int main(int argc, char** argv) {
   // --- the session: model and fixpoint, then one question at a time ---
   try {
     hsc::pn::solver solver(*net, effective_bound, verbose);
+    if (!mult.empty()) solver.set_multiplicities(std::move(mult));
     for (const std::string& l : solver.feed(model.str())) {
       if (verbose) std::cerr << l << '\n';
     }

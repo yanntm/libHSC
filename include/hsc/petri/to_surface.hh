@@ -27,6 +27,12 @@ enum class examination { none, model_only, state_space, one_safe };
 
 struct emit_options {
   int bound = 2;  ///< leaf domain is [0, bound); a safe NUPN needs only 2
+  /// Leave out the events that cannot change the marking (every per-place
+  /// effect zero: a read-arc-only or self-looping transition). They add
+  /// nothing to the reachable set, so a consumer that only needs the fixpoint
+  /// pays less; one that counts arcs or dead markings reads their guards from
+  /// the net instead, where they remain.
+  bool skip_no_effect = false;
   examination exam = examination::none;
 };
 

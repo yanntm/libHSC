@@ -34,6 +34,14 @@ class solver {
   solver(const SparsePetriNet<int>& net, int bound, bool verbose)
       : net_(net), bound_(bound), verbose_(verbose), session_(buf_) {}
 
+  /// How many transitions of the producer's original net each transition
+  /// stands for (PNET's `TMULT`; all ones when the net carries no block).
+  /// Arc counts are multiplied by it, so an unfolded or reduced net reports
+  /// the arcs of the net it came from.
+  void set_multiplicities(std::vector<long long> mult) {
+    mult_ = std::move(mult);
+  }
+
   /// Feed a batch of forms given as text; returns the lines it produced.
   std::vector<std::string> feed(const std::string& text) {
     session_.feed(hsc::surface::parse(text));
@@ -143,9 +151,12 @@ class solver {
     for (std::size_t p = 0; p < net_.getPlaceCount(); ++p) all.addTerm(p, 1);
     out << "STATE_SPACE MAX_TOKEN_PER_MARKING " << maximum(all, -1) << TECHNIQUES
         << std::endl;
+    // arcs of the reachability graph: per transition, the states enabling it,
+    // weighted by what that transition stands for (TMULT)
     mpz_class edges = 0;
     for (std::size_t t = 0; t < net_.getTransitionCount(); ++t) {
-      edges += mpz_class(exact_count(hsc::petri::guard_atom(net_, t)));
+      const mpz_class states(exact_count(hsc::petri::guard_atom(net_, t)));
+      edges += mpz_class(static_cast<long>(multiplicity(t))) * states;
     }
     out << "STATE_SPACE TRANSITIONS " << edges << TECHNIQUES << std::endl;
   }
@@ -156,6 +167,10 @@ class solver {
   }
 
   std::string next_name() { return "hsc-pn-q" + std::to_string(++counter_); }
+
+  [[nodiscard]] long long multiplicity(std::size_t t) const {
+    return t < mult_.size() ? mult_[t] : 1;
+  }
 
   /// The value after \p prefix on the line that starts with it; other lines
   /// are the session's own reports (rewrite traces, ok/FAIL), forwarded when
@@ -174,6 +189,7 @@ class solver {
   const SparsePetriNet<int>& net_;
   int bound_;
   bool verbose_;
+  std::vector<long long> mult_;  ///< empty means every multiplicity is 1
   std::ostringstream buf_;
   hsc::surface::session session_;
   std::size_t counter_ = 0;

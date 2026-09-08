@@ -113,7 +113,13 @@ void to_surface(std::ostream& out, const SparsePetriNet<int>& net,
     for (std::size_t k = 0; k < in.size(); ++k) delta[in.keyAt(k)] -= in.valueAt(k);
     for (std::size_t k = 0; k < to.size(); ++k) delta[to.keyAt(k)] += to.valueAt(k);
 
-    if (in.size() == 0 && delta.empty()) continue;  // no-op transition
+    // "no effect" is every per-place delta zero, which a read arc or a
+    // self-loop produces with a non-empty delta map
+    const bool no_effect =
+        std::all_of(delta.begin(), delta.end(),
+                    [](const auto& e) { return e.second == 0; });
+    if (in.size() == 0 && no_effect) continue;  // no-op transition
+    if (opts.skip_no_effect && no_effect) continue;
 
     out << "(event " << tnames[t] << " (when";
     for (std::size_t k = 0; k < in.size(); ++k) {
