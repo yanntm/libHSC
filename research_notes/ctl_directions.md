@@ -296,26 +296,26 @@ thin driver: `(pred NAME EVTERM SOURCE)` (one backward step),
 
 ## 6. Order of work and distance
 
-Milestones, each testable alone against `its-ctl` / the oracle:
+Decided order: the core first — the checker's pipeline to forward form,
+the deflationary closure, the inverse — and only then the optimisations
+on the questions that pipeline produces (`has_image`, the constrained
+saturation rewrite). Milestones, each testable alone against `its-ctl` and
+the oracle:
 
-| # | what | where | size (guess) |
+| # | what | where | state |
 |---|---|---|---|
-| M0 | `ctl/algorithm.md`; the four term extensions specified in `core/algorithm.md` vocabulary (has_image, gfp, inverse-with-context, constrained-closure rewrite) | docs | — |
-| M1 | `has_image`: core recursion + `int_set` local + cache; `(exists …)`; `hsc-pn` `nonempty` switches to it (a speed win on RC/RF today, measurable at once) | core, leaves, surface | ~250 LOC |
-| M2 | `gfp` op kind, naive evaluation, fast-SCC push-down in `has_image`; `(gfp …)`; `hasSCCs` | core, surface | ~200 LOC |
-| M3 | **Forward CTL checker** on M1+M2: parser → existential form → forward form → evaluation; `hsc-pn` answers CTLC/CTLF; differential vs `its-ctl` on `examples/mcc` and PetriSpot `bench/models` `.solved` | ctl/, tools | ~600 LOC |
-| M4 | Inverse with context: `int_set` local inverses (havoc-over-set as the one new local term), structural term inversion, exactness test and per-event `∩ R` protection; `(pred …)`; backward `EX/EU/EG` for the nodes forward form leaves existential-below (the `EX/EU/EG` under a `Cmp`) | leaves, core, surface | ~400 LOC |
-| M5 | Constrained-closure rewrite in `saturate()` (§4.4); measure against M3's plain form | core | ~150 LOC |
-| M6 | Campaign: CTLC/CTLF at 600 s on the cluster beside the existing ITS-Tools sets; witness cross-check with PetriSpot's explicit checker | experiments | — |
+| M0 | `ctl/algorithm.md`; `gfp` and inverse-with-context specified in `core/algorithm.md` §8–§9 | docs | done |
+| M1 | the formula DAG (NNF, existential dual) and the forward conversion to a question tree (`init / filter / ey / fwdu / fwdg / restrict`, `any`) | `ctl/formula.hh`, `ctl/forward.hh` | done, unit-tested |
+| M2 | `gfp` op kind, breadth-first evaluation; the checker evaluating set expressions and backward `Sat` over an abstract model (sort, `R`, seed, forward events, inverted events, atom selectors, deadlock selector); `(ctl NAME FORMULA)` and `(expect-ctl …)` on the surface; the pred-free fragment answers, the rest refuses | core, ctl/, surface | next |
+| M3 | the inverse: `int_set` local inverses (havoc over a set as the one new local term), structural term inversion, exactness test and per-event `∩ R` protection; `(pred …)`; the `restrict` leaves answer | leaves, core, surface | |
+| M4 | `hsc-pn` answers CTLCardinality / CTLFireability: vendored `CtlFormula` to the DAG, atoms through `props_to_surface`; differential vs `its-ctl` on `examples/mcc` and PetriSpot `bench/models` `.solved` | tools | |
+| M5 | `has_image`; the constrained-closure rewrite in `saturate()`; measured against M4's plain form | core | |
+| M6 | campaign: CTLC/CTLF at 600 s beside the ITS-Tools sets; witness cross-check with PetriSpot's explicit checker | experiments | |
 
-M3 already answers real MCC formulas: with the forward conversion the whole
-top of the tree is `next`-only, and only the subformulas the conversion
-leaves as `EX/EU/EG` (those under a `Cmp` or a non-convertible negation)
-require M4. On the campaign's formula shapes (PetriSpot `CTL_PLAN.md` §2:
-3–5 quantifiers deep, E and A interleaved) most formulas will hit M4 nodes,
-so M3 alone decides a fraction; the distance to "a checker on par with
-`its-ctl` in coverage" is M1–M4, to "on par in speed" M5 plus the
-measurement.
+With M2 the forward fragment already decides real MCC formulas (the whole
+top of the tree is `next`-only after conversion); on the campaign's shapes
+(PetriSpot `CTL_PLAN.md` §2: 3–5 quantifiers deep, E and A interleaved)
+most formulas hit a `restrict` leaf and wait for M3.
 
 ## 7. Risks and what to measure
 
