@@ -12,6 +12,7 @@
 
 #include <iosfwd>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -60,5 +61,25 @@ struct session_arg {
 int run_session(const std::vector<session_arg>& args, std::ostream& out,
                 std::ostream& err,
                 const std::map<std::string, long long>& params = {});
+
+/// \brief An incremental session: forms fed in batches to one translator,
+/// results persisting between batches. For a driver that decides its next
+/// query from the answer to the previous one (a search over bounds) without
+/// recomputing the model. Rewrite directives act on the batch that carries
+/// them, so the model and its directives go in the first batch.
+class session {
+ public:
+  explicit session(std::ostream& out);
+  ~session();
+  session(const session&) = delete;
+  session& operator=(const session&) = delete;
+  /// Give \p forms meaning, writing command output to the session's stream.
+  /// \return the number of `expect` assertions failed so far.
+  int feed(const std::vector<datum>& forms);
+
+ private:
+  struct impl;
+  std::unique_ptr<impl> impl_;
+};
 
 }  // namespace hsc::surface

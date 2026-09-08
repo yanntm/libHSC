@@ -426,6 +426,18 @@ int translate(const std::vector<datum>& forms, std::ostream& out) {
   return r.run(forms);
 }
 
+struct session::impl {
+  explicit impl(std::ostream& out) : r(out) {}
+  runner r;
+};
+
+session::session(std::ostream& out) : impl_(std::make_unique<impl>(out)) {}
+session::~session() = default;
+
+int session::feed(const std::vector<datum>& forms) {
+  return impl_->r.run(forms);
+}
+
 namespace {
 
 /// `(input FILE)`: splice the forms of FILE in place — the model/script

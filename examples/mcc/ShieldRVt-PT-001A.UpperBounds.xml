@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<property-set xmlns="http://mcc.lip6.fr/">
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-00</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p0</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-01</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p6</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-02</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p7</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-03</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p3</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-04</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p8</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-05</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p5</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-06</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p4</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-07</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p10</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-08</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p5</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-09</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p8</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-10</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p1</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-11</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p2</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-12</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p8</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-13</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p0</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-14</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p10</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>ShieldRVt-PT-001A-UpperBounds-15</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p6</place>
+      </place-bound>
+    </formula>
+  </property>
+</property-set>

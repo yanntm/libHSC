@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<property-set xmlns="http://mcc.lip6.fr/">
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-00</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p15</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-01</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p24</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-02</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p3</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-03</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p16</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-04</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p12</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-05</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p25</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-06</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p28</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-07</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p29</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-08</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p6</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-09</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p14</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-10</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p18</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-11</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p31</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-12</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p22</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-13</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p2</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-14</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p8</place>
+      </place-bound>
+    </formula>
+  </property>
+  <property>
+    <id>AutoFlight-PT-01a-UpperBounds-15</id>
+    <description>Automatically generated</description>
+    <formula>
+      <place-bound>
+        <place>p26</place>
+      </place-bound>
+    </formula>
+  </property>
+</property-set>

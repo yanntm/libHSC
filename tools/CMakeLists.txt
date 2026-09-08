@@ -35,10 +35,20 @@ if(EXPAT_FOUND)
   target_compile_options(hsc-mcc PRIVATE
     $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>)
 
+  # The property answerer: PNML or PNET, MCC XML or s-expression properties,
+  # the FORMULA line protocol (README.md). Property-to-query translation
+  # lives in the import library so the tool stays a driver.
+  target_sources(petri_import PRIVATE ${PROJECT_SOURCE_DIR}/src/petri_props.cc)
+  add_executable(hsc-pn hsc-pn.cc)
+  target_link_libraries(hsc-pn PRIVATE petri_import hsc::hsc CLI11::CLI11)
+  target_compile_options(hsc-pn PRIVATE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>)
+
   if(HSC_BUILD_TESTS)
     add_test(NAME mcc_samples
              COMMAND ${CMAKE_COMMAND}
                -DHSC_MCC=$<TARGET_FILE:hsc-mcc>
+               -DHSC_PN=$<TARGET_FILE:hsc-pn>
                -DSAMPLES=${PROJECT_SOURCE_DIR}/examples/mcc
                -P ${CMAKE_CURRENT_SOURCE_DIR}/check_samples.cmake)
   endif()
