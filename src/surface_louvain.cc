@@ -10,6 +10,7 @@
 #include <sstream>
 
 #include "hsc/petri/louvain/community.h"
+#include "hsc/petri/louvain/hyperedge.hh"
 #include "hsc/surface/rewrite.hh"
 #include "hsc/surface/spec.hh"
 #include "hsc/xpl/interpret/model.hh"
@@ -21,7 +22,9 @@ namespace {
 namespace lv = hsc::petri::louvain;
 
 /// Flow-like edges: control (read-only) positions point at written ones,
-/// weighted 1/(|ctrl|·|write|); tiny self-loops keep isolated leaves.
+/// weighted 1/(|ctrl|·|write|); tiny self-loops keep isolated leaves. An event
+/// wider than the `hyperedge.hh` bounds is left out: it induces a clique
+/// quadratic in its support and speaks of synchronisation, not locality.
 std::vector<lv::edge> flow_edges(const xpl::model& m) {
   std::vector<lv::edge> edges;
   for (std::size_t p = 0; p < m.arity; ++p) {
@@ -40,9 +43,9 @@ std::vector<lv::edge> flow_edges(const xpl::model& m) {
       const auto p = e.writes.keyAt(i);
       if (!e.ctrl.get(p)) write.push_back(static_cast<int>(p));
     }
-    const double induced =
-        static_cast<double>(ctrl.size()) * static_cast<double>(write.size());
-    if (induced == 0.0) continue;
+    const std::size_t induced_n = ctrl.size() * write.size();
+    if (!lv::induced_fits(induced_n) || !lv::control_fits(ctrl.size())) continue;
+    const double induced = static_cast<double>(induced_n);
     for (const int i : ctrl) {
       for (const int j : write) {
         if (i != j) {

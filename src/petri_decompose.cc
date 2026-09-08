@@ -14,6 +14,7 @@
 
 #include "hsc/petri/MatrixCol.h"
 #include "hsc/petri/louvain/community.h"
+#include "hsc/petri/louvain/hyperedge.hh"
 
 namespace hsc::petri {
 
@@ -21,7 +22,8 @@ namespace {
 
 /// The all-to-all fallback: for each transition, a clique over its whole flow
 /// support, weight 1/(#induced pairs). Used only when the control→write pass
-/// yields nothing (imitates the gal GraphBuilder's fallback).
+/// yields nothing (imitates the gal GraphBuilder's fallback). A transition
+/// whose clique exceeds `louvain::max_induced` is skipped (`hyperedge.hh`).
 std::vector<louvain::edge> all_to_all(const SparsePetriNet<int>& net) {
   std::vector<louvain::edge> edges;
   const MatrixCol<int>& pre = net.getFlowPT();
@@ -30,8 +32,9 @@ std::vector<louvain::edge> all_to_all(const SparsePetriNet<int>& net) {
     SparseArray<int> sup =
         SparseArray<int>::sumProd(1, pre.getColumn(t), 1, post.getColumn(t));
     const std::size_t n = sup.size();
-    const double pairs = static_cast<double>(n) * (n - 1) / 2.0;
-    if (pairs == 0.0) continue;
+    const std::size_t pairs_n = n * (n - 1) / 2;
+    if (!louvain::induced_fits(pairs_n)) continue;
+    const double pairs = static_cast<double>(pairs_n);
     for (std::size_t i = 0; i < n; ++i)
       for (std::size_t j = i + 1; j < n; ++j)
         edges.push_back({static_cast<int>(sup.keyAt(i)),
@@ -46,6 +49,8 @@ std::vector<louvain::edge> all_to_all(const SparsePetriNet<int>& net) {
 /// 1/(|ctrl|·|write|). Read/control places thus link to data, but two co-read
 /// places (e.g. a test arc) get no edge between them — read edges are weaker.
 /// Tiny self-loops keep isolated places present. Falls back to all-to-all.
+/// A transition wider than the `hyperedge.hh` bounds is skipped: it induces a
+/// clique quadratic in its support and speaks of synchronisation, not locality.
 std::vector<louvain::edge> cooccurrence(const SparsePetriNet<int>& net) {
   const int places = static_cast<int>(net.getPlaceCount());
   const MatrixCol<int>& pre = net.getFlowPT();
@@ -69,9 +74,10 @@ std::vector<louvain::edge> cooccurrence(const SparsePetriNet<int>& net) {
       if (in.get(static_cast<std::size_t>(p)) == 0) write.push_back(p);
     }
 
-    const double induced =
-        static_cast<double>(ctrl.size()) * static_cast<double>(write.size());
-    if (induced == 0.0) continue;
+    const std::size_t induced_n = ctrl.size() * write.size();
+    if (!louvain::induced_fits(induced_n) || !louvain::control_fits(ctrl.size()))
+      continue;
+    const double induced = static_cast<double>(induced_n);
     for (int i : ctrl)
       for (int j : write)
         if (i != j) {

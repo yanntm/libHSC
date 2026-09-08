@@ -33,6 +33,14 @@ is **not** vendored.
   `toolspecific` as opaque, so a second SAX pass reads it; logic mirrors
   `fr.lip6.move.gal.nupn.NupnHandler`. A unit holding both places and subunits
   is kept as-is (bracketed together), not split into a synthetic child.
+* `decompose.hh` + `src/petri_decompose.cc` — a unit tree for a net that
+  arrives without one, by Louvain clustering over a place co-occurrence graph
+  (control→write per transition, all-to-all as fallback). The graph is built
+  from the net alone: no property takes part, so nothing can make one community
+  mandatory. `louvain/hyperedge.hh` bounds what a single transition may
+  contribute — a hyperedge of support k relates its places pairwise at a cost
+  quadratic in k, and a transition wide enough to matter is a synchronisation
+  rather than a progression, so it is left out instead of expanded.
 * `to_surface.hh` + `src/petri_to_surface.cc` — M2T. One leaf per place, the
   shape read off the unit tree verbatim (a unit → a spine of its places then its
   subunits; a single child collapses), one event per transition (guard = input

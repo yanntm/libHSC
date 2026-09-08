@@ -20,7 +20,10 @@ convenience, not licence to specialise the module.
 
 `graph_binary`, `quality`, `modularity`, `louvain` (`.h`+`.cpp`) — the modularity
 path. The other quality criteria (zahn, owzad, goldberg, …) and the CLI mains are
-**not** vendored. `community.{h,cpp}` is ours: the in-memory driver.
+**not** vendored. `community.{h,cpp}` is ours: the in-memory driver, and
+`hyperedge.hh` is ours too: the bounds a caller applies while turning hyperedges
+into edges, so that one wide event cannot outweigh the graph it belongs to. The
+module itself stays edges-in / tree-out and knows nothing of either.
 
 ## Curation (what we changed)
 
