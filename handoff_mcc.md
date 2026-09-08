@@ -50,20 +50,46 @@ match). `hsc-pn` gained `--max-tokens` for OneSafe.
    `MCC-drivers/hsc/install.sh`; `examples/mcc/README.md` then describes
    the fixtures for `hsc-pn`.
 
-## After that (Phases 3 and 4, ITS-Tools; see HSC_PLAN.md sections 3, 4)
+## Phase 3 (ITS-Tools plugins): files written, build not yet verified
 
-Work in `~/git/ITStools`: new plugin `interop/fr.lip6.move.gal.interop`
-(move `KERSFormatIO`, `PNETFormatIO`, `SexprPropertyPrinter` out of
-`petrispot/fr.lip6.move.petrispot.runner`, which then requires it), plugins
-`hsc/fr.lip6.hsc.binaries` (copy `petrispot/fr.lip6.petrispot.binaries`,
-`pom.xml` `<get>` from `https://github.com/yanntm/libHSC/raw/HSC-Linux/hsc-pn`)
-and `hsc/fr.lip6.move.hsc.runner` (`HscRunner` modelled on
-`PetriSpotWalker`); register in `fr.lip6.move.gal.parent/pom.xml`,
-`pnmcc/fr.lip6.move.gal.feature.pnmcc/feature.xml`, the application's
-`MANIFEST.MF`. Build: `cd fr.lip6.move.gal.parent && mvn -o install
--DskipTests > /data/ythierry/itstools-mvn.log 2>&1` (PetriSpot
-`docs/BUILD.md`). Add only the files you changed (the tree has the user's
-own edits). Push is the user's unless allowed in session.
+In `~/git/ITStools` (uncommitted; add only these paths, the tree carries the
+user's own edits):
+
+* `interop/fr.lip6.move.gal.interop/` — `KERSFormatIO`, `PNETFormatIO`,
+  `SexprPropertyPrinter` moved (`git mv`) from the PetriSpot runner, package
+  `fr.lip6.move.gal.interop`; the PetriSpot runner's MANIFEST requires it
+  and its two classes import `fr.lip6.move.gal.interop.*`.
+* `hsc/fr.lip6.hsc.binaries/` — copy of the PetriSpot binaries plugin,
+  `pom.xml` downloads `hsc-pn` from `HSC-Linux` / `HSC-OSX`,
+  `BinaryToolsPlugin.getHscURI()`.
+* `hsc/fr.lip6.move.hsc.runner/` — `HscRunner` (PNET + forms out, `FORMULA`
+  lines in; `runReachability`, `runDeadlock`, `runBounds`, `run`;
+  `-Dhsc.bin=<path>` outside OSGi; `HscRunner.DEBUG`).
+* Registered in `fr.lip6.move.gal.parent/pom.xml` (three modules),
+  `pnmcc/fr.lip6.move.gal.feature.pnmcc/feature.xml`, the application's
+  `MANIFEST.MF` (`fr.lip6.move.hsc.runner`).
+
+To verify: `cd ~/git/ITStools/fr.lip6.move.gal.parent && mvn -o install
+-DskipTests > /data/ythierry/itstools-mvn-hsc.log 2>&1` (about 2 min warm;
+`grep -n "ERROR\|BUILD" /data/ythierry/itstools-mvn-hsc.log | head`). The
+`<get>` of `hsc-pn` needs the Linux CI to have published it (check
+`git -C ~/git/libHSC ls-tree --name-only origin/HSC-Linux` after a fetch).
+Then a smoke test outside OSGi is simplest through Phase 4's `-hsc` flag;
+before that, commit the plugin files in ITS-Tools (one commit).
+
+## Phase 4 (`-hsc` in the MCC application), not started
+
+`pnmcc/fr.lip6.move.gal.application.pnmcc/src/fr/lip6/move/gal/application/Application.java`:
+add a flag `-hsc` beside `-its` (`ITS = "-its"`, `doITS`); where the
+reachability examinations start `ITSRunner` (through
+`MultiOrderRunner.runMultiITS`), start an `IRunner` (`runner/IRunner.java`:
+`configure`, `solve`, `interrupt`, `join`) wrapping `HscRunner.run` on the
+reduced `ISparsePetriNet` with the open properties of `DoneProperties`
+printed by `SexprPropertyPrinter.reach(...)`, a `Listener` that records
+each verdict in `DoneProperties` (`EF` as the value says, `AG` negated: see
+how `PetriSpotWalker.isWitness` is used in `ReachabilitySolver`). Measure
+with `its-tools -pnfolder <model> -examination ReachabilityCardinality -hsc`
+against `-its` (PetriSpot `docs/BUILD.md`, "Running ITS-Tools").
 
 ## Rules of the road
 
