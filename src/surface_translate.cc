@@ -34,6 +34,9 @@ void translator::dispatch(const datum& form) {
   else if (kw == "nodes") do_nodes(form);
   else if (kw == "print") do_print(form);
   else if (kw == "expect") do_expect(form);
+  else if (kw == "ctl") do_ctl(form);
+  else if (kw == "expect-ctl") do_expect_ctl(form);
+  else if (kw == "gfp") do_gfp(form);
   else if (kw == "bill") do_bill(form);
   else fail(form, "unknown form '" + kw + "'");
 }

@@ -46,6 +46,11 @@ values.
   zero names its witness), Kleene absorption in guards, and the state
   store's dedup across a rehash.
 
+* `test_ctl.cc` — the CTL formula DAG (interning, negation normal form as
+  identities) and the forward conversion on hand formulas against the rules
+  of `include/hsc/ctl/algorithm.md`. Verdicts are tested by the
+  self-checking `examples/models/ctl_*.hsc`.
+
 * `test_rewrite.cc` — the rewrite chain: constant elision preserves
   counts on both engines, the in-file directive, identity reported.
 

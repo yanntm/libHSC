@@ -1,0 +1,217 @@
+/// \file surface_ctl.cc
+/// \brief The CTL commands: `(ctl NAME FORMULA)`, `(expect-ctl NAME
+/// VERDICT)`, and the deflationary closure `(gfp NAME EVTERM SOURCE)`.
+///
+/// The formula grammar is the atom language of `select` extended with the
+/// path operators:
+///
+///     FORMULA ::= ATOM | true | false | (deadlock)
+///               | (not F) | (and F+) | (or F+)
+///               | (EX F) | (AX F) | (EF F) | (AF F) | (EG F) | (AG F)
+///               | (EU F F) | (AU F F) | (EW F F) | (AW F F)
+///
+/// A state subformula — no path operator below it — is one selector,
+/// compiled exactly as a `(when …)` filter: atoms keep their `select`
+/// meaning, `and / or / not` are the surface's own. `(deadlock)` is the
+/// negation of the disjunction of the declared events' guards, so it is a
+/// state formula too. The checker runs the forward form (`hsc/ctl/`) over
+/// the default system from the seed; the reachable set is computed once and
+/// shared by every `ctl` form of the session.
+#include <sstream>
+
+#include "hsc/ctl/checker.hh"
+#include "hsc/ctl/formula.hh"
+#include "hsc/ctl/forward.hh"
+#include "surface_translator.hh"
+
+namespace hsc::surface {
+
+/// Per-session CTL state: the formula DAG (shared across properties, so a
+/// common subformula is one node and one memo), the converter, the atoms
+/// as the data they were written as, and the verdicts by name.
+struct translator::ctl_state {
+  ctl::formulas forms;
+  ctl::forward fw{forms};
+  std::vector<datum> atoms;  ///< atom index → its query atom
+  std::unordered_map<std::string, std::uint32_t> atom_index;  ///< by text
+  std::unordered_map<std::string, ctl::verdict> verdicts;
+  std::optional<code> reach;  ///< `R`, computed on first use
+  std::optional<code> dead;   ///< the reachable deadlocks, once `reach` is
+};
+
+translator::ctl_state& translator::ctl() {
+  if (!ctl_) ctl_ = std::make_shared<ctl_state>();
+  return *ctl_;
+}
+
+/// The written form of \p d, the key atoms are shared by.
+static std::string datum_text(const datum& d) {
+  std::ostringstream os;
+  write(os, d);
+  return os.str();
+}
+
+/// `(deadlock)`: no declared event enabled — `(not (or G_1 … G_n))` over
+/// the events' guard conjunctions; an event without a guard is always
+/// enabled and makes it `false`.
+ctl::node_id translator::deadlock_formula(const datum& at) {
+  if (!guards_complete_) {
+    fail(at, "(deadlock) is not available with families: their guards are "
+             "not enumerable as atoms");
+  }
+  ctl_state& st = ctl();
+  std::vector<datum> guards;
+  for (const std::vector<datum>& g : event_guards_) {
+    if (g.empty()) return st.forms.constant(false);
+    std::vector<datum> items{atom_datum("and", at)};
+    items.insert(items.end(), g.begin(), g.end());
+    guards.push_back(datum::list(std::move(items), at.line()));
+  }
+  if (guards.empty()) return st.forms.constant(true);  // no event: all dead
+  std::vector<datum> disj{atom_datum("or", at)};
+  disj.insert(disj.end(), guards.begin(), guards.end());
+  const datum d = datum::list(
+      {atom_datum("not", at), datum::list(std::move(disj), at.line())},
+      at.line());
+  return ctl_atom(d);
+}
+
+ctl::node_id translator::ctl_atom(const datum& d) {
+  ctl_state& st = ctl();
+  const std::string key = datum_text(d);
+  auto it = st.atom_index.find(key);
+  if (it == st.atom_index.end()) {
+    it = st.atom_index
+             .emplace(key, static_cast<std::uint32_t>(st.atoms.size()))
+             .first;
+    st.atoms.push_back(d);
+  }
+  return st.forms.atom(it->second);
+}
+
+ctl::node_id translator::read_formula(const datum& d) {
+  ctl_state& st = ctl();
+  if (d.is_atom()) {
+    if (d.text() == "true") return st.forms.constant(true);
+    if (d.text() == "false") return st.forms.constant(false);
+    fail(d, "a CTL formula is a list, or true / false");
+  }
+  if (d.items().empty()) fail(d, "empty formula");
+  const std::string& kw = d.head();
+  const auto kid = [&](std::size_t i) {
+    return read_formula(arg(d, i, "formula operand"));
+  };
+  const auto exactly = [&](std::size_t n) {
+    if (d.items().size() != n + 1) {
+      fail(d, kw + " takes " + std::to_string(n) + " operand(s)");
+    }
+  };
+  if (kw == "deadlock") {
+    exactly(0);
+    return deadlock_formula(d);
+  }
+  if (kw == "not") {
+    exactly(1);
+    return st.forms.negation(kid(1));
+  }
+  if (kw == "and" || kw == "or") {
+    std::vector<ctl::node_id> ks;
+    for (std::size_t i = 1; i < d.items().size(); ++i) ks.push_back(kid(i));
+    return kw == "and" ? st.forms.conj(ks) : st.forms.disj(ks);
+  }
+  static const std::pair<const char*, ctl::op> unary[] = {
+      {"EX", ctl::op::ex}, {"AX", ctl::op::ax}, {"EF", ctl::op::ef},
+      {"AF", ctl::op::af}, {"EG", ctl::op::eg}, {"AG", ctl::op::ag}};
+  for (const auto& [name, o] : unary) {
+    if (kw == name) {
+      exactly(1);
+      return st.forms.unary(o, kid(1));
+    }
+  }
+  static const std::pair<const char*, ctl::op> binary[] = {
+      {"EU", ctl::op::eu}, {"AU", ctl::op::au}, {"EW", ctl::op::ew},
+      {"AW", ctl::op::aw}};
+  for (const auto& [name, o] : binary) {
+    if (kw == name) {
+      exactly(2);
+      return st.forms.binary(o, kid(1), kid(2));
+    }
+  }
+  // Anything else is a query atom, in the language of `select`.
+  return ctl_atom(d);
+}
+
+/// The selector term of a state formula: rendered back to the atom
+/// language (atoms as written, `and / or / not` as the surface spells
+/// them) and compiled as the filter `(when F)`.
+code translator::state_selector(ctl::node_id f) {
+  ctl_state& st = ctl();
+  const std::string text = st.forms.print(
+      f, [&](std::uint32_t a) { return datum_text(st.atoms[a]); });
+  const std::vector<datum> parsed = parse("(when " + text + ")");
+  return read_evterm(parsed.front());
+}
+
+void translator::do_ctl(const datum& form) {
+  if (top_ == core::none) fail(form, "ctl before shape");
+  const std::string& name = sym(arg(form, 1, "property name"));
+  const ctl::node_id phi = read_formula(arg(form, 2, "formula"));
+  if (form.items().size() > 3) fail(form, "ctl takes one formula");
+  ctl_state& st = ctl();
+  if (!st.reach) {
+    st.reach = run_reach(false);
+    st.dead = core::none;
+    if (guards_complete_) {
+      const ctl::node_id dl = deadlock_formula(form);
+      const ctl::fnode& n = st.forms[dl];
+      if (n.kind == ctl::op::atom) {
+        st.dead = apply_atom(st.atoms[n.atom], *st.reach);
+      } else if (n.kind == ctl::op::tru) {
+        st.dead = *st.reach;
+      }
+    }
+  }
+  ctl::model m;
+  m.sort = top_;
+  m.reach = *st.reach;
+  m.init = seed();
+  m.next_events = events_;
+  m.selector = [this](ctl::node_id f) { return state_selector(f); };
+  m.dead = *st.dead;
+  ctl::checker chk(mgr_, m, st.fw);
+  const ctl::forward_form ff = st.fw.convert(phi);
+  const ctl::verdict v = chk.check(ff);
+  st.verdicts[name] = v;
+  out_ << name << " ctl " << ctl::name(v) << '\n';
+}
+
+void translator::do_expect_ctl(const datum& form) {
+  const std::string& name = sym(arg(form, 1, "property name"));
+  const std::string& want = sym(arg(form, 2, "TRUE, FALSE or UNKNOWN"));
+  if (want != "TRUE" && want != "FALSE" && want != "UNKNOWN") {
+    fail(form, "expect-ctl wants TRUE, FALSE or UNKNOWN");
+  }
+  ctl_state& st = ctl();
+  const auto it = st.verdicts.find(name);
+  if (it == st.verdicts.end()) fail(form, "no ctl property named '" + name + "'");
+  const std::string got = ctl::name(it->second);
+  if (got == want) {
+    out_ << "ok " << name << " " << want << '\n';
+  } else {
+    out_ << "FAIL " << name << " expected " << want << " got " << got << '\n';
+    ++failures_;
+  }
+}
+
+/// `(gfp NAME EVTERM SOURCE)`: the greatest fixpoint of `X ↦ X ∩ EV(X)`
+/// below a bound result — the states of SOURCE reached from a cycle inside
+/// SOURCE when EV is the system's step.
+void translator::do_gfp(const datum& form) {
+  const std::string& name = sym(arg(form, 1, "result name"));
+  const code ev = read_evterm(arg(form, 2, "event term"));
+  const code src = named(arg(form, 3, "source result"));
+  results_[name] =
+      mgr_.diagrams().apply_local(mgr_.operations().gfp(ev), src);
+}
+
+}  // namespace hsc::surface

@@ -256,6 +256,7 @@ void translator::do_family(const datum& form) {
   define_event(form, name, term);
   if (term == core::op_table::id) return;
   events_.push_back(term);
+  guards_complete_ = false;  // a family's guards are not atoms: no (deadlock)
 }
 
 }  // namespace hsc::surface

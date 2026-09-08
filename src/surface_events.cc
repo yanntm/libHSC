@@ -307,6 +307,16 @@ void translator::do_event(const datum& form) {
   if (ev == core::op_table::id) return;  // a no-op: skip in a seq,
                                          // nothing for the default ALT
   events_.push_back(ev);
+  // The guard as written, for `(deadlock)`: every atom of every when clause.
+  std::vector<datum> guard;
+  for (const datum& clause : std::span(form.items()).subspan(2)) {
+    if (clause.is_list() && !clause.items().empty() &&
+        clause.head() == "when") {
+      guard.insert(guard.end(), clause.items().begin() + 1,
+                   clause.items().end());
+    }
+  }
+  event_guards_.push_back(std::move(guard));
 }
 
 void translator::define_event(const datum& at, const std::string& name, code term) {

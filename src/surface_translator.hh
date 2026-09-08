@@ -36,6 +36,7 @@
 
 #include "hsc/core/manager.hh"
 #include "hsc/core/operation.hh"
+#include "hsc/ctl/formula.hh"
 #include "hsc/event.hh"
 #include "hsc/leaves/int_set.hh"
 #include "hsc/query.hh"
@@ -545,6 +546,24 @@ class translator final : public name_scope {
 
 
   void do_bill(const datum&);
+  /// \name CTL (`src/surface_ctl.cc`)
+  ///
+  /// `(ctl NAME FORMULA)` checks a CTL formula at the seed over the default
+  /// system by the forward form (`hsc/ctl/`); `(expect-ctl NAME VERDICT)`
+  /// asserts its verdict; `(gfp NAME EVTERM SOURCE)` is the deflationary
+  /// closure. State subformulas are selectors compiled as `(when …)`
+  /// filters; `(deadlock)` is built from the declared events' guards.
+  ///@{
+  struct ctl_state;
+  ctl_state& ctl();
+  ctl::node_id read_formula(const datum& d);
+  ctl::node_id ctl_atom(const datum& d);
+  ctl::node_id deadlock_formula(const datum& at);
+  code state_selector(ctl::node_id f);
+  void do_ctl(const datum& form);
+  void do_expect_ctl(const datum& form);
+  void do_gfp(const datum& form);
+  ///@}
 
   // --- state ---------------------------------------------------------------
 
@@ -574,6 +593,13 @@ class translator final : public name_scope {
   /// Every named term: events, alts, seqs — one namespace.
   std::unordered_map<std::string, code> named_events_;
   std::unordered_map<std::string, code> results_;
+  /// Per declared event, the atoms of its `when` clauses (the guard as
+  /// written); empty for an always-enabled event. What `(deadlock)` reads.
+  std::vector<std::vector<datum>> event_guards_;
+  /// False once a family entered the default system: its guards are not
+  /// enumerable as atoms, so `(deadlock)` is refused.
+  bool guards_complete_ = true;
+  std::shared_ptr<ctl_state> ctl_;  ///< shared: deleter typed at make time
   double reach_seconds_ = 0.0;
   int failures_ = 0;
 };

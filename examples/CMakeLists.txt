@@ -38,6 +38,10 @@ if(HSC_BUILD_TESTS)
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/count_exact.hsc)
   add_test(NAME surface_leaf_weight
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/leaf_weight.hsc)
+  add_test(NAME surface_ctl_ring
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/ctl_ring.hsc)
+  add_test(NAME surface_ctl_counter
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/ctl_counter.hsc)
   # cegar/: the certified-abstraction commands, self-checking (the ring
   # driver writes its proof into the test's working directory).
   add_test(NAME cegar_clients

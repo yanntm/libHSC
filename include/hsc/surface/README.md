@@ -42,6 +42,10 @@ the tree meaning. Neither endpoint knows which passes intercede.
 * `xpl_build.hh` + `src/surface_xpl.cc` — the bridge to the explicit
   engine: event forms → `xpl::model`.
 
+* `src/surface_ctl.cc` — the CTL commands: `(ctl …)` reads a formula into
+  the `hsc/ctl/` DAG (state subformulas as `(when …)` selectors,
+  `(deadlock)` from the declared guards), runs the forward form over the
+  default system from the seed; `(expect-ctl …)`, `(gfp …)`.
 * `src/surface_run.cc` — **the runner**, the public `translate()` entry:
   applies the rewrite directives, routes explicit-engine commands
   (`xreach`, `xdomains`) and the query overlay on explicit results,

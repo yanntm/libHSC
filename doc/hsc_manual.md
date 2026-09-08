@@ -247,6 +247,9 @@ certificate; `unfold` always enumerates.
 (states [NAME])              ; the count in MCC output format
 (xreach NAME [from RESULT] [cap INT])  ; the explicit engine, §8b
 (cegar NAME QATOM+ [all|first|cheapest] [jump-exact] [cap INT])  ; §8d
+(ctl NAME FORMULA)           ; a CTL property at the seed, §8f
+(expect-ctl NAME TRUE|FALSE|UNKNOWN) ; assert its verdict
+(gfp NAME EVTERM SOURCE)     ; deflationary closure: X ∩ EVTERM(X) to a fixpoint, §8f
 (certificate FILE)           ; write the last cegar proof as .hsc, §8d
 (certcheck FILE)             ; re-check a proof against the model, §8d
 (simplify-constants)         ; rewrite directive: elide constant leaves, §8c
@@ -397,6 +400,55 @@ declares none pays nothing.
 twenty there. On the Petri net side the coefficients travel in the `PCOEF`
 block of a PNET (`include/hsc/petri/io/PNET.md`) and `hsc-pn` turns them into
 these declarations.
+
+## 8f. CTL
+
+```lisp
+(ctl NAME FORMULA)
+(expect-ctl NAME TRUE|FALSE|UNKNOWN)
+(gfp NAME EVTERM SOURCE)
+```
+
+`ctl` checks a formula of Computation Tree Logic at the seed, over the
+reachability graph of the default system, and prints `NAME ctl VERDICT`.
+The grammar is the atom language of `select` with the path operators:
+
+```
+FORMULA ::= QATOM | true | false | (deadlock)
+          | (not F) | (and F+) | (or F+)
+          | (EX F) | (AX F) | (EF F) | (AF F) | (EG F) | (AG F)
+          | (EU F F) | (AU F F) | (EW F F) | (AW F F)
+```
+
+`EU`/`AU` are the strong until (`(EU f g)`: a path where `f` holds until a
+state where `g` holds), `EW`/`AW` the weak one (`g` may never come if `f`
+holds forever). A subformula without path operator is a *state formula*
+and is compiled as one `(when …)` filter, so anything `select` accepts is
+an atom. `(deadlock)` holds where no declared event is enabled; it is
+built from the events' guards, so it is unavailable in a model with
+`family` forms.
+
+Semantics are the Model Checking Contest's: **a deadlock ends its path**.
+`(EG f)` holds at a deadlocked state satisfying `f`, `(EX f)` is false at a
+deadlock and `(AX f)` true there, `(AF f)` holds when every maximal path
+meets `f`. The verdict is at the seed; with a seed of several states, the
+formula must hold at all of them.
+
+The checker rewrites the formula to its **forward form**: the seed travels
+inward through the existential operators (`EX` becomes one image, `EF` /
+`EU` a constrained forward closure, `EG` a forward cycle hull with the
+deadlocked endpoints), and a universal operator that ends up *under* an
+existential one needs the predecessor relation. Until the inverse of the
+event terms is available, such a formula answers `UNKNOWN` rather than a
+guess — `(expect-ctl NAME UNKNOWN)` documents the refusal in a test file.
+A universal operator at the top is fine: `(AG f)` is asked as the emptiness
+of `(EF (not f))`.
+
+`gfp` is the dual of `reach`: from SOURCE, keep only the states with a
+successor in the set, until stable — the states of SOURCE reached from a
+cycle inside it when EVTERM is the system's step; empty on an acyclic
+graph. `examples/models/ctl_ring.hsc` and `ctl_counter.hsc` are the worked,
+self-checking examples.
 
 ## 9. Errors, honestly
 
