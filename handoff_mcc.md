@@ -7,7 +7,7 @@ Rewrite this file as items complete; never append narrative.
 
 ## State
 
-Done and pushed: CI (`doc/ci.md`, branches `HSC-Linux`, `HSC-OSX`), GMP
+Done and pushed: CI (`doc/ci.md`, branch `HSC-Linux`; OSX not maintained), GMP
 exact count (`(count R exact)`, `(states)`), vendored PetriSpot tree as exact
 copies (`include/hsc/petri/{core,parse,expr,io}`, `vendor.sh`), fixtures in
 `examples/mcc/` (4 models: `<M>.<Exam>.xml`, `<M>.pnet`, `<M>.<Exam>.sexpr`,

@@ -1,33 +1,52 @@
-# `examples/mcc/` — a small NUPN test set
+# `examples/mcc/` — a small MCC test set
 
-Six safe P/T nets with NUPN unit trees, from the Model Checking Contest corpus
-(`pnmcc-models-2025`, the `PT` instances), chosen small and across families. They
-drive the `mcc_samples` sanity test: `hsc-mcc` imports each and answers the three
-fixed examinations, checked against the MCC 2025 oracle.
+Eight P/T nets from the Model Checking Contest corpus (`pnmcc-models-2025`
+and `-2026`, the `PT` instances), chosen small and across families, with the
+contest's oracle verdicts. Two tests read them:
 
-| model | states | one-safe | deadlock |
-|---|---|---|---|
-| Sudoku-PT-AN01 | 2 | TRUE | TRUE |
-| ShieldRVt-PT-001A | 33 | TRUE | FALSE |
-| ERK-PT-000001 | 13 | TRUE | FALSE |
-| AutoFlight-PT-01a | 253 | TRUE | TRUE |
-| Raft-PT-02 | 7381 | TRUE | FALSE |
-| CircadianClock-PT-000001 | 128 | TRUE | FALSE |
-| Angiogenesis-PT-01 | 110 | TRUE | TRUE |
-| Angiogenesis-PT-05 | 42734935 | FALSE | TRUE |
+* `mcc_samples` (`tools/check_samples.cmake`): `hsc-mcc` on every
+  `<Model>.pnml` for StateSpace and OneSafe against `expected.csv`.
+* `pn_samples` (`tests/pn_samples.sh`): `hsc-pn` on the four models that
+  carry property fixtures, on both input paths, for ReachabilityCardinality,
+  ReachabilityFireability, UpperBounds, the deadlock and the state count,
+  against `oracle/`. A run over the cap (`PN_TIMEOUT`, 5 s under ctest) is
+  reported, only a wrong verdict fails.
 
-`Angiogenesis-PT-05` is the adversarial one: it carries **no** unit tree (so the
-importer falls back to a flat shape), it is **not** one-safe, and it has 42.7M
-reachable states — all three answered correctly.
+| model | states | one-safe | deadlock | property fixtures |
+|---|---|---|---|---|
+| Sudoku-PT-AN01 | 2 | TRUE | TRUE | |
+| ShieldRVt-PT-001A | 33 | TRUE | FALSE | yes |
+| ERK-PT-000001 | 13 | TRUE | FALSE | |
+| AutoFlight-PT-01a | 253 | TRUE | TRUE | yes |
+| Raft-PT-02 | 7381 | TRUE | FALSE | yes |
+| CircadianClock-PT-000001 | 128 | TRUE | FALSE | |
+| Angiogenesis-PT-01 | 110 | TRUE | TRUE | |
+| Angiogenesis-PT-05 | 42734935 | FALSE | TRUE | yes |
 
-The verdicts are the oracle values (`website/oracle/MODEL-{SS,OS,RD}.out`,
-`ORACLE2025`/`TEDD2023`), recorded in `expected.csv` — the single source the test
-reads. To add a model: drop its `model.pnml` here as `<Name>.pnml` and add a row.
+`Angiogenesis-PT-05` is the adversarial one: no unit tree (flat shape), not
+one-safe, 42.7M states; its `select`s cost about 0.5 s each and its
+UpperBounds set runs over the cap.
 
-Run one by hand:
+## Files
+
+* `<Model>.pnml` — the contest model; `expected.csv` — states, one-safe,
+  deadlock from the oracle (`# model,states,onesafe,deadlock`).
+* `<Model>.<Examination>.xml` — the contest property files (RC, RF, UB).
+* `<Model>.pnet`, `<Model>.<Examination>.sexpr` — the same net and properties
+  in the tool-to-tool formats of PetriSpot's `INTEROP.md`, written by
+  `petri64 -i M.pnml --exportNet M.pnet` and
+  `petri64 -i M.pnml --props X.xml --printProps=sexpr-index | grep '^('`.
+* `oracle/<Model>-{RC,RF,UB,RD}.out` — the contest oracle lines.
+
+To add a model: drop `<Name>.pnml`, a row in `expected.csv`; for the
+property paths, the three `.xml`, the `.pnet`, the three `.sexpr` and the
+four oracle files.
+
+Run by hand:
 
 ```
-hsc-mcc examples/mcc/Raft-PT-02.pnml -mcc StateSpace
-hsc-mcc examples/mcc/Raft-PT-02.pnml -mcc OneSafe
-hsc-mcc examples/mcc/Raft-PT-02.pnml -mcc ReachabilityDeadlock
+hsc-pn -i examples/mcc/Raft-PT-02.pnml --props examples/mcc/Raft-PT-02.ReachabilityCardinality.xml
+hsc-pn --net examples/mcc/Raft-PT-02.pnet --props examples/mcc/Raft-PT-02.ReachabilityCardinality.sexpr
+hsc-pn -i examples/mcc/Raft-PT-02.pnml --states --deadlock ReachabilityDeadlock
+bash tests/pn_samples.sh
 ```
