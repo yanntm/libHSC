@@ -6,6 +6,9 @@ on:
   repository_dispatch:
     types: [OSX]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-15

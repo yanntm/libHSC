@@ -6,6 +6,9 @@ on:
   repository_dispatch:
     types: [Linux]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-24.04
