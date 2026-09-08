@@ -167,52 +167,60 @@ and none is attempted here.
 
 ## 9. The inverse of a term, relative to a context
 
-The support contract exports pushforwards only. The backward operators of
-CTL need `pred = next⁻¹`, built **structurally** from the forward term:
+Every term denotes an additive map, hence a relation; its inverse is the
+converse relation, restricted to a finite **potential** `P ⊇ R` so that a
+non-injective action has finitely many predecessors. Nothing is added to the
+meaning of terms; `pre_h(B) ∩ P` is additive again. The construction is
+structural (`research_notes/invert.md` has the discussion):
 
-    node(h, t)⁻¹  = node(h⁻¹, t⁻¹)        (Σ hᵢ)⁻¹ = Σ hᵢ⁻¹
-    (a ∘ b)⁻¹     = b⁻¹ ∘ a⁻¹              lfp(h)⁻¹ = lfp(h⁻¹)
-    id⁻¹          = id                     saturate(F, L, G…)⁻¹ = saturate over the inverted events
+    id⁻¹            = id
+    (Σ hᵢ)⁻¹_P      = Σ hᵢ⁻¹_P
+    node(h, t)⁻¹_P  = node(h⁻¹_{⋃ primes(P)}, t⁻¹_{⋃ subs(P)})
+    (a ∘ b)⁻¹_P     = b⁻¹_P ∘ a⁻¹_{b(P)}        the left factor sees the image of the right
+    lfp(h)⁻¹_P      = lfp(h⁻¹_P)
+    selector⁻¹      = selector                  a partial identity is self-converse
 
-An inverted event touches exactly the positions of the original, so the
+An inverted term touches exactly the positions of the original, so the
 saturation partition of the backward system is that of the forward one:
-backward saturation is `saturate()` over inverted events, nothing more.
+backward saturation is `saturate()` over inverted events. `saturate` and
+`gfp` terms are not inverted (the caller inverts the flat events); a case
+bracket inverts iff it only guards (it is then a selector).
 
-At a leaf the theory inverts its own local terms, and this is where a
-**context** enters: a non-injective action (`x := c`) inverts to "from `c`
-to every value the guard admits", which is only finite given a domain `D`
-for the coordinate. `D` is the declared domain of the leaf where the model
-gives one (the inverse is then exact: true predecessors, reachable or not),
-else the projection of the reachable set on that position (a relation that
-may over-approximate on the product, as libDDD's `invert(pot)` does). For
-`int_set` (`guard g`, then action):
+**The potential is projected, not carried.** At `node(h, t)` the head is
+inverted against the join of the primes and the tail against the join of the
+subs: each leaf ends up restricted to its projection of `P` — the product of
+projections, which is the largest constraint expressible as a product
+selector, hence the largest inversion can carry without a straddling term.
+The declared domain of a leaf replaces the projection when present.
+Memoised on `(term, potential)`, so isomorphic positions with equal
+projections share their inverse.
 
-| forward | inverse | needs `D` |
-|---|---|---|
-| `keep(g)` | `keep(g)` | no |
-| `shift(g, d)` | `shift(g[x ↦ x − d], −d)` | no — but see below |
-| `assign(g, c)` | `keep({c})` then any value of `g ∩ D` | yes |
-| `apply(g, e)` | `{ e(v) ↦ v : v ∈ D, g(v) }` as a sum of point terms | yes |
-| `havoc(g, [lo,hi))` | `keep([lo,hi))` then any value of `g ∩ D` | yes |
+**At a leaf** the theory inverts its own local terms:
+`invert_local(term, domain)`, an optional capability of the support contract
+whose default refuses. For `int_set` (`guard g` then action; `D` the domain,
+`g ∩ D` an extensional set):
 
-A **case bracket** (a term spanning a cut) is inverted assignment by
-assignment when each is invertible given the coordinates it does not write
-(`x := x + y` to `x := x − y`); otherwise the inversion is **refused**,
-loudly. Every separable event — every P/T transition — inverts by the
-table.
+| forward | converse restricted to `D` |
+|---|---|
+| `keep(g)` | `keep(g)` |
+| `shift(g, d)` | `shift(S, −d)`, `S = (g ∩ D) + d` |
+| `assign(g, c)` | `keep({c})` then `choose(g ∩ D)` |
+| `apply(g, e)` | `Σ_{u ∈ e(g∩D)} keep({u})` then `choose({v ∈ g ∩ D : e(v) = u})` |
+| `havoc(g, [lo,hi))` | `keep([lo,hi))` then `choose(g ∩ D)` |
+| `sum`, `lfp` | pointwise |
 
-**Exactness and the reachable set.** With exact leaf inverses the backward
-image may hold unreachable states. That is harmless for answers relative to
-`R`: an unreachable state has no reachable predecessor, so every reachable
-state a backward closure reaches is a genuine one, and negation is `R ∖ X`.
-With an over-approximate inverse (projection contexts) the reference
-discipline applies: test `pred(R) ⊆ R` once; keep the events that pass raw
-and protect the others with `meet(·, R)` after each step — a data constraint,
-which is a straddling term at the root and the intersection that breaks
-saturation, confined to the events that need it.
+`choose(S)` — `x := any value of the set S` — is the one new action; the
+range havoc is its interval case. Every inverse is restricted to `D`, so a
+closure over inverses terminates on finite domains (hazard H2 discharged by
+the domain).
 
-**Termination.** The inverse of a guarded downward shift is an unguarded
-upward one (`m ≥ w; m −= w` inverts to `m += w`): under a closure it diverges
-unless the coordinate has a domain to stop at. Hazard H2 is live here, and
-the declared domain is what discharges it — the first place the calculus
-needs a domain for correctness rather than for counting.
+**Exactness and protection.** With the product restriction an inverted event
+may produce states outside `R` — spurious predecessors, since `R` is not a
+product. Per event: `e⁻¹(R) ∖ R = ∅` and the event is used raw; otherwise it
+is composed with the constant selector `within(R)` (`X ↦ X ∩ R`, an
+`op_kind` of its own: additive, self-inverse, the term reading of a
+diagram), a straddling summand the saturation rewrite chains as G. On the
+reachable part of a backward closure the raw inverse is already right — no
+reachable state has an unreachable successor — so protection is about
+spurious edges and about the size of the sets carried, and is applied only
+to the events that need it.
