@@ -28,27 +28,28 @@ not pushed): RC, RF, RD, UB, StateSpace (all four values), OneSafe; checked
 by hand on Raft-PT-02 for the five examinations against the oracle (all
 match). `hsc-pn` gained `--max-tokens` for OneSafe.
 
-## Next actions, in order
+## Campaign E1 (StateSpace baseline): submitted 2026-09-08 evening
 
-1. Confirm the Linux CI published `hsc-pn` on `HSC-Linux` (`doc/ci.md`
-   commands); then in `~/git/MCC-drivers`, `bash hsc/install.sh` (downloads),
-   and the harness smoke check of `~/git/PetriSpot/libHSC_in_MCC.md`
-   ("The driver" section: `run_test.pl` in the deploy clone). Push
-   MCC-drivers only if the user allows.
-2. Sweep on the cluster: `BK_TOOL=hsc ./run_oar.sh` over the reachability
-   examinations (PetriSpot `docs/CLUSTER.md`), collect, compare with
-   ITS-Tools on the contest tables. Report timeouts and any wrong verdict
-   in `~/git/PetriSpot/libHSC_in_MCC.md` (append a dated section).
-3. Performance of `select` on large diagrams (Angiogenesis-PT-05: one
-   `select` about 0.5 s on 17910 nodes / 42M states): profile
-   `hsc-pn --net examples/mcc/Angiogenesis-PT-05.pnet --props
-   examples/mcc/Angiogenesis-PT-05.UpperBounds.sexpr`; report before
-   changing the calculus.
-4. Retire `hsc-mcc` and `nupn2hsc` (`hsc-pn --export-hsc` replaces the
-   latter): drop them from `tools/CMakeLists.txt`, `build_hsc.sh`,
-   `check_samples.cmake` (keep `pn_samples`), `doc/ci.md`, `tools/README.md`,
-   `MCC-drivers/hsc/install.sh`; `examples/mcc/README.md` then describes
-   the fixtures for `hsc-pn`.
+Deployed per PetriSpot `docs/CLUSTER.md`: deploy clone pulled, `hsc/install.sh`
+(binaries from `HSC-Linux`, commit 526ed35 of libHSC), `hsc/` rsynced to
+`cluster.lip6.fr:MCC26/MCC-drivers/hsc/`. Warmup `AirplaneLD-PT-0010`, all
+examinations: SS, OS, RD, RC, RF, UB answered and right. Then
+`TIMEOUT=300 WALLTIME=0:10:0 CORES=4 HOSTS="tall%" BK_TOOL=hsc ./run_oar.sh
+"oracle/*-SS.out"` (results in `MCC26/MCC-drivers/SS/`; the folder also
+holds the warmup log). Driver: four configurations side by side, memory
+confinement split among them, `HSC_CONFS="<names>"` runs a subset (the
+rerun of the best one with the whole memory).
+
+Watch: `bash ~/git/PetriSpot/Petri/test/mcc/cluster_status.sh SS`. Collect
+when drained (`docs/CLUSTER.md` section 4, `collect.sh`), then read against
+the contest tables (`HSC_EXPERIMENTS.md` E1): answered, exact, time,
+winning configuration (`answered by configuration` lines; the `== <conf>:
+exit N` lines say who timed out or was killed), failure class. Report in
+`~/git/PetriSpot/libHSC_in_MCC.md` (dated section). Second wave: RC, RF,
+RD, UB the same way; a rerun with `HSC_CONFS` of the best configuration on
+the instances where all four timed out.
+
+## Next actions after E1
 
 ## Phases 3 and 4 (ITS-Tools): built, committed, `-hscBench` verified
 
