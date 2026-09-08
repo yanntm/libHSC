@@ -127,13 +127,18 @@ class solver {
     return false;
   }
 
+  /// `STATE_SPACE MAX_TOKEN_IN_PLACE`: the largest marking of any place.
+  void max_tokens(std::ostream& out) {
+    out << "STATE_SPACE MAX_TOKEN_IN_PLACE "
+        << value_of(feed("(max-value R)"), "R max-value ") << TECHNIQUES
+        << std::endl;
+  }
+
   /// The four lines of the MCC StateSpace examination.
   void state_space(std::ostream& out) {
     out << "STATE_SPACE STATES " << exact_count(std::nullopt) << TECHNIQUES
         << std::endl;
-    out << "STATE_SPACE MAX_TOKEN_IN_PLACE "
-        << value_of(feed("(max-value R)"), "R max-value ") << TECHNIQUES
-        << std::endl;
+    max_tokens(out);
     ::petri::expr::LinearAtom all;
     for (std::size_t p = 0; p < net_.getPlaceCount(); ++p) all.addTerm(p, 1);
     out << "STATE_SPACE MAX_TOKEN_PER_MARKING " << maximum(all, -1) << TECHNIQUES

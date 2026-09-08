@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
                "Net: -i model.pnml or --net model.pnet. Properties: MCC XML or\n"
                "s-expression forms (INTEROP.md). Answers: FORMULA lines on stdout."};
   std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock;
-  bool force = false, states = false, print_unknown = false, quiet = false, verbose = false;
+  bool force = false, states = false, max_tokens = false, print_unknown = false, quiet = false, verbose = false;
   int bound = 2, total_time = 0;
   auto* in_opt = app.add_option("-i,--pnml", pnml, "PNML P/T net (with its NUPN unit tree when present)")
                      ->check(CLI::ExistingFile);
@@ -81,6 +81,7 @@ int main(int argc, char** argv) {
   app.add_flag("--force", force, "FORCE reordering after the shape");
   app.add_option("--bound", bound, "leaf domain [0, N), raised to the max initial marking + 1");
   app.add_flag("--states", states, "the four StateSpace values");
+  app.add_flag("--max-tokens", max_tokens, "the MAX_TOKEN_IN_PLACE value alone (the OneSafe examination)");
   app.add_option("--deadlock", deadlock, "a deadlock query with this name, without a property file");
   app.add_option("--totalTime", total_time, "seconds; then UNKNOWN for what is open and exit 0");
   app.add_flag("--printUnknown", print_unknown, "print UNKNOWN <name> for every unanswered property");
@@ -171,6 +172,7 @@ int main(int argc, char** argv) {
       g_next_open = g_next_open + 1;
     }
     if (states) solver.state_space(std::cout);
+    else if (max_tokens) solver.max_tokens(std::cout);
   } catch (const hsc::overflow_error& e) {
     std::cerr << "overflow: " << e.what() << " (raise --bound)\n";
     print_open(std::cout);

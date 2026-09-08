@@ -23,7 +23,7 @@ business (`MCC-drivers/hsc/`); this tool answers properties.
 ```
 hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc|sexpr]
        [--shape nupn|flat|louvain] [--force] [--bound N]
-       [--states] [--deadlock NAME] [--totalTime S] [--printUnknown] [--export-hsc FILE] [-q]
+       [--states | --max-tokens] [--deadlock NAME] [--totalTime S] [--printUnknown] [--export-hsc FILE] [-q]
 ```
 
 ### Pipeline
@@ -79,6 +79,8 @@ The four values of the MCC StateSpace examination, each its own line:
 `STATES` from `(count R exact)`, `MAX_TOKEN_IN_PLACE` from `(max-value R)`,
 `MAX_TOKEN_PER_MARKING` by the binary search above on the sum of all places,
 `TRANSITIONS` as Σ_t `(count (select R G_t) exact)` (the enabled pairs).
+`--max-tokens` prints the `MAX_TOKEN_IN_PLACE` line alone: the OneSafe
+examination is TRUE iff it is at most 1.
 
 ### Budget and failure
 
