@@ -42,6 +42,12 @@ class solver {
     mult_ = std::move(mult);
   }
 
+  /// Whether an arc count over this net is the arc count of the net the
+  /// caller cares about. False when the net reached us transformed by steps
+  /// that did not account for what they dropped, in which case the arcs are
+  /// simply not reported rather than reported low.
+  void set_arcs_countable(bool countable) { arcs_countable_ = countable; }
+
   /// Feed a batch of forms given as text; returns the lines it produced.
   std::vector<std::string> feed(const std::string& text) {
     session_.feed(hsc::surface::parse(text));
@@ -151,6 +157,11 @@ class solver {
     for (std::size_t p = 0; p < net_.getPlaceCount(); ++p) all.addTerm(p, 1);
     out << "STATE_SPACE MAX_TOKEN_PER_MARKING " << maximum(all, -1) << TECHNIQUES
         << std::endl;
+    if (!arcs_countable_) {
+      std::cerr << "TRANSITIONS not reported: this net carries no evidence "
+                   "that its arcs are those of the net it came from\n";
+      return;
+    }
     // arcs of the reachability graph: per transition, the states enabling it,
     // weighted by what that transition stands for (TMULT)
     mpz_class edges = 0;
@@ -190,6 +201,7 @@ class solver {
   int bound_;
   bool verbose_;
   std::vector<long long> mult_;  ///< empty means every multiplicity is 1
+  bool arcs_countable_ = true;
   std::ostringstream buf_;
   hsc::surface::session session_;
   std::size_t counter_ = 0;

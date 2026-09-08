@@ -39,9 +39,12 @@ for pnet in "$SAMPLES"/*.pnet; do
 done
 # TMULT: a weight of 2 on every transition doubles the arc count and leaves
 # the state count alone (the block framing of INTEROP.md section 3)
+# the arc count of a PNET is only reported when the file carries a TMULT block
+# (a net without one may have been transformed by steps that dropped arcs), so
+# the baseline comes from the PNML the PNET was written from
 MULT_NET="$LOGS/tmult.pnet"
 BASE="$SAMPLES/Raft-PT-02.pnet"
-T=$(timeout $T_ "$HSC_PN" --net "$BASE" --states -q 2>/dev/null | awk '/TRANSITIONS/ {print $3}')
+T=$(timeout $T_ "$HSC_PN" -i "$SAMPLES/Raft-PT-02.pnml" --states -q 2>/dev/null | awk '/TRANSITIONS/ {print $3}')
 S=$(timeout $T_ "$HSC_PN" --net "$BASE" --states -q 2>/dev/null | awk '/ STATES / {print $3}')
 NT=$(python3 "$(dirname "$0")/pnet_block.py" "$BASE" "$MULT_NET" TMULT 52 --all 1 > /dev/null 2>&1 && echo ok)
 if [ "$NT" = ok ] ; then

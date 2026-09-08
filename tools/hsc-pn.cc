@@ -131,7 +131,13 @@ int main(int argc, char** argv) {
   // TMULT: what each transition stands for in the producer's original net.
   // Stored as weight - 1, so an absent entry is 1 (INTEROP.md section 3).
   std::vector<long long> mult;
+  // A net read from PNET went through a producer's transformations. Its arcs
+  // are the arcs of the net the caller cares about only if the producer said
+  // so, which it does by attaching TMULT (and dropping it when a step could
+  // not account for what it removed). A net read from PNML is the original.
+  bool arcs_countable = pnml.empty() ? false : true;
   if (const MatrixCol<int>* tm = PNETIO<int>::find(blocks, "TMULT")) {
+    arcs_countable = true;
     if (tm->getRowCount() != net->getTransitionCount() ||
         tm->getColumnCount() != 1) {
       std::cerr << "TMULT is " << tm->getRowCount() << " x "
@@ -203,6 +209,7 @@ int main(int argc, char** argv) {
   try {
     hsc::pn::solver solver(*net, effective_bound, verbose);
     if (!mult.empty()) solver.set_multiplicities(std::move(mult));
+    solver.set_arcs_countable(arcs_countable);
     for (const std::string& l : solver.feed(model.str())) {
       if (verbose) std::cerr << l << '\n';
     }
