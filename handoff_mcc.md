@@ -28,26 +28,56 @@ not pushed): RC, RF, RD, UB, StateSpace (all four values), OneSafe; checked
 by hand on Raft-PT-02 for the five examinations against the oracle (all
 match). `hsc-pn` gained `--max-tokens` for OneSafe.
 
-## Campaign E1 (StateSpace baseline): submitted 2026-09-08 evening
+## Campaign E1 (StateSpace): draining, first read done
 
-Deployed per PetriSpot `docs/CLUSTER.md`: deploy clone pulled, `hsc/install.sh`
-(binaries from `HSC-Linux`, commit 526ed35 of libHSC), `hsc/` rsynced to
-`cluster.lip6.fr:MCC26/MCC-drivers/hsc/`. Warmup `AirplaneLD-PT-0010`, all
-examinations: SS, OS, RD, RC, RF, UB answered and right. Then
-`TIMEOUT=300 WALLTIME=0:10:0 CORES=4 HOSTS="tall%" BK_TOOL=hsc ./run_oar.sh
-"oracle/*-SS.out"` (results in `MCC26/MCC-drivers/SS/`; the folder also
-holds the warmup log). Driver: four configurations side by side, memory
-confinement split among them, `HSC_CONFS="<names>"` runs a subset (the
-rerun of the best one with the whole memory).
+Submitted 2026-09-08 evening: `TIMEOUT=300 WALLTIME=0:10:0 CORES=4
+HOSTS="tall%" BK_TOOL=hsc ./run_oar.sh "oracle/*-SS.out"`, 1391 instances,
+binaries from `HSC-Linux`. Warmup on `AirplaneLD-PT-0010` was green on all
+six examinations first. Collected as it drains into
+`/data/ythierry/MCC26run/20260908-hsc/` and on the pages as the set
+`libHSC 20260908 SS`:
 
-Watch: `bash ~/git/PetriSpot/Petri/test/mcc/cluster_status.sh SS`. Collect
-when drained (`docs/CLUSTER.md` section 4, `collect.sh`), then read against
-the contest tables (`HSC_EXPERIMENTS.md` E1): answered, exact, time,
-winning configuration (`answered by configuration` lines; the `== <conf>:
-exit N` lines say who timed out or was killed), failure class. Report in
-`~/git/PetriSpot/libHSC_in_MCC.md` (dated section). Second wave: RC, RF,
-RD, UB the same way; a rerun with `HSC_CONFS` of the best configuration on
-the instances where all four timed out.
+```
+bash ~/git/PetriSpot/Petri/test/mcc/collect.sh 20260908-hsc SS --pages
+ssh cluster.lip6.fr 'ls MCC26/MCC-drivers/SS/OAR.*.stdout | wc -l; oarstat -u | grep -c " ythierry "'
+```
+
+First read at 163 logs, with the findings, is
+`~/git/PetriSpot/libHSC_in_MCC.md` (2026-09-08 section): 309 values right,
+3 wrong (all TRANSITIONS on coloured instances, the unfolder's fused
+bindings, not the engine), 41 runs at the 300 s wall, median 60 s.
+
+**Waiting in the queue**: one ITS-Tools warmup job for the 300 s SS
+baseline, submitted with `TAG=itstools` so it lands in `SS.itstools/` (the
+new `run_oar.sh` option; two tools, one examination, no mixing). When its
+log appears and looks right, submit the baseline:
+
+```
+ssh cluster.lip6.fr 'cd MCC26/MCC-drivers && TIMEOUT=300 WALLTIME=0:10:0 CORES=4 \
+  HOSTS="tall%" TAG=itstools BK_TOOL=itstools ./run_oar.sh "oracle/*-SS.out"'
+bash ~/git/PetriSpot/Petri/test/mcc/collect.sh 20260908-its SS.itstools --pages
+```
+
+The ITS-Tools image in the deploy tree and on the cluster was refreshed to
+the product `202609081701` (it carries the `hsc-pn` of `HSC-Linux` and the
+new `-hsc` / `-hscBench` flags); `its-tools-native` is present, so the
+launcher is the native image, `tall%` only.
+
+**To deploy once the campaign has drained** (never touch a tool folder
+under a running campaign):
+
+```
+cd /data/ythierry/MCC26deploy/MCC-drivers && git pull && (cd hsc && ./install.sh)
+rsync -rlptD --no-g --chmod=Dg+s --delete /data/ythierry/MCC26deploy/MCC-drivers/hsc/ cluster.lip6.fr:MCC26/MCC-drivers/hsc/
+```
+
+It brings the driver's coloured guard (no TRANSITIONS on an unfolded net)
+and the `hsc-pn` that reports a bad net cleanly instead of dumping core.
+Also: never overwrite `run_oar.sh` while its submission loop runs (it
+truncated this campaign's submission; nothing was lost, `docs/CLUSTER.md`
+now says so).
+
+## Next actions after E1
 
 ## Next actions after E1
 
