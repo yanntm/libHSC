@@ -53,7 +53,7 @@ built balanced_cube(core::manager& mgr, leaves::int_set_theory& theory,
 }
 
 /// Brute-force count of tuples over `sizes` with tuple[xi] op tuple[yi].
-double oracle(const std::vector<int>& sizes, std::size_t xi, cmp op,
+double oracle(const std::vector<int>& sizes, std::size_t xi, hsc::cmp op,
               std::size_t yi) {
   double n = 0;
   std::vector<int> t(sizes.size(), 0);
@@ -69,7 +69,7 @@ double oracle(const std::vector<int>& sizes, std::size_t xi, cmp op,
   return n;
 }
 
-constexpr cmp ALL[] = {cmp::lt, cmp::le, cmp::eq, cmp::ne, cmp::ge, cmp::gt};
+constexpr hsc::cmp ALL[] = {hsc::cmp::lt, hsc::cmp::le, hsc::cmp::eq, hsc::cmp::ne, hsc::cmp::ge, hsc::cmp::gt};
 
 }  // namespace
 
@@ -81,7 +81,7 @@ TEST_CASE("every comparator at the top cut of a pair") {
   const std::vector<int> sizes{3, 3};  // x in [0,3), y in [0,3)
   auto [sort, c] = cube(mgr, theory, leaf, sizes);
 
-  for (const cmp op : ALL) {
+  for (const hsc::cmp op : ALL) {
     const core::code sel = select_compare(mgr, theory, sort, c, 0, op, 1);
     CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, 0, op, 1));
   }
@@ -96,7 +96,7 @@ TEST_CASE("every comparator with y a level deeper in the tail") {
   const std::vector<int> sizes{3, 2, 3};
   auto [sort, c] = cube(mgr, theory, leaf, sizes);
 
-  for (const cmp op : ALL) {
+  for (const hsc::cmp op : ALL) {
     const core::code sel = select_compare(mgr, theory, sort, c, 0, op, 2);
     CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, 0, op, 2));
   }
@@ -111,7 +111,7 @@ TEST_CASE("every comparator with x the later coordinate (head holds y)") {
   const std::vector<int> sizes{4, 4};
   auto [sort, c] = cube(mgr, theory, leaf, sizes);
 
-  for (const cmp op : ALL) {
+  for (const hsc::cmp op : ALL) {
     const core::code sel = select_compare(mgr, theory, sort, c, 1, op, 0);
     CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, 1, op, 0));
   }
@@ -132,7 +132,7 @@ TEST_CASE("every comparator, every position pair, balanced shapes") {
     for (std::size_t x = 0; x < sizes.size(); ++x) {
       for (std::size_t y = 0; y < sizes.size(); ++y) {
         if (x == y) continue;
-        for (const cmp op : ALL) {
+        for (const hsc::cmp op : ALL) {
           const core::code sel = select_compare(mgr, theory, sort, c, x, op, y);
           CHECK(mgr.diagrams().cardinal(sel) == oracle(sizes, x, op, y));
         }
@@ -176,7 +176,7 @@ TEST_CASE("x op x resolves on reflexivity") {
   const std::vector<int> sizes{3, 2};
   auto [sort, c] = cube(mgr, theory, leaf, sizes);
 
-  for (const cmp op : ALL) {
+  for (const hsc::cmp op : ALL) {
     const core::code sel = select_compare(mgr, theory, sort, c, 0, op, 0);
     CHECK(sel == (eval(op, 0, 0) ? c : core::none));
   }
