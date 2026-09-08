@@ -24,9 +24,10 @@ Five modes, and nothing else:
 
 **Dependencies policy.** C++23, CMake. External: **google sparsehash**
 (fetched into `deps/`, not vendored; `configure` run at CMake time for
-`sparseconfig.h`, header-only thereafter), **doctest** (tests only),
-**CLI11** (tools only), **expat** (Petri import only). No boost. Everything
-else is std. Sparsehash serves `sparsetable` for the sparse refcounts —
+`sparseconfig.h`, header-only thereafter), **GMP** with its C++ wrapper
+(exact cardinals; the system's or a static build in the CI), **doctest**
+(tests only), **CLI11** (tools only), **expat** (Petri import only). No
+boost. Everything else is std. Sparsehash serves `sparsetable` for the sparse refcounts —
 most nodes are never referenced. It does not back the unique table's probe
 set: that table is ours (`mem/id_table.hh`).
 

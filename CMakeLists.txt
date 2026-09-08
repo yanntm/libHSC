@@ -38,7 +38,7 @@ add_library(hsc)
 add_library(hsc::hsc ALIAS hsc)
 target_include_directories(hsc PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
-target_link_libraries(hsc PUBLIC hsc::sparsehash)
+target_link_libraries(hsc PUBLIC hsc::sparsehash GMP::gmpxx)
 target_compile_options(hsc PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>)
 

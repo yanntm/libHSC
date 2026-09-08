@@ -1,11 +1,17 @@
 # External dependencies, fetched into deps/ (never vendored into git).
 #
 # Policy (roadmap.md, "Dependencies policy"): the library itself uses google
-# sparsehash and nothing else that is not std. Tooling around it may lean on
-# more: doctest is the test harness (fetched only with HSC_BUILD_TESTS),
-# CLI11 the argument parser of the command-line tools.
+# sparsehash and GMP (exact cardinals) and nothing else that is not std.
+# Tooling around it may lean on more: doctest is the test harness (fetched
+# only with HSC_BUILD_TESTS), CLI11 the argument parser of the command-line
+# tools, expat the PNML reader.
 
 include(FetchContent)
+
+# --- GMP (system or CMAKE_PREFIX_PATH; cmake/FindGMP.cmake) ---------------
+
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+find_package(GMP REQUIRED)
 
 # Everything lands under deps/ rather than the build tree, so a rebuild from
 # scratch does not re-download and the sources are inspectable in place.
