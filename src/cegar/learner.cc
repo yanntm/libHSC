@@ -3,6 +3,7 @@
 
 #include "hsc/cegar/learner.hh"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 

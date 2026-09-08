@@ -1,5 +1,6 @@
 #include "hsc/mem/stats.hh"
 
+#include <cstdint>
 #include <ostream>
 
 namespace hsc::mem {

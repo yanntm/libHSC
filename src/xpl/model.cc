@@ -4,6 +4,7 @@
 /// §5.
 
 #include <algorithm>
+#include <cstdint>
 
 #include "hsc/xpl/interpret/model.hh"
 

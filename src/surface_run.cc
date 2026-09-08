@@ -6,6 +6,7 @@
 /// engines; neither engine knows the other.
 
 #include <algorithm>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <optional>

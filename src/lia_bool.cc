@@ -3,6 +3,7 @@
 /// form, substitution. The integer side is `lia_int.cc`.
 
 #include <algorithm>
+#include <cstdint>
 #include <ostream>
 #include <vector>
 

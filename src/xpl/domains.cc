@@ -7,6 +7,7 @@
 #include "hsc/xpl/domains.hh"
 
 #include <algorithm>
+#include <cstdint>
 #include <functional>
 #include <limits>
 #include <map>

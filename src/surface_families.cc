@@ -2,6 +2,7 @@
 /// \brief Certified uniform families: the declared head-folded route, the
 /// enumerated route, and the check mode that requires the same code.
 
+#include <cstdint>
 #include <set>
 
 #include "surface_translator.hh"

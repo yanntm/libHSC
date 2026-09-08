@@ -4,6 +4,7 @@
 /// HotBitRewriter re-expressed on the datum structure —
 /// `algorithm.md` §1c names the eligibility rules and the encoding.
 
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <set>

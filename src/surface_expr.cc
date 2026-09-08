@@ -5,6 +5,7 @@
 #include "hsc/surface/expr.hh"
 
 #include <charconv>
+#include <cstdint>
 #include <vector>
 
 #include "hsc/surface/translate.hh"

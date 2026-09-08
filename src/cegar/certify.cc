@@ -3,6 +3,7 @@
 #include "hsc/cegar/certify.hh"
 
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <vector>
 

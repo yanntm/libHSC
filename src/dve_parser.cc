@@ -4,6 +4,7 @@
 
 #include <cctype>
 #include <charconv>
+#include <cstdint>
 #include <string>
 #include <vector>
 

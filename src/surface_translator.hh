@@ -15,6 +15,7 @@
 #include "hsc/surface/expand.hh"
 #include <algorithm>
 #include <charconv>
+#include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <functional>

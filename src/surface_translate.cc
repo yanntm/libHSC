@@ -2,6 +2,8 @@
 /// \brief Translator core: form dispatch, the declarations — leaves,
 /// arrays, the shape and the frontier order it fixes, the initial state.
 
+#include <cstdint>
+
 #include "surface_translator.hh"
 
 namespace hsc::surface {

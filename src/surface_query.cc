@@ -3,6 +3,8 @@
 /// select and its crossing atoms, counting, exhibition of states as
 /// word literals, expectations.
 
+#include <cstdint>
+
 #include "surface_translator.hh"
 
 namespace hsc::surface {

@@ -11,6 +11,7 @@
 #include "hsc/surface/cegar_build.hh"
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <sstream>
 

@@ -5,6 +5,7 @@
 #include "hsc/order/force.hh"
 
 #include <algorithm>
+#include <cstdint>
 #include <numeric>
 
 namespace hsc::order {

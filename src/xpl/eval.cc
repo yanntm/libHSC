@@ -5,6 +5,7 @@
 
 #include "hsc/xpl/interpret/eval.hh"
 
+#include <cstdint>
 #include <limits>
 #include <sstream>
 #include <string>

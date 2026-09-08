@@ -2,6 +2,7 @@
 // monitor, fragment refusals; the monolithic oracle on the worked
 // example, both variants.
 
+#include <cstdint>
 #include <doctest/doctest.h>
 
 #include "fixtures.hh"

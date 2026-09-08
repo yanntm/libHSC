@@ -4,6 +4,7 @@
 
 #include "hsc/xpl/engine.hh"
 
+#include <cstdint>
 #include <deque>
 #include <limits>
 #include <utility>

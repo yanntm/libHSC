@@ -4,6 +4,7 @@
 // loop's contract and keeps the historical regression seeds meaningful.
 #pragma once
 
+#include <cstdint>
 #include <random>
 
 #include "hsc/cegar/model.hh"

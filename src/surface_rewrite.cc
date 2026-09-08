@@ -6,6 +6,7 @@
 
 #include "hsc/surface/rewrite.hh"
 
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <set>

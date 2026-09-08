@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cstdint>
 #include <ostream>
 
 #include "hsc/surface/translate.hh"

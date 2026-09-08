@@ -9,6 +9,7 @@
 /// the culprit. Semantics in `algorithm.md` §3.
 #pragma once
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 

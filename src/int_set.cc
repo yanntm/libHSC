@@ -1,6 +1,7 @@
 #include "hsc/leaves/int_set.hh"
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <ostream>
 #include <string>

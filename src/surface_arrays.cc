@@ -6,6 +6,7 @@
 /// analyses see the cells one by one. Composes with
 /// `simplify-constants`, which grounds index expressions.
 
+#include <cstdint>
 #include <map>
 #include <set>
 #include <sstream>

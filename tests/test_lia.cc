@@ -2,6 +2,7 @@
 /// \brief The lia expression package: canonicity by interning, the factory
 /// normal form, ⊥, and substitution as currying.
 
+#include <cstdint>
 #include <doctest/doctest.h>
 
 #include <sstream>

@@ -6,6 +6,7 @@
 #include "hsc/xpl/interpret/fire.hh"
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 
 #include "hsc/xpl/interpret/eval.hh"

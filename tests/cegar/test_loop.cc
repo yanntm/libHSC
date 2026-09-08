@@ -2,6 +2,7 @@
 // (O3), the worked-example phenomenon, interning (O4 via stats), and
 // the certificate emitter's shape.
 
+#include <cstdint>
 #include <doctest/doctest.h>
 
 #include <sstream>

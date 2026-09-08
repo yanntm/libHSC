@@ -3,6 +3,7 @@
 /// substitution, support. The boolean side is `lia_bool.cc`.
 
 #include <algorithm>
+#include <cstdint>
 #include <ostream>
 #include <stdexcept>
 #include <vector>

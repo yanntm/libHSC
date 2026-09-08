@@ -1,6 +1,7 @@
 // M2+M3 — the teacher's certification walk and the L* learner driven to
 // exactness with certification as the equivalence oracle.
 
+#include <cstdint>
 #include <doctest/doctest.h>
 
 #include "hsc/cegar/certify.hh"

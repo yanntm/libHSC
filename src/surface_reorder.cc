@@ -9,6 +9,7 @@
 /// denotes the same states.
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
 #include <numeric>
 #include <sstream>

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cstdint>
 #include <map>
 #include <ostream>
 #include <string>

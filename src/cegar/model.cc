@@ -4,6 +4,7 @@
 #include "hsc/cegar/model.hh"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <unordered_map>
 

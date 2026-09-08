@@ -10,6 +10,7 @@
 #include "hsc/core/operation.hh"
 
 #include <algorithm>
+#include <cstdint>
 #include <new>
 
 #include "hsc/core/manager.hh"

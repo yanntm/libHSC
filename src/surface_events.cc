@@ -3,6 +3,8 @@
 /// along the separable/crossing seam — and the event algebra (named
 /// terms, alt = sum, seq = compose).
 
+#include <cstdint>
+
 #include "surface_translator.hh"
 
 namespace hsc::surface {

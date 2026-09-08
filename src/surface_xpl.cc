@@ -8,6 +8,7 @@
 #include "hsc/surface/xpl_build.hh"
 
 #include <charconv>
+#include <cstdint>
 
 #include "hsc/surface/translate.hh"
 

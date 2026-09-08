@@ -3,6 +3,7 @@
 
 #include "hsc/cegar/classifier.hh"
 
+#include <cstdint>
 #include <cstring>
 #include <map>
 
