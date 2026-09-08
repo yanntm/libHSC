@@ -143,3 +143,76 @@ head algebra and `cardinal(unit) = 1`. Memoized like everything else. It is a
 reading, not for deciding. The same recursion instantiated on a GMP integer
 (`cardinal_exact`, its own memo) gives the number itself when a query asks
 for it (the MCC state count).
+
+## 8. The deflationary closure (`gfp`)
+
+`lfp h` accumulates: `X ↦ X ∪ h(X)` from a seed upward. Its dual removes:
+
+    gfp(h)·A  =  the greatest fixpoint of  X ↦ X ∩ h(X)  below A
+
+by iteration from `A` downward, stabilising because `A` is finite and every
+round is a subset of the previous. Offered as a term (`op_kind::gfp`, one
+operand) for the same reason `lfp` is: a closure recognised at the term
+level is one memo entry, not a round count. There is no meet on terms
+(`h ∩ id` is not a term); the closure is the only deflationary form the
+calculus spells.
+
+What it computes: for `h = next`, the states of `A` that have a predecessor
+in `A`, iterated — the states of `A` reached from a cycle inside `A` (the
+forward SCC hull `EH`); for `h = pred`, the states of `A` from which an
+infinite path stays in `A` (the core of `EG`). Evaluation is breadth-first
+at the sort the term is applied at, over the memoised `apply` of the
+operand: no F-L-G schedule is known for it (a cycle may alternate parts),
+and none is attempted here.
+
+## 9. The inverse of a term, relative to a context
+
+The support contract exports pushforwards only. The backward operators of
+CTL need `pred = next⁻¹`, built **structurally** from the forward term:
+
+    node(h, t)⁻¹  = node(h⁻¹, t⁻¹)        (Σ hᵢ)⁻¹ = Σ hᵢ⁻¹
+    (a ∘ b)⁻¹     = b⁻¹ ∘ a⁻¹              lfp(h)⁻¹ = lfp(h⁻¹)
+    id⁻¹          = id                     saturate(F, L, G…)⁻¹ = saturate over the inverted events
+
+An inverted event touches exactly the positions of the original, so the
+saturation partition of the backward system is that of the forward one:
+backward saturation is `saturate()` over inverted events, nothing more.
+
+At a leaf the theory inverts its own local terms, and this is where a
+**context** enters: a non-injective action (`x := c`) inverts to "from `c`
+to every value the guard admits", which is only finite given a domain `D`
+for the coordinate. `D` is the declared domain of the leaf where the model
+gives one (the inverse is then exact: true predecessors, reachable or not),
+else the projection of the reachable set on that position (a relation that
+may over-approximate on the product, as libDDD's `invert(pot)` does). For
+`int_set` (`guard g`, then action):
+
+| forward | inverse | needs `D` |
+|---|---|---|
+| `keep(g)` | `keep(g)` | no |
+| `shift(g, d)` | `shift(g[x ↦ x − d], −d)` | no — but see below |
+| `assign(g, c)` | `keep({c})` then any value of `g ∩ D` | yes |
+| `apply(g, e)` | `{ e(v) ↦ v : v ∈ D, g(v) }` as a sum of point terms | yes |
+| `havoc(g, [lo,hi))` | `keep([lo,hi))` then any value of `g ∩ D` | yes |
+
+A **case bracket** (a term spanning a cut) is inverted assignment by
+assignment when each is invertible given the coordinates it does not write
+(`x := x + y` to `x := x − y`); otherwise the inversion is **refused**,
+loudly. Every separable event — every P/T transition — inverts by the
+table.
+
+**Exactness and the reachable set.** With exact leaf inverses the backward
+image may hold unreachable states. That is harmless for answers relative to
+`R`: an unreachable state has no reachable predecessor, so every reachable
+state a backward closure reaches is a genuine one, and negation is `R ∖ X`.
+With an over-approximate inverse (projection contexts) the reference
+discipline applies: test `pred(R) ⊆ R` once; keep the events that pass raw
+and protect the others with `meet(·, R)` after each step — a data constraint,
+which is a straddling term at the root and the intersection that breaks
+saturation, confined to the events that need it.
+
+**Termination.** The inverse of a guarded downward shift is an unguarded
+upward one (`m ≥ w; m −= w` inverts to `m += w`): under a closure it diverges
+unless the coordinate has a domain to stop at. Hazard H2 is live here, and
+the declared domain is what discharges it — the first place the calculus
+needs a domain for correctness rather than for counting.
