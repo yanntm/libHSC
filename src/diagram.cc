@@ -368,23 +368,54 @@ code diagram_engine::do_minus(code a, code b) {
 
 // --- reading a diagram ----------------------------------------------------
 
-double diagram_engine::cardinal(code c) const {
-  if (c == none) return 0.0;
+template <class Num, class Lookup, class Store>
+Num diagram_engine::cardinal_as(code c, Lookup&& lookup, Store&& store) const {
+  if (c == none) return Num(0);
   const node& n = nodes_[c];
-  if (n.arity == 0) return 1.0;  // the terminal: one word, the empty one
+  if (n.arity == 0) return Num(1);  // the terminal: one word, the empty one
+  if (const Num* hit = lookup(c)) return *hit;
 
-  if (cardinal_memo_.size() <= c) cardinal_memo_.resize(c + 1, -1.0);
-  if (cardinal_memo_[c] >= 0.0) return cardinal_memo_[c];
-
+  const shape_table& shapes = owner_.shapes();
+  const bool head_is_diagram = !shapes.is_leaf(shapes.head(n.sort));
+  const bool tail_is_diagram = !shapes.is_leaf(shapes.tail(n.sort));
   const support_algebra& head = head_algebra(n.sort);
   const support_algebra& tail = tail_algebra(n.sort);
-  double total = 0.0;
+  // A leaf theory answers in double; its sets are small enough (below 2^53)
+  // for the conversion to be exact. A diagram operand recurses in Num.
+  auto side = [&](const support_algebra& alg, bool is_diagram, code x) {
+    return is_diagram ? cardinal_as<Num>(x, lookup, store)
+                      : Num(alg.cardinal(x));
+  };
+  Num total(0);
   for (const arc& a : n.arcs()) {
-    total += head.cardinal(a.prime) * tail.cardinal(a.sub);
+    total += side(head, head_is_diagram, a.prime) *
+             side(tail, tail_is_diagram, a.sub);
   }
-  if (cardinal_memo_.size() <= c) cardinal_memo_.resize(c + 1, -1.0);
-  cardinal_memo_[c] = total;
+  store(c, total);
   return total;
+}
+
+double diagram_engine::cardinal(code c) const {
+  return cardinal_as<double>(
+      c,
+      [&](code x) -> const double* {
+        if (cardinal_memo_.size() <= x || cardinal_memo_[x] < 0.0) return nullptr;
+        return &cardinal_memo_[x];
+      },
+      [&](code x, double v) {
+        if (cardinal_memo_.size() <= x) cardinal_memo_.resize(x + 1, -1.0);
+        cardinal_memo_[x] = v;
+      });
+}
+
+mpz_class diagram_engine::cardinal_exact(code c) const {
+  return cardinal_as<mpz_class>(
+      c,
+      [&](code x) -> const mpz_class* {
+        const auto it = exact_memo_.find(x);
+        return it == exact_memo_.end() ? nullptr : &it->second;
+      },
+      [&](code x, const mpz_class& v) { exact_memo_.emplace(x, v); });
 }
 
 void diagram_engine::collect_nodes(code c, std::unordered_set<code>& seen) const {

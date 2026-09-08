@@ -10,8 +10,11 @@
 
 #include <cstdint>
 #include <span>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+#include <gmpxx.h>
 
 #include "hsc/core/shape.hh"
 #include "hsc/core/support.hh"
@@ -119,6 +122,10 @@ class diagram_engine final : public support_algebra {
   code term_sum(code a, code b) override;
   code term_lfp(code t) override;
   [[nodiscard]] double cardinal(code c) const override;
+  /// The exact cardinal, a GMP integer: the same sum as `cardinal`, computed
+  /// in arbitrary precision. For a query that asks for the number itself,
+  /// not its order of magnitude; the double stays the default.
+  [[nodiscard]] mpz_class cardinal_exact(code c) const;
   void print(std::ostream& os, code c) const override;
   ///@}
 
@@ -171,6 +178,11 @@ class diagram_engine final : public support_algebra {
   mem::cache<diagram_engine, binary_op> ops_;
   code one_ = none;
   mutable std::vector<double> cardinal_memo_;
+  mutable std::unordered_map<code, mpz_class> exact_memo_;
+
+  /// The counting recursion over a number type, memo supplied by the caller.
+  template <class Num, class Lookup, class Store>
+  Num cardinal_as(code c, Lookup&& lookup, Store&& store) const;
 };
 
 }  // namespace hsc::core

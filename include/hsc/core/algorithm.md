@@ -139,5 +139,7 @@ incremental insert, written for one sort instead of any.
 
 `cardinal(diagram)` = `Σ_i |P_i| · cardinal(S_i)`, with `|P_i|` asked of the
 head algebra and `cardinal(unit) = 1`. Memoized like everything else. It is a
-`double`: state spaces are exponential and the number is for reading, not for
-deciding.
+`double` by default: state spaces are exponential and the number is for
+reading, not for deciding. The same recursion instantiated on a GMP integer
+(`cardinal_exact`, its own memo) gives the number itself when a query asks
+for it (the MCC state count).
