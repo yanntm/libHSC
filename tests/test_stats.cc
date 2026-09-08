@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <doctest/doctest.h>
 
 #include <sstream>

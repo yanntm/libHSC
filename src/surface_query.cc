@@ -3,6 +3,7 @@
 /// select and its crossing atoms, counting, exhibition of states as
 /// word literals, expectations.
 
+#include <algorithm>
 #include <cstdint>
 
 #include "surface_translator.hh"

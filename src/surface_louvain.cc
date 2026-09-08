@@ -7,6 +7,7 @@
 /// relative frontier order. Reordering/regrouping is a rewriting, and
 /// semantically neutral.
 
+#include <algorithm>
 #include <sstream>
 
 #include "hsc/petri/louvain/community.h"

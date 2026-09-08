@@ -9,6 +9,7 @@
 
 #include "hsc/petri/decompose.hh"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
