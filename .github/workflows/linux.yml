@@ -1,0 +1,24 @@
+name: Linux Build
+
+on:
+  push:
+    branches: [ master ]
+  repository_dispatch:
+    types: [Linux]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v6
+    - name: build and test
+      run: bash build_hsc.sh
+
+    - name: Deploy binaries to the HSC-Linux branch
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+          branch: HSC-Linux
+          folder: website/
+          clean: true
+          single-commit: true

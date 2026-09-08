@@ -10,3 +10,9 @@
 
 # Paper library (pdf + txt extracts), fetched from the web, never committed
 /papers/
+
+# The CI build script's own trees (build_hsc.sh)
+/usr/
+/website/
+/expat-*/
+/expat-*.tar.gz

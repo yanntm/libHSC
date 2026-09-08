@@ -20,6 +20,10 @@ Needs a C++23 compiler and network on first configure (google sparsehash,
 doctest and CLI11 are fetched into `deps/`); the PNML importers additionally
 need expat and are skipped without it.
 
+Prebuilt static binaries are published by the CI on every push (see
+`doc/ci.md`): `https://github.com/yanntm/libHSC/raw/HSC-Linux/hsc`, and
+`HSC-OSX` likewise. `./build_hsc.sh` reproduces that build locally.
+
 ## What you can do
 
 **Run a model.** A `.hsc` file declares integer leaves, a tree *shape* over
