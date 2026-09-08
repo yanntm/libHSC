@@ -51,6 +51,12 @@ if(EXPAT_FOUND)
                -DHSC_PN=$<TARGET_FILE:hsc-pn>
                -DSAMPLES=${PROJECT_SOURCE_DIR}/examples/mcc
                -P ${CMAKE_CURRENT_SOURCE_DIR}/check_samples.cmake)
+    # hsc-pn on both input paths against the oracle (tests/pn_samples.sh);
+    # a run over the cap is reported, only a wrong verdict fails.
+    add_test(NAME pn_samples
+             COMMAND bash ${PROJECT_SOURCE_DIR}/tests/pn_samples.sh
+               $<TARGET_FILE:hsc-pn> ${PROJECT_SOURCE_DIR}/examples/mcc)
+    set_tests_properties(pn_samples PROPERTIES ENVIRONMENT "PN_TIMEOUT=5")
   endif()
 else()
   message(STATUS "expat not found: the nupn2hsc / hsc-mcc tools will not be built")

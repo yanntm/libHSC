@@ -11,81 +11,38 @@ Done and pushed: CI (`doc/ci.md`, branches `HSC-Linux`, `HSC-OSX`), GMP
 exact count (`(count R exact)`, `(states)`), vendored PetriSpot tree as exact
 copies (`include/hsc/petri/{core,parse,expr,io}`, `vendor.sh`), fixtures in
 `examples/mcc/` (4 models: `<M>.<Exam>.xml`, `<M>.pnet`, `<M>.<Exam>.sexpr`,
-`oracle/<M>-{RC,RF,UB,RD}.out`), the incremental `hsc::surface::session`
-(`include/hsc/surface/translate.hh`: `session s(out); s.feed(forms);`), the
-atom printer `include/hsc/petri/props_to_surface.hh` + `src/petri_props.cc`
-(compiles as part of `petri_import`, see `tools/CMakeLists.txt`).
+`oracle/<M>-{RC,RF,UB,RD}.out`), the incremental `hsc::surface::session`,
+the atom printer `include/hsc/petri/props_to_surface.hh`.
 
-## Next: `tools/hsc-pn.cc` (+ `tools/pn_solver.hh`), Phase 2 of the plan
+**`hsc-pn` exists** (`tools/hsc-pn.cc`, `tools/pn_solver.hh`, design in
+`tools/README.md`) and is checked by `tests/pn_samples.sh` (ctest
+`pn_samples`, `PN_TIMEOUT=5`): both input paths, RC, RF, UB, deadlock,
+STATES against the oracle. Result at the first run: 30 checks right, 0
+wrong, Angiogenesis-PT-05 UpperBounds and the StateSpace extras over the
+15 s cap (one UB property alone takes 0.7 s, its RC set 9.3 s: a `select`
+on the 17910-node, 42M-state diagram costs about 0.5 s; a performance
+topic for the sweep, not a bug).
 
-Design in `tools/README.md` (read it first; keep it in sync). Facts needed:
+## Next actions, in order
 
-* Load: PNML `SparsePetriNet<int>* net = loadXML<int>(path)`
-  (`hsc/petri/parse/PTNetLoader.h`), units `hsc::petri::read_units(path)`
-  (`nupn.hh`); PNET `petri::PNETIO<int>::read(path)` (`hsc/petri/io/PNETIO.h`);
-  Louvain `hsc::petri::decompose(*net)` (`decompose.hh`); flat = a default
-  `unit_tree{}`. Log to stderr: `petri::setLogStream(std::cerr)`
-  (`hsc/petri/core/Log.h`). Copy the includes and the load code from
-  `tools/hsc-mcc.cc`.
-* Model text: `hsc::petri::to_surface(os, *net, units, opts)` with
-  `opts.exam = examination::none`, `opts.bound` from `--bound` (default 2;
-  the effective leaf domain is `[0, max(bound, max marking + 1))`, compute
-  the same value in the tool for the bound search). Then
-  `hsc::surface::parse(text)` (`hsc/surface/sexpr.hh`) gives the forms;
-  append `parse("(reorder-force)")` when `--force`, and
-  `parse("(reach R saturate)")`. First `session.feed` = that whole batch.
-* Properties: `petri::loadPropertyFile<int>(file, *net, syntax)`
-  (`hsc/petri/parse/PropertyFile.h`, `petri::propertySyntaxOf("auto|mcc|sexpr")`)
-  gives `std::vector<petri::expr::Property>`; fields `name`, `kind`
-  (`PropertyKind::Reachability|Invariant|Deadlock|Bound|CTL|Unsupported`),
-  `body` (Expression), `boundHint` (-1 = none). Fold constants with
-  `petri::expr::simplify(expr)` (`expr/Simplify.h`) before printing.
-* One query: feed `(select Qi R ATOM) (count Qi)` where `ATOM` comes from
-  `hsc::petri::query_atom(expr, net->getPnames())`; the session writes
-  `Qi count N` on its stream. Use an `std::ostringstream` as the session's
-  stream, read the lines after each feed, clear it (`str("")`). N is zero or
-  not: Reachability TRUE iff non-zero; Invariant uses `makeNot(body)` then
-  simplify, FALSE iff non-zero; Deadlock uses `hsc::petri::deadlock_atom(*net)`
-  (nullopt = no deadlock = FALSE), TRUE iff non-zero. Root constants
-  (`expr.isConstant()`): answer directly with `TECHNIQUES TOPOLOGICAL TRIVIAL`.
-* Bound: binary search on k for the largest k with `(select Q R (>= FORM k))`
-  non-empty, `hsc::petri::at_least(p.body.atom, k, pnames)`; k in
-  `[-(B-1)*sum(|c|, c<0), (B-1)*sum(|c|, c>0)]`, B the effective bound;
-  check `boundHint` first when >= 0. Print `FORMULA name k TECHNIQUES ...`.
-* CTL / Unsupported: print `UNKNOWN name` only when `--printUnknown`.
-* Output lines (stdout, `std::endl` to flush): `FORMULA <name> TRUE|FALSE
-  TECHNIQUES DECISION_DIAGRAMS SATURATION`; `--states`: `STATE_SPACE STATES
-  <n> TECHNIQUES ...` from `(count R exact)` (line `R count <n>`),
-  `STATE_SPACE MAX_TOKEN_IN_PLACE <n>` from `(max-value R)` (line `R
-  max-value <n>`), `STATE_SPACE MAX_TOKEN_PER_MARKING` by the bound search on
-  a LinearAtom with every place at coefficient 1, `STATE_SPACE TRANSITIONS`
-  = sum over t of `(count (select Gt R guard_t) exact)` (`guard_atom(net,t)`,
-  nullopt means the whole R); sum with `mpz_class`.
-* Overflow: catch `hsc::overflow_error` (`hsc/util/errors.hh`) around a
-  feed: print `UNKNOWN` for the rest when asked, message on stderr, exit 0.
-* `--totalTime S`: `alarm(S)`; the SIGALRM handler `write(1, ...)`s
-  prepared `UNKNOWN <name>\n` strings from a global index of the next open
-  property, then `_exit(0)`. `--export-hsc FILE` writes the model text.
-* CLI11 (`CLI::App`, `add_option`, `add_flag`, `CLI11_PARSE`): copy the
-  style of `tools/hsc.cc`. Keep `hsc-pn.cc` under 300 lines: the solver
-  (session + decoding + bound search) in `tools/pn_solver.hh`.
-
-Build and check (cap every run at 15 s):
-
-```
-cmake --build build -j > tests/logs/build.log 2>&1; grep error tests/logs/build.log
-./build/tools/hsc-pn -i examples/mcc/Raft-PT-02.pnml --props examples/mcc/Raft-PT-02.ReachabilityCardinality.xml
-./build/tools/hsc-pn --net examples/mcc/Raft-PT-02.pnet --props examples/mcc/Raft-PT-02.ReachabilityCardinality.sexpr
-diff <(grep ^FORMULA examples/mcc/oracle/Raft-PT-02-RC.out | cut -d' ' -f2,3 | sort) <(./build/tools/hsc-pn ... | grep ^FORMULA | cut -d' ' -f2,3 | sort)
-```
-
-Then extend `tools/check_samples.cmake` (`-DHSC_PN` is already passed):
-for each model with fixtures, run both paths on RC, RF, UB and compare the
-`FORMULA name value` pairs with `oracle/<M>-<EXAM>.out`; the deadlock column
-of `expected.csv` against `--deadlock ReachabilityDeadlock`. Run
-`ctest --test-dir build -R mcc_samples`. Commit, push (`git push origin
-master`), watch the CI (`doc/ci.md`), then add `hsc-pn` to the binary list
-in `build_hsc.sh` and to `MCC-drivers/hsc/install.sh`.
+1. Commit what is uncommitted (`git status`), push, watch the Linux CI
+   (`doc/ci.md`), check `hsc-pn` appears on `HSC-Linux`
+   (`build_hsc.sh` lists it). Commit `~/git/MCC-drivers` (`hsc/install.sh`
+   downloads `hsc-pn` too).
+2. Rewrite `MCC-drivers/hsc/BenchKit_head.sh` on `hsc-pn`: one call per
+   configuration (`--shape nupn|flat|louvain`, `--force`) in parallel as
+   today, `--props $BK_EXAMINATION.xml` for RC, RF, UB, `--deadlock
+   ReachabilityDeadlock` for RD, `--states` for StateSpace (all four lines
+   now), OneSafe from `--states`' MAX_TOKEN_IN_PLACE (TRUE iff <= 1);
+   `SupportedExamination.txt` gains ReachabilityCardinality,
+   ReachabilityFireability, ReachabilityDeadlock, UpperBounds (PT). Check
+   with `run_test.pl` as `~/git/PetriSpot/libHSC_in_MCC.md` describes.
+3. Performance of `select` on large diagrams (the Angiogenesis-05 numbers
+   above): profile one `(select Q R (>= p k))`; report before changing the
+   calculus.
+4. `hsc-mcc` and `nupn2hsc` can be retired once the driver runs on `hsc-pn`
+   (`hsc-pn --export-hsc` replaces `nupn2hsc`); `check_samples.cmake` then
+   loses the `hsc-mcc` part.
 
 ## After that (Phases 3 and 4, ITS-Tools; see HSC_PLAN.md sections 3, 4)
 
