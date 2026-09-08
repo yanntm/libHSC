@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "hsc/petri/MatrixCol.h"
+#include "hsc/petri/core/MatrixCol.h"
 #include "hsc/petri/louvain/community.h"
 #include "hsc/petri/louvain/hyperedge.hh"
 

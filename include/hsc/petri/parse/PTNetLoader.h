@@ -1,7 +1,3 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 /*
  * PTNetLoader.h
  *
@@ -12,9 +8,9 @@
 #ifndef PTNETLOADER_H_
 #define PTNETLOADER_H_
 
-#include "SparsePetriNet.h"
-#include "PTNetHandler.h"
-#include "Log.h"
+#include "core/SparsePetriNet.h"
+#include "parse/PTNetHandler.h"
+#include "core/Log.h"
 #include <chrono>
 #include <cstdio>
 #include <expat.h>

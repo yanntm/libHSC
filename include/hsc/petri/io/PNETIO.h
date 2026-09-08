@@ -1,7 +1,3 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 /*
  * PNETIO.h
  *
@@ -28,9 +24,9 @@
 #include <string>
 #include <vector>
 
-#include "MatrixCol.h"
-#include "SparseArray.h"
-#include "SparsePetriNet.h"
+#include "core/MatrixCol.h"
+#include "core/SparseArray.h"
+#include "core/SparsePetriNet.h"
 #include "io/SparseMatrixIO.h"
 
 static const char PNET_MAGIC[4] = { 'P', 'N', 'E', 'T' };

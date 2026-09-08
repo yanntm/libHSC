@@ -1,7 +1,3 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 #ifndef SPARSEARRAY_T_H_
 #define SPARSEARRAY_T_H_
 
@@ -32,7 +28,7 @@
 #include <limits>
 #include <concepts>
 
-#include "Rational.h"
+#include "core/Rational.h"
 
 /**
  * @brief SparseArray maps integers to values of type T. Unlike a normal array,

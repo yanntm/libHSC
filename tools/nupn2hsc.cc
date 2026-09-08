@@ -12,12 +12,14 @@
 #include <iostream>
 #include <string>
 
-#include "hsc/petri/PTNetLoader.h"
+#include "hsc/petri/core/Log.h"
+#include "hsc/petri/parse/PTNetLoader.h"
 #include "hsc/petri/decompose.hh"
 #include "hsc/petri/nupn.hh"
 #include "hsc/petri/to_surface.hh"
 
 int main(int argc, char** argv) {
+  petri::setLogStream(std::cerr);  // stdout is the emitted model / the answer
   std::string in, out;
   bool decompose = false;
   hsc::petri::emit_options opts;

@@ -1,7 +1,3 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 /*
  * NetResolver.h
  *
@@ -16,7 +12,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "SparsePetriNet.h"
+#include "core/SparsePetriNet.h"
 #include "expr/Expression.h"
 
 namespace petri

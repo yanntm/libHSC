@@ -1,7 +1,3 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 /*
  * SparsePetriNet.h
  *
@@ -12,7 +8,7 @@
 #ifndef SPARSEPETRINET_H_
 #define SPARSEPETRINET_H_
 
-#include "MatrixCol.h"
+#include "core/MatrixCol.h"
 
 template<typename T>
   class SparsePetriNet

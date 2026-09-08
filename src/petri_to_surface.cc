@@ -10,7 +10,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "hsc/petri/MatrixCol.h"
+#include "hsc/petri/core/MatrixCol.h"
 #include "hsc/petri/nupn.hh"
 
 namespace hsc::petri {

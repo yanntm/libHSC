@@ -1,12 +1,8 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 #ifndef RATIONAL_H
 #define RATIONAL_H
 
-#include <numeric>
 #include <iostream>
+#include <numeric>
 
 template<typename T>
 class Rational {

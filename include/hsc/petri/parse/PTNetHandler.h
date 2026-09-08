@@ -1,11 +1,7 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 #ifndef PTNETHANDLER_H_
 #define PTNETHANDLER_H_
 
-#include "SparsePetriNet.h"
+#include "core/SparsePetriNet.h"
 #include <unordered_map>    // Replaced ext_hash_map.hh with standard header
 #include <expat.h>
 #include <stack>

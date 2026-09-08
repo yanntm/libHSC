@@ -37,7 +37,9 @@ include(cmake/hsc_deps.cmake)
 add_library(hsc)
 add_library(hsc::hsc ALIAS hsc)
 target_include_directories(hsc PUBLIC
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  # the vendored PetriSpot tree keeps upstream's "core/..." includes
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/hsc/petri>)
 target_link_libraries(hsc PUBLIC hsc::sparsehash GMP::gmpxx)
 target_compile_options(hsc PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic>)

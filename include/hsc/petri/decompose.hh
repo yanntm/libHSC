@@ -10,7 +10,7 @@
 /// HSC never learns a decomposition happened — the shape choice, made upstream.
 #pragma once
 
-#include "hsc/petri/SparsePetriNet.h"
+#include "hsc/petri/core/SparsePetriNet.h"
 #include "hsc/petri/nupn.hh"
 
 namespace hsc::petri {

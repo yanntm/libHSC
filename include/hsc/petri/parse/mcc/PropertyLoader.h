@@ -1,7 +1,3 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 /*
  * PropertyLoader.h
  *
@@ -17,8 +13,8 @@
 #include <string>
 #include <vector>
 
-#include "Log.h"
-#include "SparsePetriNet.h"
+#include "core/Log.h"
+#include "core/SparsePetriNet.h"
 #include "expr/Property.h"
 #include "parse/mcc/PropertyHandler.h"
 

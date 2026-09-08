@@ -11,7 +11,7 @@
 
 #include <iosfwd>
 
-#include "hsc/petri/SparsePetriNet.h"
+#include "hsc/petri/core/SparsePetriNet.h"
 #include "hsc/petri/nupn.hh"
 
 namespace hsc::petri {

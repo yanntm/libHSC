@@ -1,7 +1,3 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 /*
  * MatrixCol.h
  *
@@ -32,8 +28,8 @@
  */
 
 // package fr.lip6.move.gal.util;
-#include "SparseArray.h"
-#include "InvariantHelpers.h"
+#include "core/SparseArray.h"
+#include "core/InvariantHelpers.h"
 #include <unordered_set>
 
 /**

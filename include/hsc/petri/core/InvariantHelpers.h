@@ -1,7 +1,3 @@
-// Vendored into libHSC from PetriSpot (https://github.com/yanntm/PetriSpot),
-// (C) Yann Thierry-Mieg, GPL-3.0-or-later. Copied with minimal edits; provenance
-// and the list of local changes are in include/hsc/petri/README.md.
-
 #ifndef INVARIANTHELPERS_H_
 #define INVARIANTHELPERS_H_
 
@@ -14,9 +10,9 @@
 #include <limits>
 #include <cstdlib>
 #include <cassert>
-#include "SparseArray.h"
-#include "SparseBoolArray.h"
-#include "Arithmetic.hpp"
+#include "core/SparseArray.h"
+#include "core/SparseBoolArray.h"
+#include "core/Arithmetic.hpp"
 
 namespace petri {
 

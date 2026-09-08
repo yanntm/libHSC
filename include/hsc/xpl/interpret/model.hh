@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "hsc/lia/expr.hh"
-#include "hsc/petri/SparseBoolArray.h"
+#include "hsc/petri/core/SparseBoolArray.h"
 #include "hsc/xpl/state.hh"
 
 namespace hsc::xpl {

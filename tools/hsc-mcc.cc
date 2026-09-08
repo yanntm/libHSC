@@ -16,7 +16,8 @@
 
 #include "hsc/util/errors.hh"
 
-#include "hsc/petri/PTNetLoader.h"
+#include "hsc/petri/core/Log.h"
+#include "hsc/petri/parse/PTNetLoader.h"
 #include "hsc/petri/decompose.hh"
 #include "hsc/petri/nupn.hh"
 #include "hsc/petri/to_surface.hh"
@@ -24,6 +25,7 @@
 #include "hsc/surface/translate.hh"
 
 int main(int argc, char** argv) {
+  petri::setLogStream(std::cerr);  // stdout is the emitted model / the answer
   std::string in, exam;
   bool decompose = false;
   for (int i = 1; i < argc; ++i) {
