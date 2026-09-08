@@ -18,7 +18,10 @@ if(EXPAT_FOUND)
     ${PROJECT_SOURCE_DIR}/src/petri_nupn.cc
     ${PROJECT_SOURCE_DIR}/src/petri_to_surface.cc
     ${PROJECT_SOURCE_DIR}/src/petri_decompose.cc)
-  target_include_directories(petri_import PUBLIC ${PROJECT_SOURCE_DIR}/include)
+  # The vendored PetriSpot tree keeps its upstream subfolder includes
+  # ("expr/...", "parse/..."), hence the second include root.
+  target_include_directories(petri_import PUBLIC
+    ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/include/hsc/petri)
   target_link_libraries(petri_import PUBLIC EXPAT::EXPAT hsc_louvain)
 
   add_executable(nupn2hsc nupn2hsc.cc)

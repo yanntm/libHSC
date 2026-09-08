@@ -170,33 +170,6 @@ void sumProdIntoNoChange(T alpha, SparseArray<T>& ta, T beta, const SparseArray<
 }
 
 //---------------------------------------------------------------------
-// Computes the dot product of two SparseArrays.
-//---------------------------------------------------------------------
-template<typename T>
-T dotProduct(const SparseArray<T>& ta, const SparseArray<T>& tb) {
-    T result = 0;
-    size_t i = 0;
-    size_t j = 0;
-    
-    while (i < ta.size() && j < tb.size()) {
-        size_t ki = ta.keyAt(i);
-        size_t kj = tb.keyAt(j);
-        
-        if (ki == kj) {
-            result = petri::addExact(result, petri::multiplyExact(ta.valueAt(i), tb.valueAt(j)));
-            i++;
-            j++;
-        } else if (ki < kj) {
-            i++;
-        } else {
-            j++;
-        }
-    }
-    
-    return result;
-}
-
-//---------------------------------------------------------------------
 // Returns the sign of the value.
 //---------------------------------------------------------------------
 template<typename T>

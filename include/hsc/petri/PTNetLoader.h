@@ -14,8 +14,9 @@
 
 #include "SparsePetriNet.h"
 #include "PTNetHandler.h"
-#include <cstdio>
+#include "Log.h"
 #include <chrono>
+#include <cstdio>
 #include <expat.h>
 
 template<typename T>
@@ -30,7 +31,7 @@ template<typename T>
     FILE *in = fopen (filename.c_str (), "r");
 
     std::string logMessage = "Parsing pnml file : " + filename;
-    (void) logMessage;
+    petri::writeToLog (logMessage);
 
     XML_SetUserData (parser, &handler);
     XML_SetElementHandler (parser, &PTNetHandler<T>::startElement,
@@ -60,7 +61,7 @@ template<typename T>
         + std::to_string (
             std::chrono::duration_cast < std::chrono::milliseconds
                 > (std::chrono::steady_clock::now () - time).count ()) + " ms.";
-    (void) logMessage;
+    petri::writeToLog (logMessage);
 
     return handler.getParseResult ();
   }

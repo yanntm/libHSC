@@ -10,22 +10,47 @@ These files are copied from **PetriSpot**
 and kept close to source deliberately — solid, battle-tested code, and the
 sparse-matrix representation is the substrate for any future endogenous
 rewriting of the net (structural reduction, agglomeration) before export.
+`vendor.sh` re-copies them from a PetriSpot checkout: it prepends the
+provenance banner, rewrites the include paths to this layout and re-applies
+the local edits below, so a sync with upstream is one run and one commit.
+
+Flat in this folder (upstream `core/` and the PNML loader of `parse/`):
 
 * `SparseArray.h`, `MatrixCol.h` — sparse column matrix (the flow matrices).
 * `SparseBoolArray.h`, `Arithmetic.hpp`, `InvariantHelpers.h`, `Rational.h` —
   their support (overflow-checked arithmetic is deliberate robustness).
 * `SparsePetriNet.h` — the net: names, marking, `flowPT`/`flowTP`.
 * `PTNetHandler.h`, `PTNetLoader.h` — the expat SAX parser for PNML P/T nets.
+* `Log.h` — the timestamped log line the loader prints.
 
-Local edits (only these):
+In their upstream subfolders (their mutual includes stay verbatim; the
+`petri_import` target has this folder as a second include root):
+
+* `expr/` — the property tree: `Expression.h` (linear atoms over places,
+  booleans), `CtlFormula.h` and `CtlSimplify.h` (CTL over those atoms),
+  `Property.h` (a named property and its kind: reach, invariant, deadlock,
+  bound, CTL), `Simplify.h`, `Hint.h` (Parikh hints), `SexprPrinter.h` (the
+  tree as s-expressions, indices or names). Its `README.md` and
+  `algorithm.md` are upstream's.
+* `parse/mcc/` — the expat handler for the MCC property XML, CTL included.
+* `parse/sexpr/` — the s-expression reader (`Sexpr.h`, itself a copy of our
+  `surface/sexpr.hh`), `PropertyReader.h` (forms to properties: the grammar
+  of PetriSpot's `INTEROP.md`), `HintReader.h`.
+* `parse/NetResolver.h` (names and `p<i>`/`t<i>` indices against a net),
+  `parse/PropertyFile.h` (syntax choice by extension).
+* `io/SparseMatrixIO.h`, `io/PNETIO.h` — KERS matrices and the PNET binary
+  net container.
+
+Local edits (only these, applied by `vendor.sh`):
 
 * `Rational.h`: added `#include <numeric>` (was transitively satisfied upstream).
-* `Arithmetic.hpp`: `inline` on the `__uint128_t operator<<` (ODR across TUs).
-* `PTNetLoader.h`: dropped the `InvariantMiddle` dependency (the invariant
-  solver, not needed for import) and its two log calls; added `#include <chrono>`.
+* `Arithmetic.hpp`: `inline` on the `__uint128_t operator<<` (ODR across TUs;
+  upstream is a single translation unit).
+* `Log.h`: the log line goes to `stderr`, since stdout carries the emitted
+  model (`nupn2hsc`) or the answer protocol.
 
-The invariant *solver* (`InvariantMiddle`/`Calculator`/`Heuristic`/`RowSigns`)
-is **not** vendored.
+The invariant *solver* (`InvariantMiddle`/`Calculator`/`Heuristic`/`RowSigns`),
+the walk engine and the CTL checker are **not** vendored.
 
 ## Ours
 

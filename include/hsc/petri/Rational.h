@@ -5,8 +5,8 @@
 #ifndef RATIONAL_H
 #define RATIONAL_H
 
+#include <numeric>
 #include <iostream>
-#include <numeric>  // libHSC: std::gcd, transitively included in the original tree
 
 template<typename T>
 class Rational {
