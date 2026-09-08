@@ -50,39 +50,47 @@ match). `hsc-pn` gained `--max-tokens` for OneSafe.
    `MCC-drivers/hsc/install.sh`; `examples/mcc/README.md` then describes
    the fixtures for `hsc-pn`.
 
-## Phases 3 and 4 (ITS-Tools): built and committed, smoke test inconclusive
+## Phases 3 and 4 (ITS-Tools): built, committed, `-hscBench` verified
 
 Committed in `~/git/ITStools` (not pushed; the user pushes): the interop
 plugin (`interop/fr.lip6.move.gal.interop`: `KERSFormatIO`, `PNETFormatIO`,
 `SexprPropertyPrinter` moved from the PetriSpot runner), `hsc/fr.lip6.hsc.binaries`
 (downloads `hsc-pn` from `HSC-Linux` at build time, OSX commented out),
 `hsc/fr.lip6.move.hsc.runner` (`HscRunner`: `runReachability`, `runDeadlock`,
-`runBounds`; `-Dhsc.bin=<path>` outside OSGi; `HscRunner.DEBUG`), and in the
-MCC application the `-hsc` flag: `Application.startHsc(...)` starts a
-`runner/HscSolverRunner` (open INVARIANT EF/AG, DEADLOCK, BOUNDS properties of
-the reduced net to `hsc-pn`, verdicts into `DoneProperties`) before each
-`MultiOrderRunner.runMultiITS(...)` call. `mvn -o install -DskipTests` passes;
-the product is extracted in `/data/ythierry/itstools-local/`.
+`runBounds`; `-Dhsc.bin=<path>` outside OSGi; `-Dhsc.debug=1|2`), and in the
+MCC application `runner/HscSolverRunner` (an `IRunner`: open INVARIANT EF/AG,
+DEADLOCK, BOUNDS properties of the reduced net to `hsc-pn`, constant-folded
+ones reported as `TOPOLOGICAL INITIAL_STATE`, verdicts into `DoneProperties`)
+started two ways:
 
-Smoke test done: `its-tools -pnfolder ~/git/libHSC/build/mcc/Raft-PT-02
--examination ReachabilityCardinality -hsc -timeout 60` (log
-`tests/logs/its_hsc_raft_rc.log`): all 16 verdicts match the oracle, but all
-came from the structural pipeline (initial state, walks, SMT) before the
-diagram stage, so `hsc-pn` was never called; the run also lasted the full
-60 s. Next:
+* `-hsc`: `Application.startHsc(...)` before each `MultiOrderRunner.runMultiITS`
+  call, beside the decision diagrams. On Raft the structural pipeline
+  settled everything first, so `hsc-pn` was not reached there (a harder
+  model or an earlier call site, see below).
+* `-hscBench` (`-hscBenchReduce` with the structural reductions first): the
+  libHSC engine alone right after the model and properties are read, the
+  `LouvainBench` idea. Measured: Raft-PT-02 RC in 1.2 s, Angiogenesis-PT-05
+  RC 16/16 right in 16.7 s (`tests/logs/its_hscbench_*.log`).
 
-1. Find where the reachability examinations reach `startHsc` when properties
-   remain open: run a harder model (e.g. `Angiogenesis-PT-05`, extract its
-   folder as for Raft) with `-hsc -timeout 60` and `HscRunner.DEBUG = 1`
-   (edit, rebuild `-rf :fr.lip6.move.gal.application.pnmcc`), look for
-   "Running hsc-pn" in the log. If `startHsc` is not reached, move the call
-   earlier: right after `reader.rebuildSpecification(doneProps)` in the
-   RC/RF block (Application.java, before the SMT runner start) is a good
-   place, guarded by `doHSC`.
-2. Compare `-hsc` with `-its` on a few models for answered/time; then the
-   harness campaign of `HSC_PLAN.md` section 4.
-3. Why the 60 s: which runner held the process; unrelated to HSC unless the
-   HSC thread is the one (it is not started in this log).
+Build: `cd ~/git/ITStools/fr.lip6.move.gal.parent && mvn -o install
+-DskipTests -rf :fr.lip6.move.hsc.runner > /data/ythierry/itstools-mvn.log
+2>&1`; product extracted with `tar xzf
+ITS-commandline/fr.lip6.move.gal.itscl.product/target/products/*linux*.tar.gz
+-C /data/ythierry/itstools-local`; run `its-tools -pnfolder <model folder>
+-examination ReachabilityCardinality -hscBench -timeout 60`.
+
+Next:
+
+1. Harness: an `itstools`-style driver entry that runs the product with
+   `-hscBenchReduce` on RC, RF, RD, UB (a `BK_TOOL` in `~/git/MCC-drivers`,
+   copy `itstools/` conventions), then the cluster campaign of
+   `HSC_PLAN.md` section 4 against `-its`; report in
+   `~/git/PetriSpot/libHSC_in_MCC.md`.
+2. `-hsc` placement: to make HSC part of a normal run, start it right after
+   `reader.rebuildSpecification(doneProps)` in the RC/RF block of
+   `Application.java` (before the SMT runner), guarded by `doHSC`.
+3. StateSpace through ITS-Tools: `HscSolverRunner` handles properties only;
+   `hsc-pn --states` is the driver's path (`MCC-drivers/hsc/`).
 
 ## Rules of the road
 
