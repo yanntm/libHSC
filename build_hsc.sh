@@ -73,7 +73,7 @@ fi
 # --- Package binaries ---
 echo "=== Packaging binaries ==="
 mkdir -p website
-for t in hsc hsc-mcc nupn2hsc dve2hsc fsp2hsc; do
+for t in hsc hsc-pn hsc-mcc nupn2hsc dve2hsc fsp2hsc; do
   cp "$BUILD/tools/$t" website/
   strip website/$t
 done

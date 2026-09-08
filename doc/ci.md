@@ -11,7 +11,7 @@ with `HSC_STATIC=ON`, the test suite as a gate, stripped binaries in
 | `ubuntu-24.04` | `HSC-Linux` | fully static |
 | `macos-15` | `HSC-OSX` | dynamic against the system libc++ |
 
-Published tools: `hsc`, `hsc-mcc`, `nupn2hsc`, `dve2hsc`, `fsp2hsc`. A binary
+Published tools: `hsc`, `hsc-pn`, `hsc-mcc`, `nupn2hsc`, `dve2hsc`, `fsp2hsc`. A binary
 is fetched at
 
 ```
