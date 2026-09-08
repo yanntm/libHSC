@@ -52,4 +52,6 @@ target_sources(hsc PRIVATE
   xpl/fire.cc
   xpl/engine.cc
   xpl/domains.cc
+  ctl/formula.cc
+  ctl/forward.cc
 )
