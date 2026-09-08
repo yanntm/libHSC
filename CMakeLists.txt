@@ -10,6 +10,16 @@ option(HSC_BUILD_TESTS "Build the test suite" ON)
 option(HSC_BUILD_BENCH "Build the benchmarks" ON)
 set(HSC_SANITIZE "" CACHE STRING
     "Sanitizers to build with, e.g. address,undefined (needs libasan/libubsan)")
+option(HSC_STATIC
+  "Link the binaries statically (fully on Linux, not applied on macOS)" OFF)
+
+if(HSC_STATIC)
+  # prefer static archives when resolving expat and friends
+  set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  if(NOT APPLE AND NOT HSC_SANITIZE)
+    add_link_options(-static -static-libgcc -static-libstdc++)
+  endif()
+endif()
 
 if(HSC_SANITIZE)
   add_compile_options(-fsanitize=${HSC_SANITIZE} -fno-omit-frame-pointer -g)
