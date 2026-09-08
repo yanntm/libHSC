@@ -35,53 +35,6 @@
 
 namespace {
 
-/// \brief Narrow a net loaded in 64-bit to the 32-bit one the surface uses,
-/// refusing rather than truncating.
-///
-/// The importers and the leaf theory are `int`, but a PNML marking or arc
-/// weight may exceed 32 bits (GPPP-PT-C0010N1000000000 carries markings past
-/// four billion). Loading wide and checking here is what turns a silently
-/// wrong answer into a refusal.
-std::unique_ptr<SparsePetriNet<int>> narrow(const SparsePetriNet<long long>& wide,
-                                           std::string& why) {
-  constexpr long long LIMIT = 2147483647;  // INT32_MAX
-  const auto check = [&](long long v, const char* what, std::size_t i) {
-    if (v < 0 || v > LIMIT) {
-      why = std::string(what) + ' ' + std::to_string(i) + " is " +
-            std::to_string(v) + ", outside the 32-bit range of the leaf theory";
-      return false;
-    }
-    return true;
-  };
-  const std::vector<long long>& wmarks = wide.getMarks();
-  std::vector<int> marks(wmarks.size(), 0);
-  for (std::size_t p = 0; p < wmarks.size(); ++p) {
-    if (!check(wmarks[p], "the initial marking of place", p)) return nullptr;
-    marks[p] = static_cast<int>(wmarks[p]);
-  }
-  const auto convert = [&](const MatrixCol<long long>& src, const char* what,
-                           MatrixCol<int>& dst) {
-    dst = MatrixCol<int>(src.getRowCount(), 0);
-    for (std::size_t t = 0; t < src.getColumnCount(); ++t) {
-      const SparseArray<long long>& col = src.getColumn(t);
-      SparseArray<int> out;
-      for (std::size_t k = 0; k < col.size(); ++k) {
-        if (!check(col.valueAt(k), what, t)) return false;
-        out.append(col.keyAt(k), static_cast<int>(col.valueAt(k)));
-      }
-      dst.appendColumn(std::move(out));
-    }
-    return true;
-  };
-  MatrixCol<int> pt, tp;
-  if (!convert(wide.getFlowPT(), "a pre-arc weight of transition", pt)) return nullptr;
-  if (!convert(wide.getFlowTP(), "a post-arc weight of transition", tp)) return nullptr;
-  auto net = std::make_unique<SparsePetriNet<int>>(std::move(pt), std::move(tp),
-                                                   std::move(marks));
-  net->setName(wide.getName());
-  return net;
-}
-
 // --- the budget: UNKNOWN for every open property when the alarm fires ---
 
 std::vector<std::string> g_unknown;            // "UNKNOWN <name>\n" per property, in order
@@ -145,21 +98,11 @@ int main(int argc, char** argv) {
   petri::setLogStream(quiet ? null_log : std::cerr);
 
   // --- the net and its shape ---
-  // loaded in 64-bit, then narrowed with a check: a net beyond 32 bits is
-  // refused, never truncated into a wrong answer
   std::unique_ptr<SparsePetriNet<int>> net;
   try {
-    std::unique_ptr<SparsePetriNet<long long>> wide(
-        pnml.empty() ? PNETIO<long long>::read(pnet) : loadXML<long long>(pnml));
-    if (!wide) {
-      std::cerr << "failed to load the net\n";
-      return 1;
-    }
-    std::string why;
-    net = narrow(*wide, why);
+    net.reset(pnml.empty() ? PNETIO<int>::read(pnet) : loadXML<int>(pnml));
     if (!net) {
-      std::cerr << "refusing " << (pnml.empty() ? pnet : pnml) << ": " << why
-                << '\n';
+      std::cerr << "failed to load the net\n";
       return 1;
     }
   } catch (const std::string& e) {
@@ -167,6 +110,10 @@ int main(int argc, char** argv) {
     return 1;
   } catch (const char* e) {  // the PNML handler throws literals on a net it cannot read
     std::cerr << e << '\n';
+    return 1;
+  } catch (const std::exception& e) {  // e.g. a marking beyond the integer width
+    std::cerr << "cannot load " << (pnml.empty() ? pnet : pnml) << ": "
+              << e.what() << '\n';
     return 1;
   }
   hsc::petri::unit_tree units;
