@@ -250,6 +250,7 @@ certificate; `unfold` always enumerates.
 (ctl NAME FORMULA)           ; a CTL property at the seed, §8f
 (expect-ctl NAME TRUE|FALSE|UNKNOWN) ; assert its verdict
 (gfp NAME EVTERM SOURCE)     ; deflationary closure: X ∩ EVTERM(X) to a fixpoint, §8f
+(invert NAME EVTERM POTENTIAL) ; NAME is the converse of EVTERM within a bound result, §8f
 (certificate FILE)           ; write the last cegar proof as .hsc, §8d
 (certcheck FILE)             ; re-check a proof against the model, §8d
 (simplify-constants)         ; rewrite directive: elide constant leaves, §8c
@@ -438,16 +439,28 @@ The checker rewrites the formula to its **forward form**: the seed travels
 inward through the existential operators (`EX` becomes one image, `EF` /
 `EU` a constrained forward closure, `EG` a forward cycle hull with the
 deadlocked endpoints), and a universal operator that ends up *under* an
-existential one needs the predecessor relation. Until the inverse of the
-event terms is available, such a formula answers `UNKNOWN` rather than a
-guess — `(expect-ctl NAME UNKNOWN)` documents the refusal in a test file.
-A universal operator at the top is fine: `(AG f)` is asked as the emptiness
-of `(EF (not f))`.
+existential one needs the predecessor relation, which `invert` provides (below). When some event
+has no converse the formula answers `UNKNOWN` rather than a guess —
+`(expect-ctl NAME UNKNOWN)` documents the refusal in a test file.
 
 `gfp` is the dual of `reach`: from SOURCE, keep only the states with a
 successor in the set, until stable — the states of SOURCE reached from a
 cycle inside it when EVTERM is the system's step; empty on an acyclic
-graph. `examples/models/ctl_ring.hsc` and `ctl_counter.hsc` are the worked,
+graph.
+
+`invert` declares a named event term: the **converse** of EVTERM, its
+results kept inside POTENTIAL (a bound result, normally the reachable set).
+It stands wherever an event term does — `(apply P BACK S)` is the
+predecessors of `S`, `(reach RB BACK from S)` the backward closure. An
+inverted event touches the leaves the original touches, so backward
+closures saturate like forward ones. A `(leaf NAME LO HI)` bound or the
+potential's projection bounds each coordinate's predecessors. Refused,
+loudly, for an event that assigns across a cut (a crossing guard is fine).
+`ctl` inverts the default system this way when a formula needs the
+predecessor relation; an inverted event that would leave the reachable set
+is intersected with it.
+
+`examples/models/ctl_ring.hsc` and `ctl_counter.hsc` are the worked,
 self-checking examples.
 
 ## 9. Errors, honestly

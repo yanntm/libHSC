@@ -563,6 +563,8 @@ class translator final : public name_scope {
   void do_ctl(const datum& form);
   void do_expect_ctl(const datum& form);
   void do_gfp(const datum& form);
+  std::vector<code> invert_events(const datum& at, code reach);
+  void do_invert(const datum& form);
   ///@}
 
   // --- state ---------------------------------------------------------------

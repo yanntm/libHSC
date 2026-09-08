@@ -42,9 +42,24 @@
 ; AX of a tautology: EX (< b 0) from the seed is empty
 (ctl P8 (AX (>= b 0)))
 (expect-ctl P8 TRUE)
-; a universal operator under EF needs the preimage: refused for now
+; a universal operator under EF: evaluated backward through the inverse.
+; From a=3 the ring can always empty a (fire ab three times), so no state
+; satisfies AG (a > 0).
 (ctl P9 (EF (AG (> a 0))))
-(expect-ctl P9 UNKNOWN)
+(expect-ctl P9 FALSE)
+; AG (EF (d == 3)): every reachable state can gather the tokens on d
+(ctl P11 (AG (EF (== d 3))))
+(expect-ctl P11 TRUE)
+; the inverse as a named term: the ring is strongly connected, so the
+; predecessors of R are R, and (0,0,0,3) has exactly one predecessor
+(invert BACK ALL R)
+(apply B BACK R)
+(expect B 20)
+(select S3 R (== d 3))
+(apply PB BACK S3)
+(expect PB 1)
+(reach RB BACK from S3)
+(expect RB 20)
 ; E[a>0 W false] = EG (a > 0)
 (ctl P10 (EW (> a 0) false))
 (expect-ctl P10 TRUE)

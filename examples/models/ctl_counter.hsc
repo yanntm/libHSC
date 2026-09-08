@@ -23,7 +23,21 @@
 (ctl Q5 (EF (and (== x 3) (EX true))))
 (expect-ctl Q5 FALSE)
 (ctl Q6 (EF (and (== x 3) (AX false))))
-(expect-ctl Q6 UNKNOWN)
+(expect-ctl Q6 TRUE)
+; AG (EF x==3): the deadlock is reached from everywhere
+(ctl Q9 (AG (EF (== x 3))))
+(expect-ctl Q9 TRUE)
+; AF (AG x==3): every path ends stuck at 3
+(ctl Q10 (AF (AG (== x 3))))
+(expect-ctl Q10 TRUE)
+; the inverse of inc: x -= 1 on {1,2,3}; x=3 has one predecessor, and the
+; backward closure from it is all of R
+(invert DEC inc R)
+(select X3 R (== x 3))
+(apply P3 DEC X3)
+(expect P3 1)
+(reach RB DEC from X3)
+(expect RB 4)
 ; E[x<2 U x==2]: 0,1,2
 (ctl Q7 (EU (< x 2) (== x 2)))
 (expect-ctl Q7 TRUE)

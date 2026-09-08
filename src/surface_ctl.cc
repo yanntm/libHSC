@@ -37,6 +37,9 @@ struct translator::ctl_state {
   std::unordered_map<std::string, ctl::verdict> verdicts;
   std::optional<code> reach;  ///< `R`, computed on first use
   std::optional<code> dead;   ///< the reachable deadlocks, once `reach` is
+  /// The inverted events against `R`, exact ones raw and the others
+  /// protected by `within(R)`; empty when some event has no converse.
+  std::vector<code> pred;
 };
 
 translator::ctl_state& translator::ctl() {
@@ -170,12 +173,14 @@ void translator::do_ctl(const datum& form) {
         st.dead = *st.reach;
       }
     }
+    st.pred = invert_events(form, *st.reach);
   }
   ctl::model m;
   m.sort = top_;
   m.reach = *st.reach;
   m.init = seed();
   m.next_events = events_;
+  m.pred_events = st.pred;
   m.selector = [this](ctl::node_id f) { return state_selector(f); };
   m.dead = *st.dead;
   ctl::checker chk(mgr_, m, st.fw);
@@ -200,6 +205,54 @@ void translator::do_expect_ctl(const datum& form) {
   } else {
     out_ << "FAIL " << name << " expected " << want << " got " << got << '\n';
     ++failures_;
+  }
+}
+
+/// The inverted default system against the potential \p reach
+/// (`core/algorithm.md` §9): each event's converse, raw when it never leaves
+/// `R` on `R`, else composed with `within(R)`. An event without a converse
+/// (a case bracket that assigns) leaves the whole list empty, with a note:
+/// the checker then refuses backward operators rather than guess.
+std::vector<code> translator::invert_events(const datum& at, code reach) {
+  core::inverter inv(mgr_);
+  core::diagram_engine& diagrams = mgr_.diagrams();
+  std::vector<code> preds;
+  std::size_t protected_count = 0;
+  for (const code ev : events_) {
+    code p = core::none;
+    try {
+      p = inv(top_, ev, reach);
+    } catch (const unsupported_error& e) {
+      out_ << "ctl: no backward operators (" << e.what() << ")\n";
+      return {};
+    }
+    const code img = diagrams.apply_local(p, reach);
+    if (diagrams.minus(img, reach) != core::none) {
+      p = mgr_.operations().compose(mgr_.operations().within(reach), p);
+      ++protected_count;
+    }
+    preds.push_back(p);
+  }
+  (void)at;
+  if (protected_count != 0) {
+    out_ << "ctl: " << protected_count << " of " << events_.size()
+         << " inverted events protected by the reachable set\n";
+  }
+  return preds;
+}
+
+/// `(invert NAME EVTERM POTENTIAL)`: declare NAME as the converse of an
+/// event term relative to a bound result — usable wherever an event term
+/// stands (`apply`, `reach … from`, `gfp`).
+void translator::do_invert(const datum& form) {
+  if (top_ == core::none) fail(form, "invert before shape");
+  const std::string& name = sym(arg(form, 1, "term name"));
+  const code ev = read_evterm(arg(form, 2, "event term"));
+  const code pot = named(arg(form, 3, "potential result"));
+  try {
+    define_event(form, name, core::inverter(mgr_)(top_, ev, pot));
+  } catch (const unsupported_error& e) {
+    fail(form, std::string("cannot invert: ") + e.what());
   }
 }
 
