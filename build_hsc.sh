@@ -24,7 +24,7 @@ cd "$SCRIPT_DIR"
 EXPAT_TAG="R_${EXPAT_VERSION//./_}"
 if [ ! -f "$PREFIX/lib/libexpat.a" ]; then
   if [ ! -f "expat-$EXPAT_VERSION.tar.gz" ]; then
-    wget -q "https://github.com/libexpat/libexpat/releases/download/$EXPAT_TAG/expat-$EXPAT_VERSION.tar.gz"
+    wget -q --tries=5 --waitretry=5 "https://github.com/libexpat/libexpat/releases/download/$EXPAT_TAG/expat-$EXPAT_VERSION.tar.gz"
   fi
   rm -rf "expat-$EXPAT_VERSION"
   tar xzf "expat-$EXPAT_VERSION.tar.gz"
