@@ -121,6 +121,9 @@ class diagram_engine final : public support_algebra {
   /// therefore `core::saturate` in `operation.hh`, not this.
   code term_sum(code a, code b) override;
   code term_lfp(code t) override;
+  /// Inversion at a composite sort is structural on the operation term
+  /// (`inverter`); the domain's sort is the sort inverted at.
+  code invert_local(code term, code domain) override;
   [[nodiscard]] double cardinal(code c) const override;
   /// The exact cardinal, a GMP integer: the same sum as `cardinal`, computed
   /// in arbitrary precision. For a query that asks for the number itself,

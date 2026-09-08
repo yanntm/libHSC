@@ -224,6 +224,11 @@ code diagram_engine::term_sum(code a, code b) {
   return owner_.operations().sum(a, b);
 }
 
+code diagram_engine::invert_local(code term, code domain) {
+  if (domain == none) return owner_.operations().within(none);
+  return inverter(owner_)(sort_of(domain), term, domain);
+}
+
 code diagram_engine::term_lfp(code t) {
   // The naive lfp. The saturating one needs the sort, so it is
   // core::saturate() in operation.hh.
@@ -252,6 +257,10 @@ code diagram_engine::do_apply(code term, code d) {
         x = y;
       }
     }
+
+    case op_kind::within:
+      // The constant selector: keep what lies in the diagram.
+      return meet(d, t.operand(0));
 
     case op_kind::gfp: {
       // The deflationary closure: shrink from the argument until nothing

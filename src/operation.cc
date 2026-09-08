@@ -9,6 +9,9 @@
 
 #include "hsc/core/operation.hh"
 
+#include "hsc/core/diagram.hh"
+#include "hsc/util/errors.hh"
+
 #include <algorithm>
 #include <cstdint>
 #include <new>
@@ -204,6 +207,87 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
   }
 
   return ops.saturate(f_part, l_part, across);
+}
+
+// --- inversion -------------------------------------------------------------
+
+code inverter::operator()(shape_code sort, code term, code potential) {
+  if (term == op_table::id) return op_table::id;
+  op_table& ops = mgr_.operations();
+  const shape_table& shapes = mgr_.shapes();
+  const bool leaf = shapes.kind(sort) != shape_kind::pair;
+  // Nothing to come from: the zero term — the theory's at a leaf.
+  if (potential == none && !leaf) return ops.within(none);
+
+  const key k{sort, term, potential};
+  if (const auto it = memo_.find(k); it != memo_.end()) return it->second;
+
+  code result = none;
+  if (leaf) {
+    // A leaf: the theory inverts its own term against its domain.
+    result = mgr_.algebra(sort).invert_local(term, potential);
+  } else {
+    // A reference: interned terms live on the heap and do not move when the
+    // table grows, and the operands trail the header (a copy would lose them).
+    const op_term& t = ops[term];
+    diagram_engine& diagrams = mgr_.diagrams();
+    switch (t.kind) {
+      case op_kind::node: {
+        // The projections of the potential: join of primes, join of subs.
+        const shape_code hs = shapes.head(sort);
+        const shape_code ts = shapes.tail(sort);
+        support_algebra& head = mgr_.algebra(hs);
+        support_algebra& tail = mgr_.algebra(ts);
+        code ph = none;
+        code pt = none;
+        for (const arc& a : diagrams.arcs(potential)) {
+          ph = ph == none ? a.prime : head.join(ph, a.prime);
+          pt = pt == none ? a.sub : tail.join(pt, a.sub);
+        }
+        result = ops.node((*this)(hs, t.operand(0), ph),
+                          (*this)(ts, t.operand(1), pt));
+        break;
+      }
+      case op_kind::sum: {
+        std::vector<code> inv;
+        inv.reserve(t.arity);
+        for (const code s : t.operands()) inv.push_back((*this)(sort, s, potential));
+        result = ops.sum(inv);
+        break;
+      }
+      case op_kind::compose: {
+        // (a ∘ b)⁻¹_P = b⁻¹_P ∘ a⁻¹_{b(P)}: the left factor sees the words
+        // the right one produces, which need not be states.
+        const code a = t.operand(0);
+        const code b = t.operand(1);
+        const code mid = diagrams.apply_local(b, potential);
+        result = ops.compose((*this)(sort, b, potential), (*this)(sort, a, mid));
+        break;
+      }
+      case op_kind::lfp:
+        result = ops.lfp((*this)(sort, t.operand(0), potential));
+        break;
+      case op_kind::within:
+        result = term;  // a selector is self-converse
+        break;
+      case op_kind::expr:
+        // A case bracket: guard only (arity 1) is a selector, self-converse;
+        // one that assigns has no converse spelled here yet.
+        if (t.arity != 1) {
+          throw unsupported_error(
+              "no converse for a case bracket that assigns across a cut");
+        }
+        result = term;
+        break;
+      case op_kind::gfp:
+        throw unsupported_error("no converse for a deflationary closure");
+      case op_kind::saturate:
+        throw unsupported_error(
+            "a saturated schedule is not inverted: invert its events");
+    }
+  }
+  memo_.emplace(k, result);
+  return result;
 }
 
 }  // namespace hsc::core

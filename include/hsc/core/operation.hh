@@ -1,7 +1,8 @@
 /// \file operation.hh
 /// \brief Operation terms, and the saturated form of a closure.
 ///
-///     H ::= id | node(H_h, H_t) | H ∘ H | Σ H | lfp H | gfp H | saturate(F, L, G…)
+///     H ::= id | node(H_h, H_t) | H ∘ H | Σ H | lfp H | gfp H | within(D)
+///         | saturate(F, L, G…)
 ///
 /// `lfp h` is the least fixpoint `(id + h)*` — the derived form of the
 /// theory contract's pure star, offered as the primitive so recognizing an
@@ -9,6 +10,8 @@
 /// absent: nothing in the calculus asks for it yet. `gfp h` is its dual, the
 /// deflationary closure `X ↦ X ∩ h(X)` iterated downward from the argument
 /// (`algorithm.md` §8); a composite-sort term only, never pushed to a leaf.
+/// `within(D)` is the constant selector `X ↦ X ∩ D` for a diagram `D` — a
+/// diagram read as a term (`algorithm.md` §9).
 ///
 /// The leaf case is not in this table: at a leaf sort the term is a *theory*
 /// term, read by the theory that owns the sort. A term is
@@ -35,6 +38,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <span>
+#include <unordered_map>
 #include <vector>
 
 #include "hsc/core/code.hh"
@@ -50,6 +54,7 @@ enum class op_kind : std::uint8_t {
   compose,   ///< 2 operands: `after ∘ before`
   lfp,       ///< 1 operand: the least fixpoint `(id + h)*`, by naive iteration
   gfp,       ///< 1 operand: the greatest fixpoint of `X ↦ X ∩ h(X)` below the argument
+  within,    ///< 1 operand: a *diagram* code D; the constant selector `X ↦ X ∩ D`
   saturate,  ///< F, L, then the G operands: the F-L-G schedule
   expr,      ///< a case bracket: a guard `bexpr`, then (lhs, rhs)
              ///< `iexpr` pairs — opaque to core, evaluated by the case
@@ -134,6 +139,12 @@ class op_table {
     if (h == id) return id;
     const code ops[] = {h};
     return make(op_kind::gfp, ops);
+  }
+  /// `within(D)`: the constant selector `X ↦ X ∩ D`, the term reading of a
+  /// diagram. Additive and self-converse. `within(none)` is the zero term.
+  code within(code diagram) {
+    const code ops[] = {diagram};
+    return make(op_kind::within, ops);
   }
   /// \brief The saturation schedule: `(F + id)*`, then `(L + id)*`, then the
   /// `G` chain, to stability.
@@ -225,5 +236,43 @@ code sum_at(manager& mgr, shape_code sort, std::span<const code> events);
 /// sit *inside* the term, memoisation keys on saturated nodes rather than on
 /// rounds — and that is the whole point.
 code saturate(manager& mgr, shape_code sort, std::span<const code> events);
+
+/// \brief Inversion of terms relative to a potential (`algorithm.md` §9).
+///
+/// `operator()(sort, term, P)` is the term of the converse of \p term whose
+/// results stay inside the potential `P` — a diagram at \p sort, or a theory
+/// code at a leaf sort. Structural on `op_kind`: `node` inverts per side
+/// against the projections of `P` (the join of its primes, of its subs),
+/// `compose` reverses and re-potentialises its left factor with the image of
+/// the right one, `sum` and `lfp` pointwise, a guard-only case bracket and
+/// `within` are self-converse; a leaf hands its term to the theory's
+/// `invert_local`. Throws `unsupported_error` for a case bracket that
+/// assigns, a `saturate` schedule or a `gfp` (the caller inverts the flat
+/// events). Memoised on `(sort, term, potential)` for the object's lifetime
+/// — codes are sort-relative, so the sort is part of the key — and
+/// isomorphic positions with equal projections share their inverse.
+class inverter {
+ public:
+  explicit inverter(manager& mgr) : mgr_(mgr) {}
+  code operator()(shape_code sort, code term, code potential);
+
+ private:
+  struct key {
+    shape_code sort;
+    code term;
+    code potential;
+    friend bool operator==(const key&, const key&) = default;
+  };
+  struct key_hash {
+    std::size_t operator()(const key& k) const noexcept {
+      std::size_t seed = util::hash_value(k.sort);
+      util::hash_combine(seed, k.term);
+      util::hash_combine(seed, k.potential);
+      return seed;
+    }
+  };
+  manager& mgr_;
+  std::unordered_map<key, code, key_hash> memo_;
+};
 
 }  // namespace hsc::core
