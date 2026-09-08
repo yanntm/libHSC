@@ -306,8 +306,8 @@ the oracle:
 |---|---|---|---|
 | M0 | `ctl/algorithm.md`; `gfp` and inverse-with-context specified in `core/algorithm.md` §8–§9 | docs | done |
 | M1 | the formula DAG (NNF, existential dual) and the forward conversion to a question tree (`init / filter / ey / fwdu / fwdg / restrict`, `any`) | `ctl/formula.hh`, `ctl/forward.hh` | done, unit-tested |
-| M2 | `gfp` op kind, breadth-first evaluation; the checker evaluating set expressions and backward `Sat` over an abstract model (sort, `R`, seed, forward events, inverted events, atom selectors, deadlock selector); `(ctl NAME FORMULA)` and `(expect-ctl …)` on the surface; the pred-free fragment answers, the rest refuses | core, ctl/, surface | next |
-| M3 | the inverse: `int_set` local inverses (havoc over a set as the one new local term), structural term inversion, exactness test and per-event `∩ R` protection; `(pred …)`; the `restrict` leaves answer | leaves, core, surface | |
+| M2 | `gfp` op kind, breadth-first evaluation; the checker evaluating set expressions and backward `Sat` over an abstract model (sort, `R`, seed, forward events, inverted events, atom selectors, deadlock selector); `(ctl NAME FORMULA)` and `(expect-ctl …)` on the surface; the pred-free fragment answers, the rest refuses | core, ctl/, surface | done, 18 hand-checked verdicts |
+| M3 | the inverse: `int_set` local inverses (havoc over a set as the one new local term), structural term inversion, exactness test and per-event `∩ R` protection; `(pred …)`; the `restrict` leaves answer | leaves, core, surface | next |
 | M4 | `hsc-pn` answers CTLCardinality / CTLFireability: vendored `CtlFormula` to the DAG, atoms through `props_to_surface`; differential vs `its-ctl` on `examples/mcc` and PetriSpot `bench/models` `.solved` | tools | |
 | M5 | `has_image`; the constrained-closure rewrite in `saturate()`; measured against M4's plain form | core | |
 | M6 | campaign: CTLC/CTLF at 600 s beside the ITS-Tools sets; witness cross-check with PetriSpot's explicit checker | experiments | |
