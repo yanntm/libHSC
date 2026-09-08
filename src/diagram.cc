@@ -253,6 +253,18 @@ code diagram_engine::do_apply(code term, code d) {
       }
     }
 
+    case op_kind::gfp: {
+      // The deflationary closure: shrink from the argument until nothing
+      // leaves. Every round is a subset of the previous, so it halts.
+      const code h = t.operand(0);
+      code x = d;
+      for (;;) {
+        const code y = meet(x, apply_local(h, x));
+        if (y == x) return x;
+        x = y;
+      }
+    }
+
     case op_kind::saturate: {
       // The F-L-G schedule, as libsdd's _saturation_fixpoint::operator()
       // and libDDD's Fixpoint::eval both run it: settle everything below,

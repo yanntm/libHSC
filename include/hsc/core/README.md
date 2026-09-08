@@ -27,7 +27,8 @@ any particular leaf theory.
   legal import.
 
 * `operation.hh` + `src/operation.cc` — operation terms, the
-  fragment that needs no query: `id | node(H_h,H_t) | ∘ | +`. The term
+  fragment that needs no query: `id | node(H_h,H_t) | ∘ | + | lfp | gfp`
+  (`gfp`, the deflationary closure `X ↦ X ∩ h(X)`, is `algorithm.md` §8). The term
   **mirrors the shape tree** rather than naming an absolute variable, which
   buys two things libDDD structurally cannot have: skip is literally
   `term == id` (no oracle, no support set), and descending into a subtree

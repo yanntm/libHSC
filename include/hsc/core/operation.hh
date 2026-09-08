@@ -1,12 +1,14 @@
 /// \file operation.hh
 /// \brief Operation terms, and the saturated form of a closure.
 ///
-///     H ::= id | node(H_h, H_t) | H ∘ H | Σ H | lfp H | saturate(F, L, G…)
+///     H ::= id | node(H_h, H_t) | H ∘ H | Σ H | lfp H | gfp H | saturate(F, L, G…)
 ///
 /// `lfp h` is the least fixpoint `(id + h)*` — the derived form of the
 /// theory contract's pure star, offered as the primitive so recognizing an
 /// accumulation never requires matching operands. Bare star is deliberately
-/// absent: nothing in the calculus asks for it yet.
+/// absent: nothing in the calculus asks for it yet. `gfp h` is its dual, the
+/// deflationary closure `X ↦ X ∩ h(X)` iterated downward from the argument
+/// (`algorithm.md` §8); a composite-sort term only, never pushed to a leaf.
 ///
 /// The leaf case is not in this table: at a leaf sort the term is a *theory*
 /// term, read by the theory that owns the sort. A term is
@@ -47,6 +49,7 @@ enum class op_kind : std::uint8_t {
   sum,       ///< n operands, canonical (sorted, deduplicated)
   compose,   ///< 2 operands: `after ∘ before`
   lfp,       ///< 1 operand: the least fixpoint `(id + h)*`, by naive iteration
+  gfp,       ///< 1 operand: the greatest fixpoint of `X ↦ X ∩ h(X)` below the argument
   saturate,  ///< F, L, then the G operands: the F-L-G schedule
   expr,      ///< a case bracket: a guard `bexpr`, then (lhs, rhs)
              ///< `iexpr` pairs — opaque to core, evaluated by the case
@@ -125,6 +128,13 @@ class op_table {
     return make(op_kind::lfp, ops);
   }
 
+  /// `gfp(h)`: the deflationary closure, by iteration from the argument
+  /// downward. `gfp(id)` is `id`: `X ∩ X` is `X`.
+  code gfp(code h) {
+    if (h == id) return id;
+    const code ops[] = {h};
+    return make(op_kind::gfp, ops);
+  }
   /// \brief The saturation schedule: `(F + id)*`, then `(L + id)*`, then the
   /// `G` chain, to stability.
   ///
