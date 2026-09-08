@@ -93,8 +93,9 @@ q_id forward::rule(set_id r, node_id phi) {
     }
     case op::and_: {
       // State-formula children join the seed as one filter; among the
-      // rest, the first convertible child continues forward and every
-      // other child restricts the seed by its backward Sat.
+      // rest, the last convertible child (VIS: the right conjunct) continues
+      // forward and every other child restricts the seed by its backward
+      // Sat. Which conjunct goes forward is a choice to re-examine.
       std::vector<node_id> state;
       std::vector<node_id> rest;
       for (const node_id k : n.kids)
@@ -103,12 +104,12 @@ q_id forward::rule(set_id r, node_id phi) {
       if (!state.empty()) cur = mk_set({set_op::filter, cur, f_.conj(state)});
       node_id fwd = 0;
       bool have_fwd = false;
-      for (const node_id k : rest) {
-        if (!have_fwd && f_.convertible(k)) {
-          fwd = k;
+      for (auto it = rest.rbegin(); it != rest.rend(); ++it) {
+        if (!have_fwd && f_.convertible(*it)) {
+          fwd = *it;
           have_fwd = true;
         } else {
-          cur = mk_set({set_op::restrict_, cur, k});
+          cur = mk_set({set_op::restrict_, cur, *it});
         }
       }
       return have_fwd ? rule(cur, fwd) : nonempty(cur);

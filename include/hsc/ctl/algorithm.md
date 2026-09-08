@@ -96,7 +96,7 @@ the polarity (§5). `qf(f)` means `f` is a state formula.
     (r, E[q U f])      → (fwdu(r, q), f)
     (r, EG q)          → nonempty?( fwdg(r, q) )                       terminal
     (r, ¬¬f)           → (r, f)
-    (r, f ∧ g)         → (filter(r, f), g)      if qf(f); else (restrict(r, f), g) when f is not convertible, else recurse on the convertible one with the other restricted
+    (r, f ∧ g)         → (filter(r, f), g)      if qf(f); else (restrict(r, f), g): the right conjunct continues forward, the left restricts
     (r, f ∨ g)         → (r, f) ⊕ (r, g)
     (r, ¬(f ∨ g))      → (filter(r, ¬f), ¬g)    f the state-formula (or non-convertible) child
     (r, ¬(f ∧ g))      → (r, ¬f) ⊕ (r, ¬g)
@@ -109,24 +109,33 @@ is **convertible** when it never puts a negation over a path operator:
 state formulas, `EX/EU/EG` nodes, `¬¬`-pairs of those, and `∧ / ∨` of
 convertibles.
 
-The output is a **question tree**: `nonempty?(r)` leaves under `all` /
-`any` nodes.
+The output is a **question tree**: `nonempty?(r)` leaves under `any`
+nodes.
+
+**A choice to re-examine.** In `f ∧ g` with both conjuncts temporal, one
+continues forward and the other is evaluated backward; nothing in the
+semantics prefers either. VIS sends the right one forward, and so does this
+conversion (the last conjunct in written order, i.e. the highest node id).
+The path operators offer no such choice: `E[q U f]` always carries the seed
+through `q` and checks `f` at the end.
 
 ## 5. Polarity
 
 With one initial state, `I ⊨ φ` iff `I ∧ φ ≠ ∅` iff `I ∧ ¬φ = ∅`. The
 conversion picks the side whose top is convertible: if `φ` is convertible,
-ask `I ∧ φ ≠ ∅` with `⊕ = any`; else ask `I ∧ ¬φ = ∅`, running the rules on
-`¬φ` (in normal form) with `⊕ = all` and every leaf read as `empty?`. This
-is VIS's `compareValue`. The MCC seed is a single marking; a seed with
-several states asks the second form (all initial states must satisfy φ).
+ask `I ∧ φ ≠ ∅`; else run the rules on `¬φ` (in normal form), asking
+`I ∧ ¬φ ≠ ∅`, and take the **complement** of the answer. Either way the
+tree is `any` over `nonempty?` leaves (`⊕ = any`; VIS's `all` over `empty?`
+leaves is the same tree read through De Morgan) and the form records
+whether the verdict is negated. This is VIS's `compareValue`. The MCC seed
+is a single marking; a seed with several states always asks the negated
+question (all initial states must satisfy φ).
 
 ## 6. Evaluation order and memo
 
 Set expressions and `Sat` nodes are interned like formulas and evaluated
-once. A `nonempty?` leaf is a code comparison with `0`. `all` stops at the
-first empty child, `any` at the first nonempty one — the existential
-short-circuit at the tree level; the same discipline *inside* a leaf (a
+once. A `nonempty?` leaf is a code comparison with `0`. `any` stops at the
+first nonempty child — the existential short-circuit at the tree level; the same discipline *inside* a leaf (a
 witness subset instead of the full set, `has_image`) is a later
 optimisation, not part of these rules.
 

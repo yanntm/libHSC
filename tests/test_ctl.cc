@@ -97,13 +97,13 @@ TEST_CASE("forward form: universal operators under the seed restrict backward") 
   // EF AG a: forward to the AG, then backward for it
   CHECK(pq(x.F.unary(op::ef, x.F.unary(op::ag, x.a))) ==
         "(nonempty (restrict (fwdu init true) (AG a)))");
-  // two convertible conjuncts: the first (by node id) goes forward, the
-  // other restricts
+  // two convertible conjuncts: the last (by node id, VIS's right operand)
+  // goes forward, the other restricts
   const node_id exa = x.F.unary(op::ex, x.a);
   const node_id efb = x.F.unary(op::ef, x.b);
   CHECK(exa < efb);
   CHECK(pq(x.F.conj(exa, efb)) ==
-        "(nonempty (filter (ey (restrict init (EF b))) a))");
+        "(nonempty (filter (fwdu (restrict init (EX a)) true) b))");
   // several initial states: always the negated question
   const forward_form ff = fw.convert(x.F.unary(op::ef, x.a), false);
   CHECK(ff.negated);
