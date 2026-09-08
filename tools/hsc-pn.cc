@@ -104,6 +104,9 @@ int main(int argc, char** argv) {
   } catch (const std::string& e) {
     std::cerr << e << '\n';
     return 1;
+  } catch (const char* e) {  // the PNML handler throws literals on a net it cannot read
+    std::cerr << e << '\n';
+    return 1;
   }
   if (!net) {
     std::cerr << "failed to load the net\n";
@@ -180,6 +183,12 @@ int main(int argc, char** argv) {
     return 0;
   } catch (const std::exception& e) {
     std::cerr << "error: " << e.what() << '\n';
+    return 1;
+  } catch (const std::string& e) {  // the vendored readers throw strings
+    std::cerr << "error: " << e << '\n';
+    return 1;
+  } catch (const char* e) {
+    std::cerr << "error: " << e << '\n';
     return 1;
   }
   return 0;
