@@ -50,51 +50,39 @@ match). `hsc-pn` gained `--max-tokens` for OneSafe.
    `MCC-drivers/hsc/install.sh`; `examples/mcc/README.md` then describes
    the fixtures for `hsc-pn`.
 
-## Phase 3 (ITS-Tools plugins): written, Maven build passes; Phase 4 written, build pending
+## Phases 3 and 4 (ITS-Tools): built and committed, smoke test inconclusive
 
-In `~/git/ITStools` (uncommitted; the tree also carries the user's own edits
-to `ahg/ dve/ promela/ xta/` manifests: never add those). To commit, exactly:
+Committed in `~/git/ITStools` (not pushed; the user pushes): the interop
+plugin (`interop/fr.lip6.move.gal.interop`: `KERSFormatIO`, `PNETFormatIO`,
+`SexprPropertyPrinter` moved from the PetriSpot runner), `hsc/fr.lip6.hsc.binaries`
+(downloads `hsc-pn` from `HSC-Linux` at build time, OSX commented out),
+`hsc/fr.lip6.move.hsc.runner` (`HscRunner`: `runReachability`, `runDeadlock`,
+`runBounds`; `-Dhsc.bin=<path>` outside OSGi; `HscRunner.DEBUG`), and in the
+MCC application the `-hsc` flag: `Application.startHsc(...)` starts a
+`runner/HscSolverRunner` (open INVARIANT EF/AG, DEADLOCK, BOUNDS properties of
+the reduced net to `hsc-pn`, verdicts into `DoneProperties`) before each
+`MultiOrderRunner.runMultiITS(...)` call. `mvn -o install -DskipTests` passes;
+the product is extracted in `/data/ythierry/itstools-local/`.
 
-```
-cd ~/git/ITStools
-git add interop/fr.lip6.move.gal.interop/{META-INF,README.md,build.properties,pom.xml,src} \
-  hsc/fr.lip6.hsc.binaries/{META-INF,build.properties,pom.xml,src} \
-  hsc/fr.lip6.move.hsc.runner/{META-INF,README.md,build.properties,pom.xml,src} \
-  petrispot/fr.lip6.move.petrispot.runner fr.lip6.move.gal.parent/pom.xml \
-  pnmcc/fr.lip6.move.gal.feature.pnmcc/feature.xml \
-  pnmcc/fr.lip6.move.gal.application.pnmcc/META-INF/MANIFEST.MF \
-  pnmcc/fr.lip6.move.gal.application.pnmcc/src/fr/lip6/move/gal/application/Application.java \
-  pnmcc/fr.lip6.move.gal.application.pnmcc/src/fr/lip6/move/gal/application/runner/HscSolverRunner.java
-git status --short | grep "^[AMR]"    # check: no bin/, no target/, none of the user's manifests
-git commit -F - <<'MSG'
-libHSC as a companion: interop plugin (KERS, PNET, sexpr printer shared with PetriSpot), fr.lip6.hsc.binaries, fr.lip6.move.hsc.runner (HscRunner), -hsc flag starting HscSolverRunner beside the decision diagrams
-MSG
-```
+Smoke test done: `its-tools -pnfolder ~/git/libHSC/build/mcc/Raft-PT-02
+-examination ReachabilityCardinality -hsc -timeout 60` (log
+`tests/logs/its_hsc_raft_rc.log`): all 16 verdicts match the oracle, but all
+came from the structural pipeline (initial state, walks, SMT) before the
+diagram stage, so `hsc-pn` was never called; the run also lasted the full
+60 s. Next:
 
-What the pieces are: `interop/fr.lip6.move.gal.interop` (the three format
-classes moved from the PetriSpot runner, package `fr.lip6.move.gal.interop`);
-`hsc/fr.lip6.hsc.binaries` (downloads `hsc-pn` from `HSC-Linux` at build
-time; OSX commented out); `hsc/fr.lip6.move.hsc.runner` (`HscRunner`:
-`runReachability`, `runDeadlock`, `runBounds`, `-Dhsc.bin=<path>` outside
-OSGi, `HscRunner.DEBUG`); in the application, `runner/HscSolverRunner`
-(an `IRunner`: open INVARIANT (EF/AG), DEADLOCK, BOUNDS properties of the
-reduced net to `HscRunner`, verdicts into `DoneProperties`, `killAll` when
-finished) started by `Application.startHsc(...)` before each
-`MultiOrderRunner.runMultiITS(...)` call when `-hsc` is given.
-
-Build: `cd ~/git/ITStools/fr.lip6.move.gal.parent && mvn -o install
--DskipTests -rf :fr.lip6.move.gal.application.pnmcc >
-/data/ythierry/itstools-mvn-hsc3.log 2>&1` (the plugins before it already
-built: `/data/ythierry/itstools-mvn-hsc2.log`). Then the smoke test of
-PetriSpot `docs/BUILD.md` ("ITS-Tools", "Running ITS-Tools on a model
-folder") with `-hsc` instead of `-its` on `~/git/libHSC/build/mcc/Raft-PT-02`
-(extracted contest folder; `tar xzf
-~/git/pnmcc-models-2026/website/INPUTS/Raft-PT-02.tgz -C build/mcc` if gone),
-`-examination ReachabilityCardinality -timeout 60`; expect 16 `FORMULA` lines
-with `HSC` in their techniques matching `examples/mcc/oracle/Raft-PT-02-RC.out`.
-Then the same with `-its -hsc` together (both engines), and
-ReachabilityDeadlock, UpperBounds. Then the harness campaign of HSC_PLAN.md
-section 4.
+1. Find where the reachability examinations reach `startHsc` when properties
+   remain open: run a harder model (e.g. `Angiogenesis-PT-05`, extract its
+   folder as for Raft) with `-hsc -timeout 60` and `HscRunner.DEBUG = 1`
+   (edit, rebuild `-rf :fr.lip6.move.gal.application.pnmcc`), look for
+   "Running hsc-pn" in the log. If `startHsc` is not reached, move the call
+   earlier: right after `reader.rebuildSpecification(doneProps)` in the
+   RC/RF block (Application.java, before the SMT runner start) is a good
+   place, guarded by `doHSC`.
+2. Compare `-hsc` with `-its` on a few models for answered/time; then the
+   harness campaign of `HSC_PLAN.md` section 4.
+3. Why the 60 s: which runner held the process; unrelated to HSC unless the
+   HSC thread is the one (it is not started in this log).
 
 ## Rules of the road
 
