@@ -23,26 +23,32 @@ wrong, Angiogenesis-PT-05 UpperBounds and the StateSpace extras over the
 on the 17910-node, 42M-state diagram costs about 0.5 s; a performance
 topic for the sweep, not a bug).
 
+**The MCC driver runs on `hsc-pn`** (`~/git/MCC-drivers/hsc/`, committed,
+not pushed): RC, RF, RD, UB, StateSpace (all four values), OneSafe; checked
+by hand on Raft-PT-02 for the five examinations against the oracle (all
+match). `hsc-pn` gained `--max-tokens` for OneSafe.
+
 ## Next actions, in order
 
-1. Commit what is uncommitted (`git status`), push, watch the Linux CI
-   (`doc/ci.md`), check `hsc-pn` appears on `HSC-Linux`
-   (`build_hsc.sh` lists it). Commit `~/git/MCC-drivers` (`hsc/install.sh`
-   downloads `hsc-pn` too).
-2. Rewrite `MCC-drivers/hsc/BenchKit_head.sh` on `hsc-pn`: one call per
-   configuration (`--shape nupn|flat|louvain`, `--force`) in parallel as
-   today, `--props $BK_EXAMINATION.xml` for RC, RF, UB, `--deadlock
-   ReachabilityDeadlock` for RD, `--states` for StateSpace (all four lines
-   now), OneSafe from `--states`' MAX_TOKEN_IN_PLACE (TRUE iff <= 1);
-   `SupportedExamination.txt` gains ReachabilityCardinality,
-   ReachabilityFireability, ReachabilityDeadlock, UpperBounds (PT). Check
-   with `run_test.pl` as `~/git/PetriSpot/libHSC_in_MCC.md` describes.
-3. Performance of `select` on large diagrams (the Angiogenesis-05 numbers
-   above): profile one `(select Q R (>= p k))`; report before changing the
-   calculus.
-4. `hsc-mcc` and `nupn2hsc` can be retired once the driver runs on `hsc-pn`
-   (`hsc-pn --export-hsc` replaces `nupn2hsc`); `check_samples.cmake` then
-   loses the `hsc-mcc` part.
+1. Confirm the Linux CI published `hsc-pn` on `HSC-Linux` (`doc/ci.md`
+   commands); then in `~/git/MCC-drivers`, `bash hsc/install.sh` (downloads),
+   and the harness smoke check of `~/git/PetriSpot/libHSC_in_MCC.md`
+   ("The driver" section: `run_test.pl` in the deploy clone). Push
+   MCC-drivers only if the user allows.
+2. Sweep on the cluster: `BK_TOOL=hsc ./run_oar.sh` over the reachability
+   examinations (PetriSpot `docs/CLUSTER.md`), collect, compare with
+   ITS-Tools on the contest tables. Report timeouts and any wrong verdict
+   in `~/git/PetriSpot/libHSC_in_MCC.md` (append a dated section).
+3. Performance of `select` on large diagrams (Angiogenesis-PT-05: one
+   `select` about 0.5 s on 17910 nodes / 42M states): profile
+   `hsc-pn --net examples/mcc/Angiogenesis-PT-05.pnet --props
+   examples/mcc/Angiogenesis-PT-05.UpperBounds.sexpr`; report before
+   changing the calculus.
+4. Retire `hsc-mcc` and `nupn2hsc` (`hsc-pn --export-hsc` replaces the
+   latter): drop them from `tools/CMakeLists.txt`, `build_hsc.sh`,
+   `check_samples.cmake` (keep `pn_samples`), `doc/ci.md`, `tools/README.md`,
+   `MCC-drivers/hsc/install.sh`; `examples/mcc/README.md` then describes
+   the fixtures for `hsc-pn`.
 
 ## After that (Phases 3 and 4, ITS-Tools; see HSC_PLAN.md sections 3, 4)
 
