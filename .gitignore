@@ -16,3 +16,6 @@
 /website/
 /expat-*/
 /expat-*.tar.gz
+
+# test run outputs (tests/pn_samples.sh and friends)
+/tests/logs/
