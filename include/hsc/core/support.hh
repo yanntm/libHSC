@@ -10,6 +10,7 @@
 #include <iosfwd>
 
 #include "hsc/core/code.hh"
+#include "hsc/util/errors.hh"
 
 namespace hsc::core {
 
@@ -72,6 +73,15 @@ class support_algebra {
   virtual code term_lfp(code t) = 0;
   ///@}
 
+  /// \brief The converse of a local term, restricted to \p domain.
+  ///
+  /// Every term denotes an additive map, hence a relation; this is the
+  /// term of the converse relation whose results are kept inside
+  /// \p domain (a code of this algebra, the coordinate's finite potential).
+  /// An **optional** capability, not a preimage owed by the contract: the
+  /// default refuses with `unsupported_error`, and the calculus reports
+  /// rather than approximates. See `algorithm.md` §9.
+  virtual code invert_local(code term, code domain);
   /// \brief How many elements \p c denotes.
   ///
   /// A double because state spaces are exponential and this number is for
@@ -94,5 +104,9 @@ class support_algebra {
   }
   ///@}
 };
+
+inline code support_algebra::invert_local(code, code) {
+  throw unsupported_error("this theory does not invert its local terms");
+}
 
 }  // namespace hsc::core

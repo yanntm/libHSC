@@ -18,4 +18,14 @@ struct overflow_error : std::runtime_error {
   using std::runtime_error::runtime_error;
 };
 
+/// \brief A construction the calculus does not offer for this term.
+///
+/// Raised where an answer would otherwise be approximated: a term whose
+/// converse is not spelled here (a case bracket that assigns, a saturated
+/// schedule, a deflationary closure), a theory that does not invert its
+/// local terms. The caller reports `(unsupported)`; nothing guesses.
+struct unsupported_error : std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
+
 }  // namespace hsc
