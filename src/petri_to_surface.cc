@@ -136,6 +136,7 @@ void to_surface(std::ostream& out, const SparsePetriNet<int>& net,
     case examination::none:
       out << "(reach R saturate)\n(count R)\n(nodes R)\n(bill)\n";
       break;
+    case examination::model_only: break;
   }
 }
 

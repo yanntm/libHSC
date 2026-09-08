@@ -20,7 +20,10 @@ namespace hsc::petri {
 /// reach/count/nodes/bill; `state_space` emits the MCC command, `one_safe`
 /// the general forms (`reach` + `max-value`) its runner turns into the MCC
 /// verdict.
-enum class examination { none, state_space, one_safe };
+/// What follows the model: `none` the default reach with its meters (the
+/// `nupn2hsc` output), `model_only` nothing (a driver adds its own forms),
+/// or an MCC examination's query.
+enum class examination { none, model_only, state_space, one_safe };
 
 struct emit_options {
   int bound = 2;  ///< leaf domain is [0, bound); a safe NUPN needs only 2
