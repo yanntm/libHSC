@@ -29,6 +29,7 @@ target_sources(hsc PRIVATE
   surface_events.cc
   surface_families.cc
   surface_query.cc
+  surface_weighted_count.cc
   surface_run.cc
   surface_rewrite.cc
   surface_hotbit.cc

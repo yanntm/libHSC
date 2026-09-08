@@ -59,5 +59,20 @@ else
 	fail=$((fail+1)); echo "FAIL TMULT: could not write the block"
 fi
 
+# PCOEF: place 0 of Raft-PT-02 standing for two places of a fused free
+# component. One reachable marking holds a token there, and it then represents
+# two markings of the net this one came from: 7381 + 1.
+PC_NET="$LOGS/pcoef.pnet"
+if python3 "$(dirname "$0")/pnet_block.py" "$BASE" "$PC_NET" PCOEF 28 --at 0 1 > /dev/null 2>&1 ; then
+	S3=$(timeout $T_ "$HSC_PN" --net "$PC_NET" --states -q 2>/dev/null | awk '/ STATES / {print $3}')
+	if [ "$S3" = "7382" ] ; then
+		ok=$((ok+1)); echo "ok   PCOEF weights the state count ($S -> $S3)"
+	else
+		fail=$((fail+1)); echo "FAIL PCOEF: STATES $S3, want 7382"
+	fi
+else
+	fail=$((fail+1)); echo "FAIL PCOEF: could not write the block"
+fi
+
 echo "$ok ok, $fail failed, $tmo timed out"
 [ "$fail" = 0 ]

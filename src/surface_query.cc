@@ -226,7 +226,8 @@ void translator::do_states(const datum& form) {
   try {
     const code r = form.items().size() > 1 ? named(form.items()[1])
                                            : run_reach(false);
-    out_ << "STATE_SPACE STATES " << mgr_.diagrams().cardinal_exact(r)
+    out_ << "STATE_SPACE STATES "
+         << (weighted() ? weighted_count(r) : mgr_.diagrams().cardinal_exact(r))
          << TECHNIQUES;
   } catch (const hsc::overflow_error& e) {
     out_ << "STATE_SPACE STATES CANNOT_COMPUTE\n";
@@ -312,7 +313,7 @@ void translator::do_count(const datum& form) {
   }
   out_ << name << " count ";
   if (exact) {
-    out_ << mgr_.diagrams().cardinal_exact(c);
+    out_ << (weighted() ? weighted_count(c) : mgr_.diagrams().cardinal_exact(c));
   } else {
     out_ << std::fixed << std::setprecision(0) << mgr_.diagrams().cardinal(c);
   }
@@ -338,7 +339,7 @@ void translator::do_expect(const datum& form) {
   const std::string& name = sym(arg(form, 1, "result name"));
   const code c = named(arg(form, 1, "result name"));
   const datum& lit = arg(form, 2, "count");
-  if (is_integer(lit)) {
+  if (is_integer(lit) && !weighted()) {
     const double want = static_cast<double>(as_int(lit));
     const double got = mgr_.diagrams().cardinal(c);
     if (got == want) {
@@ -355,7 +356,8 @@ void translator::do_expect(const datum& form) {
     fail(lit, "expected a non-negative integer literal");
   }
   const mpz_class want(lit.text());
-  const mpz_class got = mgr_.diagrams().cardinal_exact(c);
+  const mpz_class got =
+      weighted() ? weighted_count(c) : mgr_.diagrams().cardinal_exact(c);
   if (got == want) {
     out_ << "ok " << name << " == " << want << '\n';
   } else {

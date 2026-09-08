@@ -32,6 +32,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <gmpxx.h>
+
 #include "hsc/core/manager.hh"
 #include "hsc/core/operation.hh"
 #include "hsc/event.hh"
@@ -484,6 +486,23 @@ class translator final : public name_scope {
   /// sort-directed walk: a leaf's code is a theory set to read, a pair's arcs
   /// are recursed head then tail. A general statistic (also MAX_TOKEN_IN_PLACE),
   /// not a query specialised to one-safety.
+  /// \name Weighted counting (`src/surface_weighted_count.cc`)
+  ///
+  /// `(leaf-weight NAME K)` says a leaf stands for K places of a *free*
+  /// component of the original net, one over which tokens travel freely, so
+  /// a marking of v there represents C(v+K-1, K-1) markings of that net.
+  /// Counting is then the ordinary recursion with one substitution: a leaf
+  /// arc contributes the sum of those binomials over its values instead of
+  /// how many values it holds. Its own algorithm and its own caches: no
+  /// declared weight, nothing runs.
+  ///@{
+  void do_leaf_weight(const datum& form);
+  /// Are any weights declared (and not all one)?
+  [[nodiscard]] bool weighted() const { return !weights_.empty(); }
+  /// The exact count of \p c with the declared weights folded in.
+  [[nodiscard]] mpz_class weighted_count(code c);
+  ///@}
+
   void collect_max(code c, core::shape_code s, std::int32_t& mx,
                    std::unordered_set<code>& seen);
 
@@ -536,6 +555,9 @@ class translator final : public name_scope {
   leaves::int_set_theory* theory_ = nullptr;
   core::shape_code leaf_sort_ = core::none;
 
+  /// `(leaf-weight NAME K)` by leaf name, K > 1 only: how many places of a
+  /// free component that leaf stands for. Empty in every ordinary run.
+  std::map<std::string, long long> weights_;
   std::unordered_map<std::string, leaf_decl> leaves_;
   std::vector<std::string> order_;  ///< leaf names in frontier order
   core::shape_code top_ = core::none;

@@ -237,6 +237,7 @@ certificate; `unfold` always enumerates.
 (apply NAME EVTERM SOURCE)   ; one-step image, no closure
 (select NAME SOURCE QATOM+)  ; the subset satisfying every atom
 (count NAME [exact])         ; state count: a double (an order of magnitude), or the exact integer
+(leaf-weight NAME K)         ; NAME stands for K places of a fused free component, §8e
 (nodes NAME)                 ; diagram nodes — the representation size
 (max-value NAME)             ; largest value any leaf holds in NAME
 (print NAME)
@@ -373,6 +374,29 @@ a proof is re-checkable years later, by a reader that never ran the
 search. `examples/cegar/` demonstrates the whole round trip
 (`ring_check.hsc` pulls `ring_model.hsc` in with `input`, proves,
 exports, re-checks, and cross-checks the count explicitly).
+
+## 8e. Counting a model that came from a transformation
+
+A model is often the image of another: a reduction may fuse a *free
+component* — K places over which tokens travel freely — into one place
+holding the component's total. Every distribution of that total over the K
+places is reachable, so one marking here stands for several there.
+
+```lisp
+(leaf-weight NAME K)         ; NAME stands for K places; K = 1 is the default
+```
+
+A leaf declared this way contributes `C(v+K-1, K-1)` for a value `v` instead
+of one, so `(count NAME exact)`, `(states)` and `(expect)` report the count
+of the net the model came from. The plain `(count NAME)` double is left
+unweighted, being an order of magnitude. Counting with weights is a separate
+algorithm with its own caches (`src/surface_weighted_count.cc`): a model that
+declares none pays nothing.
+
+`examples/models/leaf_weight.hsc` is the worked example: six markings here,
+twenty there. On the Petri net side the coefficients travel in the `PCOEF`
+block of a PNET (`include/hsc/petri/io/PNET.md`) and `hsc-pn` turns them into
+these declarations.
 
 ## 9. Errors, honestly
 

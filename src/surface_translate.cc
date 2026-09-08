@@ -30,6 +30,7 @@ void translator::dispatch(const datum& form) {
   else if (kw == "max-value") do_max_value(form);
   else if (kw == "select") do_select(form);
   else if (kw == "count") do_count(form);
+  else if (kw == "leaf-weight") do_leaf_weight(form);
   else if (kw == "nodes") do_nodes(form);
   else if (kw == "print") do_print(form);
   else if (kw == "expect") do_expect(form);

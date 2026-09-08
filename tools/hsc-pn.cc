@@ -180,6 +180,34 @@ int main(int argc, char** argv) {
     }
   }
 
+  // PCOEF: a place standing for K places of a free component the producer
+  // fused. A marking of v there represents C(v+K-1, K-1) markings of the net
+  // it came from, which the surface folds into its count when the model
+  // declares it (`(leaf-weight NAME K)`).
+  std::string weight_forms;
+  if (const MatrixCol<int>* pc = PNETIO<int>::find(blocks, "PCOEF")) {
+    if (pc->getRowCount() != net->getPlaceCount() || pc->getColumnCount() != 1) {
+      std::cerr << "PCOEF is " << pc->getRowCount() << " x "
+                << pc->getColumnCount() << ", expected " << net->getPlaceCount()
+                << " x 1\n";
+      return 1;
+    }
+    const SparseArray<int>& col = pc->getColumn(0);
+    for (std::size_t k = 0; k < col.size(); ++k) {
+      if (col.valueAt(k) < 0) {
+        std::cerr << "PCOEF holds a negative coefficient for place "
+                  << col.keyAt(k) << '\n';
+        return 1;
+      }
+      weight_forms += "(leaf-weight " + net->getPnames()[col.keyAt(k)] + ' ' +
+                      std::to_string(1 + col.valueAt(k)) + ")\n";
+    }
+    if (!quiet && col.size() != 0) {
+      std::cerr << "PCOEF: " << col.size() << " of " << net->getPlaceCount()
+                << " places stand for a fused free component\n";
+    }
+  }
+
   hsc::petri::emit_options opts;
   opts.exam = hsc::petri::examination::model_only;
   // a transition that cannot change the marking adds nothing to the fixpoint;
@@ -191,6 +219,7 @@ int main(int argc, char** argv) {
 
   std::ostringstream model;
   hsc::petri::to_surface(model, *net, units, opts);
+  model << weight_forms;
   if (force) model << "(reorder-force)\n";
   model << "(reach R saturate)\n";
   if (!export_hsc.empty()) {
