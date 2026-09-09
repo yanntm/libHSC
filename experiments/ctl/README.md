@@ -45,7 +45,7 @@ reachable set itself on the default shape (BART-PT-002: 7 s for 17424
 states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 60 s, while `--shape louvain --force` answers 16/16 in 21 s).
 
-### m5a to m5d
+### m5a to m5e
 
 | run | answered | wrong | open | complete files | vs previous (runs up / down) |
 |---|---|---|---|---|---|
@@ -54,6 +54,8 @@ states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 | m5b | 6181 | 0 | 3227 | 344 | 28 / 12 vs m5a; 63 / 45 vs m4 |
 | m5c | 6224 | 0 | 3184 | 348 | 39 / 25 vs m5b; 68 / 33 vs m4 |
 | m5d | 6331 | 0 | 3077 | 359 | 36 / 13 vs m5c; 76 / 22 vs m4 |
+| m5e (Louvain + FORCE) | 7267 | 0 | 2141 | 429 | 124 / 59 vs m5d |
+| best of m5d and m5e per run | 7765 | 0 | — | 460 | the driver's portfolio, two of its four configurations |
 
 The evaluation discipline (m5a), the fusion (m5b) and the fair-share
 scheduler (m5c) each buy about forty answers over 588 runs (6101 → 6224,
@@ -65,5 +67,14 @@ answered (+3.8%), 357 → 359 complete files, 0 wrong throughout. The six
 runs ended by the outer `timeout` in m5c/m5d are the largest nets of the
 list (ServersAndClients-PT-200320 / -400160, RERS2020-PT-pb101), whose
 parsing and emission precede the tool's alarm.
+
+**The shape.** The same binary with `--shape louvain --force` (m5e) answers
+7267 (+15% over the default shape, +19% over the baseline), completes 429
+files and halves the median wall time (10 s → 2 s); it loses on 59 runs,
+the largest losses whole files (TwoPhaseLocking-PT-nC00050, the Stigmergy
+nets), so the two configurations complement each other: the best of the
+two per run is 7765 answered and 460 complete files — the MCC driver's
+portfolio runs four configurations and keeps the first complete one, so its
+score should sit between. No configuration ever answered wrongly.
 
 Further rows are appended as the runs complete.

@@ -7,13 +7,12 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 
 ## Engineering — next
 
-1. **Read the benchmark** (`experiments/ctl/README.md`): m4 → m5d is 6101
-   → 6331 answered over 588 runs (294 instances below 10^7 states, 60 s),
-   0 wrong throughout; `m5e` (Louvain + FORCE) says what the shape adds —
-   on SieveSingleMsgMbox-PT-d1m04 (1295 places, flat) the default shape
-   answers 1/16 and Louvain + FORCE 16/16. Next: the 10^7–10^9 list
-   (`models_1e7_1e9.txt`) at a longer cap, and a portfolio read (best of
-   the driver's four configurations per instance) to estimate the campaign.
+1. **The benchmark is read** (`experiments/ctl/README.md`): m4 → m5d is
+   6101 → 6331 answered over 588 runs (294 instances below 10^7 states,
+   60 s), the Louvain + FORCE shape 7267, the best of the two shapes 7765;
+   0 wrong throughout. Next: the 10^7–10^9 list (`models_1e7_1e9.txt`) at
+   a longer cap, and the other two driver configurations (`nupn --force`,
+   `louvain`) to complete the portfolio read before a campaign.
 2. **The `gfp` hull of `EG`** is the remaining bottleneck on big `R`
    (Angiogenesis-PT-05: an `AF` under a restrict costs 4 s per node,
    breadth-first over 40M states); the inversion itself is cheap (0.7 s).

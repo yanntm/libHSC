@@ -22,11 +22,16 @@ stay in `handoff_ctl.md`; the numbers in `README.md` here.
   more answers; the bottlenecks that remain are the shape (a flat spine over
   a thousand places, cured by the driver's Louvain configuration) and the
   breadth-first `gfp` hull of `EG` on tens of millions of states.
-* Not done: no cluster run (as instructed); ITS-Tools and MCC-drivers
-  changes are committed but not pushed; libHSC is pushed so the CI
-  republishes `hsc-pn`.
+* Not done: no cluster run (as instructed). libHSC and MCC-drivers are
+  pushed (the CI republishes `hsc-pn`; the driver declares the CTL
+  examinations); the ITS-Tools plug is committed in `~/git/ITStools`, not
+  pushed — a product build publishes it, your call.
 
-Numbers for m5b/m5c/m5d are filled in at the end of the session below.
+Final numbers over 588 runs (294 instances below 10^7 states, 60 s): the
+baseline answers 6101, the engine work takes it to 6331 (+3.8%), the
+Louvain + FORCE shape to 7267 (+19%), and the best of the two shapes per
+run — what the driver's portfolio approximates — 7765 (+27%), 460 of 588
+files complete; 0 wrong verdicts in every run (`README.md` here).
 
 ## Starting point
 
@@ -143,3 +148,24 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    at every step, complete files 357 → 359, 76 runs up and 22 down against
    the baseline. The fast-cycle-witness fix is the largest single step
    (+107). The shape variant (`m5e`, Louvain + FORCE) runs last.
+19. **The shape** (`m5e`, `--shape louvain --force`): 7267 answered against
+   6331, 429 complete files against 359, median wall time 2 s against
+   10 s; 124 runs up, 59 down — whole files lost on TwoPhaseLocking and
+   the Stigmergy nets, where the flat NUPN shape wins. The best of the two
+   per run is 7765 and 460 complete files. The engine work of the night is
+   worth about a quarter of what the shape is worth; both compound, and
+   the driver's portfolio already runs four shapes.
+
+## Where things stand for you
+
+* `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the
+  numbers; every mechanism is documented beside its code
+  (`core/algorithm.md` §8–§11, `ctl/algorithm.md`, `trace/algorithm.md`).
+* Variation points (all sound on the sample suite): `HSC_CTL_EXIST`,
+  `HSC_CTL_OTF`, `HSC_CTL_FWD`, `HSC_CTL_PROTECT`, `HSC_CTL_SCCFAST`;
+  observation point `HSC_CTL_TRACE=1`.
+* The two open engine questions: the breadth-first `gfp` hull of `EG` on
+  tens of millions of states, and backward closures with many protected
+  events. The two open scheduling questions: which conjunct goes forward
+  (`HSC_CTL_FWD`), and the shape portfolio for CTL.
+* Nothing was deleted; every run's outputs sit under `tests/logs/`.
