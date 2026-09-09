@@ -51,6 +51,7 @@ grep -v '^#' "$HEUR" | while IFS=$'\t' read -r name flags envs; do
   cpu=$(awk -v u="${usr:-0}" -v s="${sys:-0}" 'BEGIN{printf "%.2f", u+s}')
   status=ok; [ "$rc" = 124 ] && status=timeout
   grep -q "std::bad_alloc\|Cannot allocate\|out of memory" "$err" 2>/dev/null && status=memory
+  [ "$rc" = 137 ] && status=memory  # SIGKILL with nothing said: the node's memory cap
   [ "$status" = ok ] && [ "$rc" != 0 ] && status=crash
   # the budget ran out inside the reachable set: nothing was answered and no stats line came
   [ "$status" = ok ] && ! grep -q '^hsc-pn: stats ' "$err" 2>/dev/null && status=noreach
