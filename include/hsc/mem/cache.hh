@@ -16,6 +16,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <concepts>
 #include <functional>
 #include <memory>
 #include <new>
@@ -97,6 +98,11 @@ class cache {
       return raced->result;
     }
 
+    // A context may refuse the insert: a value computed after a stop is
+    // partial, and a partial value read back later would pass for exact.
+    if constexpr (requires(const Context& c) { { c.cache_results() } -> std::convertible_to<bool>; }) {
+      if (!cxt_.cache_results()) return result;
+    }
     if (free_.empty()) evict();
     insert(h, std::move(op), std::move(result));
     return back_->result;
