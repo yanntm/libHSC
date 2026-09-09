@@ -65,7 +65,9 @@ struct node_view {
 /// so the index stays valid while the sieve rewrites primes.
 class diagram_engine::accumulator {
  public:
-  explicit accumulator(support_algebra& head) : head_(head) {}
+  accumulator(support_algebra& head, std::size_t expected) : head_(head) {
+    entries_.reserve(expected);
+  }
 
   void add(code sub, code prime) {
     if (sub == none || prime == none) return;  // smash, before anything
@@ -198,7 +200,7 @@ void diagram_engine::sieve(shape_code sort, accumulator& acc,
 }
 
 code diagram_engine::canonize(shape_code sort, std::span<const arc> rectangles) {
-  accumulator acc(head_algebra(sort));
+  accumulator acc(head_algebra(sort), rectangles.size());
   // Each rectangle is its own operand: nothing is assumed about the bag.
   for (const arc& r : rectangles) sieve(sort, acc, std::span(&r, 1));
   return finish(sort, acc);
@@ -479,7 +481,7 @@ code diagram_engine::do_apply(code term, code d) {
   if (t.operand(0) == op_table::id) {
     // Skip on the head: the primes are untouched, so they are still pairwise
     // disjoint and only the regroup by sub is owed. The sieve never runs.
-    accumulator acc(head);
+    accumulator acc(head, n.arity);
     for (const arc& x : n.arcs()) {
       acc.add(tail.apply_local(t.operand(1), x.sub), x.prime);
     }
@@ -489,7 +491,7 @@ code diagram_engine::do_apply(code term, code d) {
   if (head.injective(t.operand(0))) {
     // The head acts injectively: the image primes stay pairwise disjoint,
     // so again only the regroup by sub is owed.
-    accumulator acc(head);
+    accumulator acc(head, n.arity);
     for (const arc& x : n.arcs()) {
       const code prime = head.apply_local(t.operand(0), x.prime);
       if (prime == none) continue;
@@ -515,7 +517,7 @@ code diagram_engine::do_join(code a, code b) {
   const shape_code sort = nodes_[a].sort;
   assert(nodes_[b].sort == sort && "join across different sorts");
 
-  accumulator acc(head_algebra(sort));
+  accumulator acc(head_algebra(sort), nodes_[a].arity + nodes_[b].arity);
   for (const arc& x : nodes_[a].arcs()) acc.add(x.sub, x.prime);
   sieve(sort, acc, nodes_[b].arcs());
   return finish(sort, acc);
@@ -529,7 +531,7 @@ code diagram_engine::do_meet(code a, code b) {
 
   // The primes produced here are pairwise disjoint already — both operands
   // are partitions — so the sieve is not needed, only the grouping by sub.
-  accumulator acc(head);
+  accumulator acc(head, nodes_[a].arity + nodes_[b].arity);
   for (const arc& x : nodes_[a].arcs()) {
     for (const arc& y : nodes_[b].arcs()) {
       const code overlap = head.meet(x.prime, y.prime);
@@ -549,7 +551,7 @@ code diagram_engine::do_minus(code a, code b) {
 
   // Also disjoint by construction: each prime of a is partitioned among the
   // primes of b, plus the part of it that b does not cover at all.
-  accumulator acc(head);
+  accumulator acc(head, nodes_[a].arity + nodes_[b].arity);
   for (const arc& x : nodes_[a].arcs()) {
     code rest = x.prime;
     for (const arc& y : nodes_[b].arcs()) {
