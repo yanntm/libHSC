@@ -6,16 +6,19 @@
 #   lp       petri64 --lp --lpTime 5                     (PetriSpot's state equation, rational)
 #   hscb     hscu + --approx-back 50 --approx-back-time 2 (the backward search inside S)
 # ENGINES selects them (default "hsc hscu lp").
-# Every run is capped at $CAP seconds. Outputs under tests/logs/unreach/$TAG/,
+# Every run is capped at $CAP seconds and $MEMKB kB of virtual memory (6 GB);
+# PARALLEL defaults to 4 — eight runs at once plus another job overran a 64 GB
+# machine once. Outputs under tests/logs/unreach/$TAG/,
 # one <model>-<EXAM>.<engine>.{out,err} pair per run, then a rows file scored
 # against the contest oracles: TAG model exam engine total answered correct
 # wrong unchecked seconds wrong-names.
 #
-#   approx_sweep.sh TAG MODELS.txt [PARALLEL=6]
+#   approx_sweep.sh TAG MODELS.txt [PARALLEL=4]
 set -u
-TAG=${1:?tag}; LIST=${2:?models list}; PAR=${3:-6}
+TAG=${1:?tag}; LIST=${2:?models list}; PAR=${3:-4}
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 CAP=${CAP:-60}
+MEMKB=${MEMKB:-6000000}
 INPUTS=$ROOT/tests/logs/mcc2026/INPUTS
 ORACLE=/data/ythierry/MCC26deploy/MCC-drivers/oracle
 HSC=$ROOT/build/tools/hsc-pn
@@ -23,7 +26,7 @@ LP=${LP:-$HOME/git/PetriSpot/build/petri64}
 OUT=$ROOT/tests/logs/unreach/$TAG
 mkdir -p "$OUT"
 ENGINES=${ENGINES:-hsc hscu lp}
-export ROOT CAP INPUTS ORACLE HSC LP OUT TAG ENGINES
+export ROOT CAP MEMKB INPUTS ORACLE HSC LP OUT TAG ENGINES
 
 one() {  # model exam
   local m=$1 ex=$2 X props
@@ -39,7 +42,7 @@ one() {  # model exam
       hscb) cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only --approx-units --approx-back 50 --approx-back-time 2 -q) ;;
     esac
     t0=$(date +%s.%N)
-    timeout "$CAP" "${cmd[@]}" > "$OUT/$m-$ex.$eng.out" 2> "$OUT/$m-$ex.$eng.err"
+    (ulimit -v "$MEMKB"; timeout "$CAP" "${cmd[@]}") > "$OUT/$m-$ex.$eng.out" 2> "$OUT/$m-$ex.$eng.err"
     local rc=$?
     t1=$(date +%s.%N)
     local secs; secs=$(python3 -c "print(round($t1-$t0,2))")
