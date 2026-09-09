@@ -52,11 +52,18 @@ the walk engine and the CTL checker are **not** vendored.
   `toolspecific` as opaque, so a second SAX pass reads it; logic mirrors
   `fr.lip6.move.gal.nupn.NupnHandler`. A unit holding both places and subunits
   is kept as-is (bracketed together), not split into a synthetic child.
+* `invariants.hh` + `src/petri_invariants.cc` — the P-flows of a net through
+  the vendored calculator (`invariants/`, PetriSpot's `InvariantMiddle`), as
+  supports with coefficients and the constant the initial marking fixes; a
+  deadline, no compression, flows rather than semiflows (at most |P| of them).
 * `decompose.hh` + `src/petri_decompose.cc` — a unit tree for a net that
   arrives without one, by Louvain clustering over a place co-occurrence graph
   (control→write per transition, all-to-all as fallback). The graph is built
   from the net alone: no property takes part, so nothing can make one community
-  mandatory. `louvain/hyperedge.hh` bounds what a single transition may
+  mandatory. Given the flows, each one's support is one more hyperedge (weight
+  `HSC_INV_WEIGHT`, default 1, shared over its pairs, bounded like a
+  transition's): places an invariant ties together attract each other, which
+  is what keeps a token conservation from straddling a cluster frontier. `louvain/hyperedge.hh` bounds what a single transition may
   contribute — a hyperedge of support k relates its places pairwise at a cost
   quadratic in k, and a transition wide enough to matter is a synchronisation
   rather than a progression, so it is left out instead of expanded.

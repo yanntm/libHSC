@@ -22,7 +22,7 @@ business (`MCC-drivers/hsc/`); this tool answers properties.
 
 ```
 hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc|sexpr]
-       [--shape nupn|flat|louvain] [--force] [--bound N]
+       [--shape nupn|flat|louvain] [--force] [--invariants S] [--bound N]
        [--states | --max-tokens] [--deadlock NAME] [--totalTime S] [--printUnknown] [--witness]
        [--export-hsc FILE] [-q] [-v]
 ```
@@ -33,7 +33,10 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
    file has one. `--net`: `PNETIO::read`, places `p<i>`, transitions `t<i>`.
 2. **Shape.** `nupn` (default with `-i`, falls back to `flat` without a unit
    tree), `flat` (one spine), `louvain` (the clustering of `decompose.hh`);
-   `--force` appends the `(reorder-force)` directive. The model is emitted as
+   `--force` appends the `(reorder-force)` directive. `--invariants S`
+   computes the net's P-flows within S seconds (`petri/invariants.hh`) and
+   hands them to the `louvain` shape as extra hyperedges; `-v` reports how
+   many, the widest support and the largest constant. The model is emitted as
    `.hsc` text by `to_surface` and parsed back: the surface is the one
    language, the tool never talks to the calculus directly.
 3. **Properties.** `loadPropertyFile` (syntax by extension or forced), one

@@ -25,6 +25,7 @@
 
 #include "hsc/petri/core/Log.h"
 #include "hsc/petri/decompose.hh"
+#include "hsc/petri/invariants.hh"
 #include "hsc/petri/expr/Property.h"
 #include "hsc/petri/io/PNETIO.h"
 #include "hsc/petri/nupn.hh"
@@ -72,6 +73,7 @@ int main(int argc, char** argv) {
   std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock;
   bool force = false, states = false, max_tokens = false, print_unknown = false, quiet = false, verbose = false,
        witness = false;
+  int invariants_time = 0;
   int bound = 2, total_time = 0;
   auto* in_opt = app.add_option("-i,--pnml", pnml, "PNML P/T net (with its NUPN unit tree when present)")
                      ->check(CLI::ExistingFile);
@@ -82,6 +84,7 @@ int main(int argc, char** argv) {
   app.add_option("--propsSyntax", syntax, "auto|mcc|sexpr (default: by extension)");
   app.add_option("--shape", shape, "nupn|flat|louvain: the hierarchy (nupn falls back to flat)");
   app.add_flag("--force", force, "FORCE reordering after the shape");
+  app.add_option("--invariants", invariants_time, "compute the P-flows within S seconds and let them guide the louvain shape");
   app.add_option("--bound", bound, "leaf domain [0, N), raised to the max initial marking + 1");
   app.add_flag("--states", states, "the four StateSpace values");
   app.add_flag("--max-tokens", max_tokens, "the MAX_TOKEN_IN_PLACE value alone (the OneSafe examination)");
@@ -126,7 +129,25 @@ int main(int argc, char** argv) {
   if (shape == "nupn") {
     if (!pnml.empty()) units = hsc::petri::read_units(pnml);
   } else if (shape == "louvain") {
-    units = hsc::petri::decompose(*net);
+    std::vector<hsc::petri::pflow> flows;
+    if (invariants_time > 0) {
+      const auto t0 = std::chrono::steady_clock::now();
+      flows = hsc::petri::pflows(*net, invariants_time);
+      if (verbose) {
+        std::size_t widest = 0;
+        long long largest = 0;
+        for (const hsc::petri::pflow& f : flows) {
+          widest = std::max(widest, f.terms.size());
+          largest = std::max(largest, f.constant);
+        }
+        std::cerr << "invariants: " << flows.size() << " flows, widest support " << widest
+                  << ", largest constant " << largest << ", "
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(
+                         std::chrono::steady_clock::now() - t0).count()
+                  << " ms\n";
+      }
+    }
+    units = hsc::petri::decompose(*net, flows);
   } else if (shape != "flat") {
     std::cerr << "unknown shape '" << shape << "'\n";
     return 2;
