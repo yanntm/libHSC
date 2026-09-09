@@ -275,6 +275,32 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    verdicts rest on a non-empty selection and get a path; the others have
    none to show.
 
+32. **The big corpus at the NUPN shape** (`m6b_1e7_1e9`, frontier hull):
+   1305 answered, 0 wrong, 52 complete files — far below Louvain + FORCE's
+   2105 there; the best of the two is 2221 and 102 complete files, and 59
+   runs are still empty under both shapes. The counter nets of item 21 are
+   not rescued by the flat shape either at 10^8–10^9 states: `R` itself
+   is beyond 120 s for them.
+33. **Flows in the decomposition** (your direction; `petri/invariants.hh`,
+   `decompose.hh`): PetriSpot's `invariants/` is vendored (3900 lines,
+   header-only, depends on what we had), and `hsc-pn --invariants S`
+   computes a basis of P-flows within S seconds — flows, not semiflows, at
+   most |P| of them; TwoPhaseLocking gives 3 (support 6, constant 100),
+   TokenRing-PT-010 11 (constant 1), Angiogenesis-05 8 (support up to 23,
+   constant 5), all in 0 ms. Two encodings for Louvain, both variation
+   points: each flow's support as a sign-aware clique (same-sign pairs at
+   `HSC_INV_WEIGHT`, cross-sign at `HSC_INV_CROSS` of it); and the
+   contraction of places tied by a flow whose constant is at least
+   `HSC_INV_MERGE` into one flat unit before clustering — your frontier
+   argument made a rule. Probes: the cliques alone change the clusters but
+   every two-way cut of TwoPhaseLocking still splits a 50- or 100-token
+   flow; the contraction at 2 or 4 flattens it (R in 1.1 s where Louvain
+   never finished) and flattens Angiogenesis too (R 0.23 s against 0.88),
+   at 8 Angiogenesis keeps its hierarchy. R time is a poor proxy for CTL
+   yield there (flat Angiogenesis answered 1/16, Louvain + FORCE 5/16), so
+   three benchmarks run: Louvain + FORCE on the m6c build, plus flows,
+   plus flows with contraction at 4.
+
 ## Where things stand for you
 
 * `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the
