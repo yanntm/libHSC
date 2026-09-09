@@ -15,6 +15,7 @@
 
 #include <array>
 #include <cstdint>
+#include <map>
 #include <random>
 #include <span>
 #include <vector>
@@ -22,6 +23,7 @@
 #include "hsc/core/manager.hh"
 #include "hsc/core/operation.hh"
 #include "hsc/leaves/int_set.hh"
+#include "hsc/trace/path.hh"
 
 using namespace hsc;
 
@@ -190,6 +192,79 @@ TEST_CASE("the fused composition of two product terms acts as their sequence") {
         const core::code expect = diagrams.apply_local(a, diagrams.apply_local(b, reach));
         CHECK(diagrams.apply_local(fused, reach) == expect);
       }
+    }
+  }
+}
+
+TEST_CASE("a symbolic shortest path has the explicit BFS distance and true steps") {
+  for (std::uint64_t seed = 1; seed <= 120; ++seed) {
+    core::manager mgr;
+    auto [index, theory] = mgr.import<leaves::int_set_theory>();
+    std::mt19937_64 rng(seed);
+    const model m = random_model(mgr, theory, index, rng);
+    core::diagram_engine& diagrams = mgr.diagrams();
+    const core::code reach = diagrams.apply_local(
+        core::saturate(mgr, m.sort, m.events), m.start);
+    std::vector<std::vector<std::int32_t>> states;
+    std::vector<std::int32_t> acc;
+    words_of(mgr, theory, m.sort, reach, acc, states);
+    if (states.empty()) continue;
+    // One-state diagrams of every reachable state, and their indices.
+    std::vector<core::code> pts;
+    std::map<core::code, std::size_t> index_of;
+    for (const auto& w : states) {
+      std::size_t next = 0;
+      pts.push_back(point(mgr, theory, m.sort, w, next));
+      index_of[pts.back()] = pts.size() - 1;
+    }
+    // Explicit BFS distances from the source over the enumerated graph.
+    const std::size_t src = rng() % pts.size();
+    std::vector<std::size_t> dist(pts.size(), SIZE_MAX);
+    std::vector<std::size_t> queue{src};
+    dist[src] = 0;
+    for (std::size_t qi = 0; qi < queue.size(); ++qi) {
+      const std::size_t u = queue[qi];
+      for (const core::code e : m.events) {
+        const core::code img = diagrams.apply_local(e, pts[u]);
+        for (std::size_t v = 0; v < pts.size(); ++v) {
+          if (dist[v] == SIZE_MAX && diagrams.meet(img, pts[v]) != core::none) {
+            dist[v] = dist[u] + 1;
+            queue.push_back(v);
+          }
+        }
+      }
+    }
+    // The target: a random reachable state, as a set; the symbolic path.
+    const std::size_t tgt = rng() % pts.size();
+    core::inverter inv(mgr);
+    std::vector<core::code> preds;
+    for (const core::code e : m.events) preds.push_back(inv(m.sort, e, reach));
+    trace::graph g;
+    g.sort = m.sort;
+    g.events = m.events;
+    g.preds = rng() % 2 ? std::span<const core::code>(preds) : std::span<const core::code>();
+    g.within = reach;
+    g.one_state = [&](core::code set) -> core::code {
+      // the first word of the set
+      std::vector<std::vector<std::int32_t>> ws;
+      std::vector<std::int32_t> a2;
+      words_of(mgr, theory, m.sort, set, a2, ws);
+      std::size_t next = 0;
+      return ws.empty() ? core::none : point(mgr, theory, m.sort, ws.front(), next);
+    };
+    const std::optional<trace::path_result> p =
+        trace::path(mgr, g, pts[src], pts[tgt], core::op_table::id);
+    if (dist[tgt] == SIZE_MAX) {
+      CHECK_FALSE(p.has_value());
+      continue;
+    }
+    REQUIRE(p.has_value());
+    CHECK(p->events.size() == dist[tgt]);
+    CHECK(p->states.front() == pts[src]);
+    CHECK(p->states.back() == pts[tgt]);
+    for (std::size_t i = 0; i < p->events.size(); ++i) {
+      const core::code img = diagrams.apply_local(m.events[p->events[i]], p->states[i]);
+      CHECK(diagrams.meet(img, p->states[i + 1]) != core::none);
     }
   }
 }
