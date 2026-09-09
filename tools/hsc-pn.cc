@@ -70,7 +70,8 @@ int main(int argc, char** argv) {
                "Net: -i model.pnml or --net model.pnet. Properties: MCC XML or\n"
                "s-expression forms (INTEROP.md). Answers: FORMULA lines on stdout."};
   std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock;
-  bool force = false, states = false, max_tokens = false, print_unknown = false, quiet = false, verbose = false;
+  bool force = false, states = false, max_tokens = false, print_unknown = false, quiet = false, verbose = false,
+       witness = false;
   int bound = 2, total_time = 0;
   auto* in_opt = app.add_option("-i,--pnml", pnml, "PNML P/T net (with its NUPN unit tree when present)")
                      ->check(CLI::ExistingFile);
@@ -87,6 +88,7 @@ int main(int argc, char** argv) {
   app.add_option("--deadlock", deadlock, "a deadlock query with this name, without a property file");
   app.add_option("--totalTime", total_time, "seconds; then UNKNOWN for what is open and exit 0");
   app.add_flag("--printUnknown", print_unknown, "print UNKNOWN <name> for every unanswered property");
+  app.add_flag("--witness", witness, "after each CTL verdict, its witness tree on stderr");
   app.add_option("--export-hsc", export_hsc, "write the emitted .hsc model to this file");
   app.add_flag("-q,--quiet", quiet, "no import log on stderr");
   app.add_flag("-v,--verbose", verbose, "forward the session's own report lines to stderr");
@@ -266,6 +268,7 @@ int main(int argc, char** argv) {
     hsc::pn::solver solver(*net, effective_bound, verbose);
     if (!mult.empty()) solver.set_multiplicities(std::move(mult));
     solver.set_arcs_countable(arcs_countable);
+    solver.set_witness(witness);
     if (!dropped_tokens.empty()) solver.set_dropped_tokens(std::move(dropped_tokens));
     for (const std::string& l : solver.feed(model.str())) {
       if (verbose) std::cerr << l << '\n';
