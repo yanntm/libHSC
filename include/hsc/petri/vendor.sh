@@ -20,6 +20,9 @@ parse/sexpr/Sexpr.h parse/sexpr/PropertyReader.h parse/sexpr/HintReader.h parse/
 expr/Expression.h expr/Property.h expr/CtlFormula.h expr/CtlSimplify.h expr/Simplify.h
 expr/SexprPrinter.h expr/Hint.h expr/README.md expr/algorithm.md
 io/SparseMatrixIO.h io/PNETIO.h io/PNET.md
+invariants/Heuristic.h invariants/InvariantCalculator.h invariants/InvariantMiddle.h
+invariants/InvariantsTrivial.h invariants/MixedSignsUniqueTable.h invariants/RowSignDomination.h
+invariants/RowSigns.h
 "
 for f in $FILES; do
   mkdir -p "$DST/$(dirname "$f")"
