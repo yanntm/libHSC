@@ -7,20 +7,28 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 
 ## Engineering — next
 
-1. **Measure** on the MCC nets, per model: events protected by `within(R)`
-   (Raft-PT-02: 12 of 44), node counts of backward sets against `R`, time
-   of `invert_events`, share of formulas whose forward form has a `restrict`
-   leaf. Angiogenesis-PT-05 (42.7M states) answers one CTLC formula in 15 s;
-   where the time goes there is the first profile to take.
-2. **The campaign** (M6): CTLC / CTLF at 600 s on the cluster through
-   `MCC-drivers/hsc/`, beside the ITS-Tools sets; the `.hsc600` recipe of
-   `handoff_mcc.md`.
-3. Then the optimisations on the produced questions: `has_image`, the
-   constrained-closure rewrite (M5).
+1. **Read the benchmark** (`experiments/ctl/`): baseline `m4`, then `m5a`
+   (existential leaves, on-the-fly search, rounds) and `m5b` (product
+   composition fused), all on the 294 instances below 10^7 states at 60 s;
+   `summarize.py a.tsv b.tsv` compares. Then the same with
+   `-e "--shape louvain --force"`: on SieveSingleMsgMbox-PT-d1m04 (1295
+   places, flat) the default shape answers 1/16 and Louvain+FORCE 16/16 —
+   the shape, not the checker, decides many small instances.
+2. **The inversion cost** on big `R` (Angiogenesis-PT-05: 9 s for 64 events,
+   the exactness test applying each inverse to `R`): measure, then either a
+   cheaper test or a lazier protection.
+3. **Backward closures with protected events**: `compose(within(R), p)` is
+   an unfusable straddler; on nets where many events are protected the
+   backward closures are breadth-first. Measure how many, then decide.
+4. **The campaign** (M6): the `hsc` MCC driver declares CTLCardinality /
+   CTLFireability (`~/git/MCC-drivers/hsc/`, committed); ITS-Tools `-hsc`
+   also runs the checker on the CTL examinations (`~/git/ITStools`,
+   committed, not pushed; the product's `hsc-pn` comes from the libHSC CI
+   branch `HSC-Linux`, so a libHSC push is what updates it).
+5. Witness trees (a side quest): new files, a transverse concern.
 
-Fixtures and oracles come from `~/git/pnmcc-models-2026/website` only
-(`INPUTS/<model>.tgz`, `oracle.tar.gz`); older editions carry other formulas
-under the same ids.
+Observation points: `HSC_CTL_TRACE=1` (per-node wall time on stderr).
+Variation points: `HSC_CTL_EXIST=0`, `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`.
 
 ## Theory — open
 
@@ -30,16 +38,19 @@ under the same ids.
 
 ## Done
 
-* Directions note; `ctl/` docs; `core/algorithm.md` §8–§9;
-  `research_notes/invert.md`.
-* `ctl/formula.hh`, `ctl/forward.hh`: DAG, NNF, existential dual, the VIS
-  rules to a question tree; the and-rule sends the right conjunct forward
-  (a choice to re-examine, `ctl/algorithm.md` §4).
-* `op_kind::gfp`, `op_kind::within`; `core::inverter`;
-  `support_algebra::invert_local` (optional); `int_set` `choose` and
-  `invert_local`; differential over 150 random models.
-* `ctl/checker.hh`; surface `(ctl …)`, `(expect-ctl …)`, `(gfp …)`,
-  `(invert …)`, `(deadlock)`; manual §8f; `examples/models/ctl_*.hsc`.
-* `hsc-pn` answers CTLCardinality / CTLFireability; no-effect transitions
-  kept for CTL (self-loops are edges — the one wrong verdict before that);
-  `examples/mcc` fixtures + oracles, 96/96 on the three small nets.
+* Directions note; `ctl/` docs; `core/algorithm.md` §8–§11;
+  `research_notes/invert.md`; `experiments/ctl/` (bench script, record,
+  session report).
+* `ctl/formula.hh`, `ctl/forward.hh`, `ctl/checker.hh`: the forward form,
+  backward `Sat`, existential leaves (`has_image`), on-the-fly search,
+  lazy inverted events, one checker per session, deadlines.
+* Core: `gfp`, `within`, `inverter`, `has_image`, `compose_at`, the
+  interrupt hook; `int_set`: `choose`, `invert_local`, `term_compose`;
+  differentials over 150 random models for inverse, has_image-free
+  composition.
+* Surface `(ctl …)`, `(expect-ctl …)`, `(gfp …)`, `(invert …)`,
+  `(deadlock)`; manual §8f; `examples/models/ctl_*.hsc`.
+* `hsc-pn` answers CTLCardinality / CTLFireability in rounds; no-effect
+  transitions kept for CTL; `examples/mcc` fixtures + oracles from
+  pnmcc-models-2026 (96/96 on the three small nets); baseline benchmark:
+  0 wrong verdicts on 6101 answered.
