@@ -17,6 +17,8 @@
 #include "hsc/petri/louvain/community.h"
 #include "hsc/petri/louvain/hyperedge.hh"
 
+#include <cstdlib>
+
 namespace hsc::petri {
 
 namespace {
@@ -89,6 +91,98 @@ std::vector<louvain::edge> cooccurrence(const SparsePetriNet<int>& net) {
   return any ? edges : all_to_all(net);
 }
 
+/// The flows as hyperedges. A flow's support is a clique, weight
+/// `HSC_INV_WEIGHT` (default 1, a variation point) shared over its pairs; a
+/// support wider than the hyperedge bounds is left out, like a wide
+/// transition: a global invariant says nothing about locality. Signs matter:
+/// two places with the same coefficient sign are substitutes (their weighted
+/// sum is what the flow conserves, a semiflow hidden in it), two with opposite
+/// signs co-move; the cross-sign pairs get the fraction `HSC_INV_CROSS`
+/// (default 0.5) of the weight.
+void add_invariant_edges(std::vector<louvain::edge>& edges,
+                         std::span<const pflow> invariants,
+                         const std::vector<int>& node_of) {
+  static const double weight = [] {
+    const char* e = std::getenv("HSC_INV_WEIGHT");
+    return e == nullptr ? 1.0 : std::atof(e);
+  }();
+  static const double cross = [] {
+    const char* e = std::getenv("HSC_INV_CROSS");
+    return e == nullptr ? 0.5 : std::atof(e);
+  }();
+  for (const pflow& f : invariants) {
+    const std::size_t n = f.terms.size();
+    const std::size_t pairs_n = n * (n - 1) / 2;
+    if (n < 2 || !louvain::induced_fits(pairs_n)) continue;
+    const double w = weight / static_cast<double>(pairs_n);
+    for (std::size_t i = 0; i < n; ++i)
+      for (std::size_t j = i + 1; j < n; ++j) {
+        const int a = node_of[static_cast<std::size_t>(f.terms[i].first)];
+        const int b = node_of[static_cast<std::size_t>(f.terms[j].first)];
+        if (a == b) continue;  // contracted together already
+        const bool same = (f.terms[i].second > 0) == (f.terms[j].second > 0);
+        edges.push_back({a, b, same ? w : cross * w});
+      }
+  }
+}
+
+/// \brief The contraction: places tied by a flow whose constant is at least
+/// `HSC_INV_MERGE` (default 0: none) become one node for the clustering, and
+/// one flat unit afterwards. A conservation of many tokens across a cluster
+/// frontier is what the hierarchy cannot afford — the frontier head would
+/// carry the whole distribution — so those places are kept side by side.
+struct contraction {
+  std::vector<int> node_of;               ///< place -> node
+  std::vector<std::vector<int>> members;  ///< node -> its places, ascending
+};
+
+contraction contract(int places, std::span<const pflow> invariants) {
+  static const long long merge = [] {
+    const char* e = std::getenv("HSC_INV_MERGE");
+    return e == nullptr ? 0LL : std::atoll(e);
+  }();
+  std::vector<int> parent(static_cast<std::size_t>(places));
+  for (int p = 0; p < places; ++p) parent[static_cast<std::size_t>(p)] = p;
+  const auto find = [&](int p) {
+    while (parent[static_cast<std::size_t>(p)] != p) {
+      parent[static_cast<std::size_t>(p)] = parent[static_cast<std::size_t>(parent[static_cast<std::size_t>(p)])];
+      p = parent[static_cast<std::size_t>(p)];
+    }
+    return p;
+  };
+  if (merge > 0) {
+    for (const pflow& f : invariants) {
+      if (f.constant < merge || f.terms.empty()) continue;
+      const int r = find(f.terms.front().first);
+      for (const auto& [q, k] : f.terms) parent[static_cast<std::size_t>(find(q))] = r;
+    }
+  }
+  contraction c;
+  c.node_of.assign(static_cast<std::size_t>(places), -1);
+  std::vector<int> node_of_root(static_cast<std::size_t>(places), -1);
+  for (int p = 0; p < places; ++p) {
+    const int r = find(p);
+    int& n = node_of_root[static_cast<std::size_t>(r)];
+    if (n < 0) {
+      n = static_cast<int>(c.members.size());
+      c.members.emplace_back();
+    }
+    c.node_of[static_cast<std::size_t>(p)] = n;
+    c.members[static_cast<std::size_t>(n)].push_back(p);
+  }
+  return c;
+}
+
+/// Edges over places, rewritten over the contraction's nodes.
+std::vector<louvain::edge> contracted(std::vector<louvain::edge> edges,
+                                      const std::vector<int>& node_of) {
+  for (louvain::edge& e : edges) {
+    e.src = node_of[static_cast<std::size_t>(e.src)];
+    e.dest = node_of[static_cast<std::size_t>(e.dest)];
+  }
+  return edges;
+}
+
 /// Children of each community at each level: `kids[L][c]` lists the level-(L-1)
 /// node indices (places when L==0) in community `c`.
 std::vector<std::vector<std::vector<int>>> group(
@@ -109,6 +203,7 @@ std::vector<std::vector<std::vector<int>>> group(
 /// directly in their unit, sub-communities become nested subunits.
 std::string materialise(int L, int c,
                         const std::vector<std::vector<std::vector<int>>>& kids,
+                        const contraction& q,
                         const std::vector<std::string>& pnames, unit_tree& t,
                         int& counter) {
   const std::string id = "u" + std::to_string(counter++);
@@ -116,9 +211,11 @@ std::string materialise(int L, int c,
   u.id = id;
   for (int child : kids[static_cast<std::size_t>(L)][static_cast<std::size_t>(c)]) {
     if (L == 0) {
-      u.places.push_back(pnames[static_cast<std::size_t>(child)]);
+      // a level-0 node is a contraction node: its places, side by side
+      for (int p : q.members[static_cast<std::size_t>(child)])
+        u.places.push_back(pnames[static_cast<std::size_t>(p)]);
     } else {
-      u.subunits.push_back(materialise(L - 1, child, kids, pnames, t, counter));
+      u.subunits.push_back(materialise(L - 1, child, kids, q, pnames, t, counter));
     }
   }
   t.units.emplace(id, std::move(u));
@@ -127,13 +224,16 @@ std::string materialise(int L, int c,
 
 }  // namespace
 
-unit_tree decompose(const SparsePetriNet<int>& net) {
+unit_tree decompose(const SparsePetriNet<int>& net, std::span<const pflow> invariants) {
   unit_tree t;
   const int places = static_cast<int>(net.getPlaceCount());
   if (places <= 0) return t;
 
+  const contraction q = contract(places, invariants);
+  std::vector<louvain::edge> edges = contracted(cooccurrence(net), q.node_of);
+  add_invariant_edges(edges, invariants, q.node_of);
   const std::vector<std::vector<int>> levels =
-      louvain::louvain_tree(places, cooccurrence(net));
+      louvain::louvain_tree(static_cast<int>(q.members.size()), std::move(edges));
   if (levels.empty()) return t;
 
   const std::vector<std::vector<std::vector<int>>> kids = group(levels);
@@ -145,7 +245,7 @@ unit_tree decompose(const SparsePetriNet<int>& net) {
   root.id = "root";
   for (std::size_t c = 0; c < kids[static_cast<std::size_t>(top)].size(); ++c) {
     root.subunits.push_back(
-        materialise(top, static_cast<int>(c), kids, pnames, t, counter));
+        materialise(top, static_cast<int>(c), kids, q, pnames, t, counter));
   }
   t.root = "root";
   t.units.emplace("root", std::move(root));
