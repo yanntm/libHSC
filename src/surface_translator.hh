@@ -545,6 +545,8 @@ class translator final : public name_scope {
   void do_profile(const datum& form);
   void do_budget(const datum& form);
   void do_max_sum(const datum& form);
+  void do_pump(const datum& form);
+  void pump(const datum& form, const std::string& name);
   void do_stock(const datum& form);
 
   void do_print(const datum& form);

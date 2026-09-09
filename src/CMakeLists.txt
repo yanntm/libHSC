@@ -44,6 +44,7 @@ target_sources(hsc PRIVATE
   surface_certcheck.cc
   surface_ctl.cc
   surface_trace.cc
+  surface_cover.cc
   surface_spec.cc
   dve_parser.cc
   dve_to_surface.cc

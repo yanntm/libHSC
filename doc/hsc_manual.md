@@ -241,6 +241,7 @@ certificate; `unfold` always enumerates.
 (nodes NAME)                 ; diagram nodes — the representation size
 (profile NAME)               ; nodes and arcs per level of the shape, frontier order
 (max-sum NAME [(* C LEAF)]*) ; the maximum of a linear form over the states, one pass (all leaves, coefficient 1, by default)
+(pump NAME [LEAF])           ; an unboundedness witness: a pumping pair on a shortest path to the leaf's largest value, §8g
 (stock NAME [since OTHER])   ; take stock: states, nodes, per level nodes/arcs/local states (gained since OTHER), values per leaf
 (budget SECONDS)             ; every following form runs at most SECONDS; a closure that runs out returns a partial set — `NAME partial`
 ; `hsc FILE --stdin` then reads forms from standard input one at a time, answering and flushing each: an engine driven over a pipe
@@ -503,6 +504,19 @@ shortest for their own endpoints; the whole is *a* witness, not the
 shortest. The total of its event lines is bound like a path length, so
 `(expect-path NAME K)` checks it. `examples/models/trace_ring.hsc` is the
 worked example for both forms.
+
+### Unboundedness: `(pump NAME [LEAF])`
+
+A pumping pair is a symbolic unboundedness witness: a reachable `m` and a
+run `m →σ m'` with `m' ≥ m` on every leaf and `LEAF` strictly up prove the
+leaf unbounded (a Petri net fires `σ` again from `m'`). `NAME` may be a
+partial set (`budget`): every state in it is reachable. Without `LEAF` the
+leaves that ran above their initial value are tried, the furthest first;
+the search is a shortest path from the seed to the states at `initial + 1`,
+`+ 2`, `+ 3`, then geometrically up to the largest value seen, inside the
+seed's neighbourhood (a few naive layers, never the whole set), scanned for
+a dominated pair. Prints `NAME pump LEAF X i j`, the two states and the
+run between them, or `NAME pump none …`. Bounded by the `budget` in force.
 
 ## 9. Errors, honestly
 
