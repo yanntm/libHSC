@@ -45,4 +45,17 @@ reachable set itself on the default shape (BART-PT-002: 7 s for 17424
 states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 60 s, while `--shape louvain --force` answers 16/16 in 21 s).
 
+### m5a, m5b
+
+| run | answered | wrong | open | complete files | vs previous (runs up / down) |
+|---|---|---|---|---|---|
+| m4 | 6101 | 0 | 3259 | 357 | — |
+| m5a | 6141 | 0 | 3267 | 341 | 60 / 48 vs m4 |
+| m5b | 6181 | 0 | 3227 | 344 | 28 / 12 vs m5a; 63 / 45 vs m4 |
+
+The evaluation discipline (m5a) and the fusion (m5b) each buy about forty
+answers over 588 runs; the rounds of m5a cost complete files, and one file
+(IBM703-PT-none CTLF, 16 → 1–3) exposed the fast cycle witness as a loss —
+both addressed in m5c/m5d.
+
 Further rows are appended as the runs complete.
