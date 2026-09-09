@@ -64,11 +64,13 @@ checker::code checker::hull(bool backward, code x0) {
   const std::span<const code> h = hull_events(backward);
   const std::span<const code> conv = hull_events(!backward);
   if (x0 == core::none || h.empty()) return x0;
-  static const bool rounds = [] {
+  // The round form is the default: on the MCC corpus it answers more than
+  // the frontier form (6414 against 6323 over 588 runs), which is opt-in.
+  static const bool frontier = [] {
     const char* e = std::getenv("HSC_CTL_GFP");
-    return e != nullptr && std::string(e) == "rounds";
+    return e != nullptr && std::string(e) == "frontier";
   }();
-  if (rounds || conv.size() != h.size()) {
+  if (!frontier || conv.size() != h.size()) {
     if (backward && h.data() != events(true).data()) {
       hull_step(true, x0);  // ensures raw_pred_step_
       return diagrams.apply_local(mgr_.operations().gfp(raw_pred_step_), x0);
