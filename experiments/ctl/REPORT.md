@@ -129,3 +129,12 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
 16. Every variation point passes the sample suite (`HSC_CTL_EXIST=0`,
    `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`, `HSC_CTL_PROTECT=always|never`):
    they change cost, never verdicts.
+17. **A regression found by the benchmark and fixed**: IBM703-PT-none CTLF
+   answered 16/16 in 55 s with the baseline and 1–3 with every new binary.
+   The variation points isolated it in three runs (`HSC_CTL_EXIST=0` gives
+   16/16, `HSC_CTL_OTF=0` does not), and the trace named the node: the
+   per-arc cycle witness inside `has_image(gfp)` descends into sub-hulls
+   for every arc at every level and, when no component cycles on its own,
+   still pays the full hull afterwards — `EG` cost 3.8 s instead of a
+   fraction. The fast path is now opt-in (`HSC_CTL_SCCFAST=1`); IBM703 is
+   back to 16/16, Angiogenesis keeps 5/16. Benchmarked as `m5d`.

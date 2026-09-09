@@ -33,7 +33,8 @@ Machine: the development workstation (20 cores, 64 GB), 8 runs side by side,
 | `results/m5a_le1e7.tsv` | 3cae835 minus fusion (existential leaves, on-the-fly search, deadline rounds, one checker per session) | the evaluation discipline |
 | `results/m5b_le1e7.tsv` | 3cae835 (product composition fused into the constrained closures) | fusion; its last third ran beside m5a's tail |
 | `results/m5c_le1e7.tsv` | f78cf27 (fair-share scheduler instead of rounds) | the scheduler |
-| `results/m5d_le1e7.tsv` | f78cf27 with `--shape louvain --force` | the shape (one configuration of the driver's portfolio) |
+| `results/m5d_le1e7.tsv` | the fast cycle witness of `has_image(gfp)` turned off (opt-in) | the fix of the IBM703 regression |
+| `results/m5e_le1e7.tsv` | the same with `--shape louvain --force` | the shape (one configuration of the driver's portfolio) |
 
 ### m4 baseline
 
