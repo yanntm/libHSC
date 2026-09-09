@@ -182,9 +182,12 @@ is built without a deadline: a partial set would not over-approximate.
 backward search inside `S` from the goal's markings (`(backward …)`,
 manual §8h), up to K layers under `--approx-back-time` seconds each: a
 layer that meets the initial marking is a real path (the converses are
-exact), so the goal is reachable; a search that closes with nothing left
-proves it unreachable — sound because every place of the abstract net is
-exact in `S`. Technique `K_INDUCTION`.
+exact) — of the net the pass runs on, so the goal is reachable only when
+that net is the original one: an abstraction has more behaviour, and its
+paths need not exist, so with removed places the reachable verdict is not
+taken; a search that closes with nothing left proves the goal unreachable
+— sound because every place of the abstract net is exact in `S`.
+Technique `K_INDUCTION`.
 `--dead S [--dead-step]` runs the same pass for the transitions dead on
 `S` (`DEAD_TRANSITIONS …`, names under `-v`; with `--dead-step` the
 one-step test backward per slice), no fixpoint.

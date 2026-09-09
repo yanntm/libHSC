@@ -39,6 +39,7 @@ dead_report dead_transitions(core::manager& mgr, core::shape_code, core::code se
       live[i] = r.verdicts[i] != verdict::never_enabled;
       candidate[i] = r.verdicts[i] == verdict::alive && (exact.empty() || exact[i]) &&
                      d.apply_local(guards[i], init) == core::none;
+      if (candidate[i]) ++r.candidates;
     }
     try {
       for (bool changed = true; changed;) {
@@ -55,7 +56,7 @@ dead_report dead_transitions(core::manager& mgr, core::shape_code, core::code se
         }
       }
     } catch (const interrupted&) {
-      // what was decided stands; the rest is alive for want of a test
+      r.stopped = true;  // what was decided stands; the rest is alive for want of a test
     }
   }
   for (const verdict v : r.verdicts)

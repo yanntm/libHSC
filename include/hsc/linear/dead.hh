@@ -28,7 +28,9 @@ enum class verdict : unsigned char {
 struct dead_report {
   std::vector<verdict> verdicts;
   std::size_t never_enabled = 0, one_step = 0, alive = 0, untested = 0;
-  std::size_t rounds = 0;  ///< passes of the one-step test over the candidates
+  std::size_t rounds = 0;      ///< passes of the one-step test over the candidates
+  std::size_t candidates = 0;  ///< transitions the one-step test was run on
+  bool stopped = false;        ///< the one-step test was cut: the alive ones are alive for want of a test
 };
 
 /// The entering predecessors of a slice: for the event \p i, its enabling

@@ -75,8 +75,14 @@ the covered places and small when `X` is unreachable: backward analysis
 with the garbage predecessors pruned by the invariants (`(backward …)`,
 `hsc-pn --approx-back`). Soundness of an *unreachable* verdict by the
 backward test asks every place to be exact in `S` (a capped predecessor
-would be missed); a *reachable* verdict (a layer meets the initial
-marking) is a real path whatever the caps.
+would be missed) — the abstraction by removed places gives that; a
+*reachable* verdict (a layer meets the initial marking) is a real path of
+the net the converses belong to, hence of the original net only when no
+place was removed: the abstract net has more behaviour, and its paths need
+not exist. The two verdicts are sound in complementary settings — the
+capped set for paths, the abstract net for closures — and the full
+corpus sweep found the two wrong verdicts that taking both on the
+abstract net produces (`research_notes/unreach_report.md` §2.7).
 
 Both tests are sound (they under-approximate the dead transitions) and
 incomplete (a spurious marking of `S ∖ R` may enable `t`, or reach an

@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
   std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock, shape_file, export_shape;
   bool force = false, reverse = false, states = false, max_tokens = false, print_unknown = false, quiet = false,
        verbose = false, witness = false, shape_only = false, cover = false;
-  int dead_time = 0, approx_time = 0, approx_back = 0;
+  int dead_time = 0, approx_time = 0, approx_back = 0, dead_budget = 0;
   double approx_back_time = 2.0;
   bool dead_step = false, approx_only = false, approx_units = false;
   int invariants_time = 0;
@@ -96,7 +96,8 @@ int main(int argc, char** argv) {
   app.add_flag("--reverse", reverse, "mirror the shape at every level (after FORCE when both)");
   app.add_flag("--shape-only", shape_only, "build and rewrite the shape, print its signature (hsc-pn: shape sig=...), no fixpoint");
   app.add_option("--dead", dead_time, "dead transitions from the invariant set: the P-flows within S seconds, their bounds and equalities as a diagram, every transition tested (hsc/linear); no fixpoint");
-  app.add_flag("--dead-step", dead_step, "with --dead, also the one-step test (an image of the invariant set)");
+  app.add_flag("--dead-step", dead_step, "with --dead, also the one-step test, backward per slice");
+  app.add_option("--dead-budget", dead_budget, "with --dead, seconds for the tests; what was decided when it runs out is reported");
   app.add_option("--approx", approx_time, "before the fixpoint, build the invariant set S (the P-flows within S seconds, the structural zeros, the NUPN safe tag) and answer the reachability, invariant and deadlock properties it refutes");
   app.add_flag("--approx-only", approx_only, "with --approx, stop there: no fixpoint, UNKNOWN for the rest");
   app.add_option("--approx-back", approx_back, "with --approx, a backward search of up to K layers inside S for every property S alone leaves open: a layer meeting the initial marking decides reachable, a closed search decides unreachable (when every place is exact in S)");
@@ -444,6 +445,7 @@ int main(int argc, char** argv) {
       po.units = approx_units;
       po.dead = true;
       po.dead_step = dead_step;
+      po.dead_budget = dead_budget;
       po.verbose = verbose;
       const hsc::pn::approx_pass_report rep = hsc::pn::run_approx_pass(*net, tags, properties, g_open, po, std::cout);
       std::cout << rep.dead_line << std::endl;

@@ -189,7 +189,8 @@ void translator::do_dead(const datum& form) {
     else if (r.verdicts[i] == linear::verdict::one_step) out_ << name << " dead " << event_names_[i] << " step\n";
   }
   out_ << name << " dead-summary never " << r.never_enabled << " step " << r.one_step << " alive " << r.alive
-       << " untested " << r.untested << " rounds " << r.rounds << '\n';
+       << " untested " << r.untested << " candidates " << r.candidates << " rounds " << r.rounds
+       << (r.stopped ? " stopped" : "") << '\n';
 }
 
 }  // namespace hsc::surface

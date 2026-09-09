@@ -33,6 +33,7 @@ struct approx_pass_options {
   double back_time = 2.0;   ///< seconds per backward search
   bool dead = false;        ///< the dead-transition report instead of the properties
   bool dead_step = false;   ///< with dead, the one-step test too
+  int dead_budget = 0;      ///< with dead, seconds for the tests (0: none); the verdicts taken stand
   bool verbose = false;
 };
 
@@ -41,7 +42,8 @@ struct approx_pass_report {
   std::size_t back_decided = 0, back_init = 0, back_closed = 0, back_open = 0, back_partial = 0;
   double tests_s = 0, back_s = 0;
   std::vector<std::string> dead_names;  ///< with dead: the names of the dead transitions
-  std::size_t never = 0, step = 0, alive = 0, untested = 0;
+  std::size_t never = 0, step = 0, alive = 0, untested = 0, candidates = 0;
+  bool dead_stopped = false;
   double dead_s = 0;
   std::string dead_line;                ///< with dead: the DEAD_TRANSITIONS summary line
 };
@@ -124,6 +126,7 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
 
   if (o.dead) {
     const clock::time_point t2 = clock::now();
+    if (o.dead_budget > 0) s.set_deadline(t2 + std::chrono::seconds(o.dead_budget));
     const std::string form = o.dead_step ? "(dead D S step)" : "(dead D S)";
     for (const std::string& l : s.feed(form)) {
       if (l.rfind("D dead ", 0) == 0) {
@@ -133,15 +136,18 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
       } else if (l.rfind("D dead-summary", 0) == 0) {
         std::istringstream in(l.substr(15));
         std::string k; std::size_t v;
-        while (in >> k >> v) { if (k == "alive") rep.alive = v; else if (k == "untested") rep.untested = v; }
+        rep.dead_stopped = l.find(" stopped") != std::string::npos;
+        while (in >> k >> v) { if (k == "alive") rep.alive = v; else if (k == "untested") rep.untested = v; else if (k == "candidates") rep.candidates = v; }
       } else if (o.verbose) {
         std::cerr << l << '\n';
       }
     }
+    s.set_deadline(std::nullopt);
     rep.dead_s = sec(t2, clock::now());
     std::ostringstream line;
     line << "DEAD_TRANSITIONS " << (rep.never + rep.step) << " of " << net.getTransitionCount() << " (never " << rep.never
-         << ", one step " << rep.step << ", alive " << rep.alive << ", untested " << rep.untested << ")"
+         << ", one step " << rep.step << ", alive " << rep.alive << ", untested " << rep.untested
+         << ", candidates " << rep.candidates << (rep.dead_stopped ? ", stopped" : "") << ")"
          << " flows " << afacts.flows.size() << " positive " << afacts.positive.size() << " covered places "
          << afacts.covered << " of " << net.getPlaceCount() << " (never marked " << afacts.zeros
          << ", unit constraints " << afacts.unit_constraints << ", removed " << rep.removed << ")"
@@ -171,7 +177,10 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
       if (!open[i]) continue;
       s.set_deadline(clock::now() + std::chrono::duration_cast<clock::duration>(std::chrono::duration<double>(o.back_time)));
       std::string how;
-      const bool done = s.refute_back(properties[i], "S", orig_bound, /*all_exact=*/true, o.back, out, &how);
+      // every place of the abstract net is exact in S; its paths are the
+      // original net's only when nothing was removed
+      const bool done = s.refute_back(properties[i], "S", orig_bound, /*all_exact=*/true,
+                                      /*exact_net=*/rep.removed == 0, o.back, out, &how);
       s.set_deadline(std::nullopt);
       if (how.rfind("init", 0) == 0) ++rep.back_init; else if (how.rfind("closed", 0) == 0) ++rep.back_closed;
       else if (how.rfind("open", 0) == 0) ++rep.back_open; else if (how.rfind("partial", 0) == 0) ++rep.back_partial;

@@ -186,14 +186,16 @@ class solver {
 
   /// Decide \p p by a backward search inside the over-approximation \p set:
   /// `(backward B X set steps K writing …)` from `X`, the goal's markings of
-  /// the set. A layer meeting the initial marking is a real path: reachable
-  /// (TRUE for a reachability, FALSE for an invariant). A closed search
-  /// with nothing left is unreachable — sound only when every place is
-  /// exact in the set (\p all_exact), since a capped predecessor is missed.
-  /// Open or partial searches, goals reading capped places, constants and
-  /// other kinds leave the property open (false returned).
+  /// the set. A layer meeting the initial marking is a path of the session's
+  /// net: reachable (TRUE for a reachability, FALSE for an invariant) — a
+  /// verdict taken only with \p exact_net, when that net is the original one
+  /// (an abstraction has more behaviour: its paths need not exist). A closed
+  /// search with nothing left is unreachable — sound only when every place
+  /// is exact in the set (\p all_exact), since a capped predecessor is
+  /// missed. Open or partial searches, goals reading capped places,
+  /// constants and other kinds leave the property open (false returned).
   bool refute_back(const ::petri::expr::Property& p, const std::string& set,
-                   const std::vector<long long>& bound, bool all_exact, std::size_t steps,
+                   const std::vector<long long>& bound, bool all_exact, bool exact_net, std::size_t steps,
                    std::ostream& out, std::string* how = nullptr) {
     using ::petri::expr::Expression;
     using ::petri::expr::PropertyKind;
@@ -217,7 +219,7 @@ class solver {
     }
     if (how != nullptr) *how = v;
     const std::string kind = v.substr(0, v.find(' '));
-    if (kind == "init") {
+    if (kind == "init" && exact_net) {
       out << "FORMULA " << p.name << ' ' << verdict(inv, true) << APPROX_BACK << std::endl;
       return true;
     }
