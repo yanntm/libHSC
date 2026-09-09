@@ -124,7 +124,18 @@ sets `ulimit -v 15 GB` and a kill by it is recorded as `status=memory`.
 Peak RSS is collected for every run (`/usr/bin/time %M`); its p90 per
 heuristic is a column of page 1 and a discard criterion of its own.
 
-## 6. What decides the next sweep
+## 6. Identical shapes
+
+Heuristics coincide often (`nupn` is `flat` on a net without units, the
+flow variants agree when no flow is heavy). `hsc-pn --shape-only` prints the
+signature of the rewritten shape without building anything; the job runs the
+first heuristic of a signature and records the others as `dup:<name>`, and
+the pages should read them as one column. A shape exchange format is worth
+having next — the order as a permutation and the hierarchy as a place × unit
+membership matrix in PetriSpot's KERS sparse format — so shapes can be stored,
+compared and handed to other tools.
+
+## 7. What decides the next sweep
 
 Discard the dominated. Read the unique wins by hand (page 7). Turn a
 recurring pattern into a rule (a contraction threshold, a FORCE seed, a

@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
                "s-expression forms (INTEROP.md). Answers: FORMULA lines on stdout."};
   std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock;
   bool force = false, reverse = false, states = false, max_tokens = false, print_unknown = false, quiet = false,
-       verbose = false, witness = false;
+       verbose = false, witness = false, shape_only = false;
   int invariants_time = 0;
   long long seed = 1;
   int bound = 2, total_time = 0;
@@ -88,6 +88,7 @@ int main(int argc, char** argv) {
   app.add_option("--seed", seed, "the seed of --shape random (default 1)");
   app.add_flag("--force", force, "FORCE reordering after the shape");
   app.add_flag("--reverse", reverse, "mirror the shape at every level (after FORCE when both)");
+  app.add_flag("--shape-only", shape_only, "build and rewrite the shape, print its signature (hsc-pn: shape sig=...), no fixpoint");
   app.add_option("--invariants", invariants_time, "compute the P-flows within S seconds and let them guide the louvain shape");
   app.add_option("--bound", bound, "leaf domain [0, N), raised to the max initial marking + 1");
   app.add_flag("--states", states, "the four StateSpace values");
@@ -282,7 +283,9 @@ int main(int argc, char** argv) {
   model << weight_forms;
   if (force) model << "(reorder-force)\n";
   if (reverse) model << "(reorder-reverse)\n";
-  model << "(reach R saturate)\n";
+  if (!shape_only) model << "(reach R saturate)\n";
+  // the rewritten spec comes back through the session, for the shape signature
+  if (shape_only || verbose) model << "(print-spec)\n";
   if (!export_hsc.empty()) {
     std::ofstream f(export_hsc, std::ios::binary);
     f << model.str();
@@ -305,8 +308,26 @@ int main(int argc, char** argv) {
     solver.set_witness(witness);
     if (!dropped_tokens.empty()) solver.set_dropped_tokens(std::move(dropped_tokens));
     const auto t_model = std::chrono::steady_clock::now();
+    // The signature of the shape after the rewrites: FNV-1a over the
+    // `(shape …)` form `print-spec` echoes back (one line). Two heuristics
+    // that produce the same order and hierarchy share it — the sweep runs
+    // one of them.
+    std::uint64_t sig = 1469598103934665603ull;
     for (const std::string& l : solver.feed(model.str())) {
-      if (verbose) std::cerr << l << '\n';
+      if (l.rfind("(shape", 0) == 0) {
+        for (const unsigned char c : l) { sig ^= c; sig *= 1099511628211ull; }
+      } else if (verbose && (l.empty() || l.front() != '(')) {
+        std::cerr << l << '\n';
+      }
+    }
+    const auto shape_signature = [&]() -> std::string {
+      std::ostringstream o;
+      o << std::hex << sig;
+      return o.str();
+    };
+    if (shape_only) {
+      std::cout << "hsc-pn: shape sig=" << shape_signature() << '\n';
+      return 0;
     }
     if (verbose) {
       // The statistics line of the sweeps (experiments/order/SWEEP.md §3):
@@ -340,7 +361,8 @@ int main(int argc, char** argv) {
       }
       std::cerr << "hsc-pn: stats reach_s=" << reach_s << " reach_nodes=" << nodes << " reach_arcs=" << arcs
                 << " belly_nodes=" << belly << " belly_level=" << belly_level << " belly_span=" << belly_span
-                << " shape_depth=" << depth << " shape_units=" << nunits << " shape_widest=" << widest << '\n';
+                << " shape_depth=" << depth << " shape_units=" << nunits << " shape_widest=" << widest
+                << " shape_sig=" << shape_signature() << '\n';
     }
     const auto note_answer = [&](std::size_t i) {
       if (verbose)

@@ -4,14 +4,33 @@
 
 #include <algorithm>
 #include <exception>
+#include <iostream>
+#include <sstream>
 
+#include "hsc/petri/core/Log.h"
 #include "hsc/petri/core/MatrixCol.h"
 #include "hsc/petri/invariants/InvariantMiddle.h"
 
 namespace hsc::petri {
 
+namespace {
+/// The vendored calculator narrates on std::cout; a tool whose stdout is a
+/// protocol cannot have that. Everything it prints goes to a sink while it
+/// runs, its log stream included.
+struct silenced {
+  std::ostringstream sink;
+  std::streambuf* saved = std::cout.rdbuf(sink.rdbuf());
+  silenced() { ::petri::setLogStream(sink); }
+  ~silenced() {
+    std::cout.rdbuf(saved);
+    ::petri::setLogStream(std::cerr);
+  }
+};
+}  // namespace
+
 std::vector<pflow> pflows(const SparsePetriNet<int>& net, int seconds, bool positive) {
   std::vector<pflow> out;
+  const silenced quiet;
   try {
     // The incidence matrix, transitions as columns: post - pre.
     MatrixCol<int> incidence =
