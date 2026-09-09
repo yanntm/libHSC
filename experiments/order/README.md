@@ -43,6 +43,10 @@ benchmark as the yardstick and reachability as the cheap first signal.
   record of `SWEEP.md` §3, logs beside.
 * `sweep_local.sh` — the sweep on this machine, N jobs side by side, over a
   model list; results under `results/<tag>.tsv`.
+* `sweep_merge.sh` — builds `<tag>.tsv` from the per-(instance, exam) rows
+  files the jobs write (a shared file torn under thousands of NFS appends).
+* `sweep_pages.py` — the pages of `SWEEP.md` §2 over one or more TSVs, links
+  to the logs and shape files beside them.
 * `sweep_oar.sh` — the same as one OAR job per (instance, examination), run
   from the deployed folder on the head node (`PetriSpot/docs/CLUSTER.md`).
 * `../ctl/summarize.py` reads the CTL bench TSVs; the sweep pages

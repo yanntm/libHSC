@@ -8,7 +8,8 @@
 # (folder holding <instance>/model.pnml and the property XML), SWEEP_ORACLE
 # (folder of <instance>-<EXAM>.out), SWEEP_OUT (folder for the TSV and logs),
 # SWEEP_TAG (a name for this sweep). Appends one TSV line per heuristic to
-# $SWEEP_OUT/$SWEEP_TAG.tsv, logs beside as <instance>-<exam>-<heuristic>.{out,err}.
+# $SWEEP_OUT/$SWEEP_TAG/rows/<instance>-<exam>.tsv (sweep_merge.sh concatenates them
+# into $SWEEP_OUT/$SWEEP_TAG.tsv), logs beside as <instance>-<exam>-<heuristic>.{out,err,shape}.
 # Idempotent per line: a heuristic whose .out already exists is skipped.
 set -u
 INST=${1:?instance}; EX=${2:?exam}; HEUR=${3:-$(dirname "$0")/heuristics.tsv}
@@ -23,8 +24,11 @@ esac
 xml="$INPUTS/$INST/$XML.xml"; orc="$ORACLE/$INST-$EX.out"; pnml="$INPUTS/$INST/model.pnml"
 family=${INST%%-PT-*}
 states=$(grep -h "STATE_SPACE STATES" "$ORACLE/$INST-SS.out" 2>/dev/null | awk '{print $3}' | head -1)
-TSV="$OUT/$TAG.tsv"
-[ -f "$TSV" ] || echo -e "instance\tfamily\texam\theuristic\ttag\tstates\twall_s\tcpu_s\tmaxrss_kb\trc\tstatus\tanswered\tok\twrong\tunknown\tcomplete\tanswer_times\treach_s\treach_nodes\treach_arcs\tbelly_nodes\tbelly_level\tbelly_span\tshape_depth\tshape_units\tshape_widest\tflows\tflows_widest\tflows_maxconst\tprotected\tshape_sig" > "$TSV"
+# One rows file per (instance, exam), never a shared file: thousands of jobs
+# appending to one TSV over NFS tear lines. sweep_merge.sh builds <tag>.tsv.
+mkdir -p "$OUT/$TAG/rows"
+TSV="$OUT/$TAG/rows/$INST-$EX.tsv"
+[ -f "$OUT/$TAG/columns" ] || echo -e "instance\tfamily\texam\theuristic\ttag\tstates\twall_s\tcpu_s\tmaxrss_kb\trc\tstatus\tanswered\tok\twrong\tunknown\tcomplete\tanswer_times\treach_s\treach_nodes\treach_arcs\tbelly_nodes\tbelly_level\tbelly_span\tshape_depth\tshape_units\tshape_widest\tflows\tflows_widest\tflows_maxconst\tprotected\tshape_sig" > "$OUT/$TAG/columns"
 # StateSpace: `--states` instead of a property file, the four values graded
 # against the oracle when it has one (an instance without an SS oracle still
 # runs: its values are answered, unknown to the oracle, never wrong).
