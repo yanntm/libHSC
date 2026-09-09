@@ -133,17 +133,24 @@ bool checker::trace_enabled() {
 }
 
 namespace {
-/// Prints "ctl-trace: <what> <ms> ms" at scope exit when tracing.
+/// Prints "ctl-trace: <what> <ms> ms [<n> gfp rounds]" at scope exit when
+/// tracing; the rounds are those the diagram engine ran inside the scope.
 struct trace_scope {
   std::string what;
+  const core::diagram_engine* dg = nullptr;
   std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
   bool on = checker::trace_enabled();
+  std::size_t rounds0 = dg != nullptr ? dg->gfp_rounds() : 0;
   ~trace_scope() {
     if (!on) return;
     const double ms = std::chrono::duration<double, std::milli>(
                           std::chrono::steady_clock::now() - t0)
                           .count();
-    if (ms >= 1.0) std::cerr << "ctl-trace: " << what << ' ' << ms << " ms\n";
+    if (ms < 1.0) return;
+    std::cerr << "ctl-trace: " << what << ' ' << ms << " ms";
+    if (dg != nullptr && dg->gfp_rounds() != rounds0)
+      std::cerr << " [" << (dg->gfp_rounds() - rounds0) << " gfp rounds]";
+    std::cerr << '\n';
   }
 };
 }  // namespace
@@ -198,7 +205,8 @@ std::optional<bool> checker::nonempty(set_id s) {
   trace_scope tr{trace_enabled() ? "nonempty " + fw_.print_set(s, [](std::uint32_t a) {
                                      return "a" + std::to_string(a);
                                    })
-                                 : std::string()};
+                                 : std::string(),
+                 &mgr_.diagrams()};
   if (!existential_enabled()) {
     const std::optional<code> v = eval(s);
     if (!v) return std::nullopt;
@@ -280,7 +288,8 @@ std::optional<checker::code> checker::eval(set_id s) {
   trace_scope tr{trace_enabled() ? "eval " + fw_.print_set(s, [](std::uint32_t a) {
                                      return "a" + std::to_string(a);
                                    })
-                                 : std::string()};
+                                 : std::string(),
+                 &mgr_.diagrams()};
   core::diagram_engine& diagrams = mgr_.diagrams();
   std::optional<code> r;
   switch (e.kind) {
@@ -372,7 +381,8 @@ std::optional<checker::code> checker::sat(node_id f) {
   trace_scope tr{trace_enabled() ? "sat " + f_.print(f, [](std::uint32_t a) {
                                      return "a" + std::to_string(a);
                                    })
-                                 : std::string()};
+                                 : std::string(),
+                 &mgr_.diagrams()};
   core::diagram_engine& diagrams = mgr_.diagrams();
   const code R = m_.reach;
   std::optional<code> r;
