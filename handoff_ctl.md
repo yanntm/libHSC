@@ -7,16 +7,17 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 
 ## Engineering — next
 
-1. **Read the benchmark** (`experiments/ctl/`): baseline `m4`, then `m5a`
-   (existential leaves, on-the-fly search, rounds) and `m5b` (product
-   composition fused), all on the 294 instances below 10^7 states at 60 s;
-   `summarize.py a.tsv b.tsv` compares. Then the same with
-   `-e "--shape louvain --force"`: on SieveSingleMsgMbox-PT-d1m04 (1295
-   places, flat) the default shape answers 1/16 and Louvain+FORCE 16/16 —
-   the shape, not the checker, decides many small instances.
-2. **The inversion cost** on big `R` (Angiogenesis-PT-05: 9 s for 64 events,
-   the exactness test applying each inverse to `R`): measure, then either a
-   cheaper test or a lazier protection.
+1. **Read the benchmark** (`experiments/ctl/README.md`): m4 → m5d is 6101
+   → 6331 answered over 588 runs (294 instances below 10^7 states, 60 s),
+   0 wrong throughout; `m5e` (Louvain + FORCE) says what the shape adds —
+   on SieveSingleMsgMbox-PT-d1m04 (1295 places, flat) the default shape
+   answers 1/16 and Louvain + FORCE 16/16. Next: the 10^7–10^9 list
+   (`models_1e7_1e9.txt`) at a longer cap, and a portfolio read (best of
+   the driver's four configurations per instance) to estimate the campaign.
+2. **The `gfp` hull of `EG`** is the remaining bottleneck on big `R`
+   (Angiogenesis-PT-05: an `AF` under a restrict costs 4 s per node,
+   breadth-first over 40M states); the inversion itself is cheap (0.7 s).
+   No schedule known; `HSC_CTL_PROTECT=never` gains little there.
 3. **Backward closures with protected events**: `compose(within(R), p)` is
    an unfusable straddler; on nets where many events are protected the
    backward closures are breadth-first. Measure how many, then decide.
