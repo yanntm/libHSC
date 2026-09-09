@@ -9,6 +9,7 @@
 /// without a recorded guard (a family, a no-op) is untested. One line per
 /// event that is dead, then a summary.
 #include <algorithm>
+#include <chrono>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -174,16 +175,34 @@ void translator::do_dead(const datum& form) {
     for (const datum& a : event_guards_[g]) walk(walk, a);
   }
   linear::entry_fn entries;
+  const auto t0 = std::chrono::steady_clock::now();
+  const auto since = [t0]() { return std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count(); };
+  std::size_t tested = 0, killed = 0;
   if (with_step) {
     const std::vector<code>& conv = converses_against(form, set);
+    out_ << name << " dead-converses " << conv.size() << " in " << since() << " s\n";
     entries = [&, conv](std::size_t i, code en, const std::vector<char>& live) -> code {
       std::vector<std::size_t> which;
       for (const std::size_t u : events_writing(reads[i])) if (live[u]) which.push_back(u);
       const code pre = pre_within(en, set, conv, which);
-      return pre == core::none ? core::none : mgr_.diagrams().minus(pre, en);
+      const code r = pre == core::none ? core::none : mgr_.diagrams().minus(pre, en);
+      if (r == core::none) ++killed;
+      if (++tested % 100 == 0)
+        out_ << name << " dead-progress tested " << tested << " killed " << killed << " events " << which.size()
+             << " at " << since() << " s\n";
+      return r;
     };
   }
-  const linear::dead_report r = linear::dead_transitions(mgr_, top_, set, seed(), events_, guards, exact, entries);
+  // the candidates cheap first: by the number of events writing a leaf their guard reads
+  std::vector<std::size_t> order(events_.size());
+  for (std::size_t i = 0; i < events_.size(); ++i) order[i] = i;
+  if (with_step) {
+    std::vector<std::size_t> writers(events_.size(), 0);
+    for (std::size_t i = 0; i < events_.size(); ++i) writers[i] = events_writing(reads[i]).size();
+    std::stable_sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) { return writers[a] < writers[b]; });
+  }
+  const linear::dead_report r =
+      linear::dead_transitions(mgr_, top_, set, seed(), events_, guards, exact, entries, order);
   for (std::size_t i = 0; i < events_.size(); ++i) {
     if (r.verdicts[i] == linear::verdict::never_enabled) out_ << name << " dead " << event_names_[i] << " never\n";
     else if (r.verdicts[i] == linear::verdict::one_step) out_ << name << " dead " << event_names_[i] << " step\n";

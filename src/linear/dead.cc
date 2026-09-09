@@ -10,7 +10,8 @@ namespace hsc::linear {
 
 dead_report dead_transitions(core::manager& mgr, core::shape_code, core::code set, core::code init,
                              std::span<const core::code> events, std::span<const core::code> guards,
-                             std::span<const char> exact, const entry_fn& entries) {
+                             std::span<const char> exact, const entry_fn& entries,
+                             std::span<const std::size_t> order) {
   core::diagram_engine& d = mgr.diagrams();
   const std::size_t n = events.size();
   dead_report r;
@@ -41,11 +42,13 @@ dead_report dead_transitions(core::manager& mgr, core::shape_code, core::code se
                      d.apply_local(guards[i], init) == core::none;
       if (candidate[i]) ++r.candidates;
     }
+    std::vector<std::size_t> visit(order.begin(), order.end());
+    if (visit.empty()) for (std::size_t i = 0; i < n; ++i) visit.push_back(i);
     try {
       for (bool changed = true; changed;) {
         changed = false;
         ++r.rounds;
-        for (std::size_t i = 0; i < n; ++i) {
+        for (const std::size_t i : visit) {
           if (!candidate[i]) continue;
           if (entries(i, en[i], live) != core::none) continue;
           r.verdicts[i] = verdict::one_step;

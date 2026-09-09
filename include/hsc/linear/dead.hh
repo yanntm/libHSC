@@ -51,10 +51,13 @@ using entry_fn = std::function<core::code(std::size_t i, core::code en, const st
 /// the passes repeat while a transition falls, each with fewer live events.
 /// Stopped, the report carries what was decided so far (sound: every
 /// verdict stands on tests that completed).
+/// \p order, when not empty, is the order in which the candidates are
+/// visited in every pass (the cheap ones first, so a budget yields verdicts).
 [[nodiscard]] dead_report dead_transitions(core::manager& mgr, core::shape_code top, core::code set,
                                            core::code init, std::span<const core::code> events,
                                            std::span<const core::code> guards,
                                            std::span<const char> exact = {},
-                                           const entry_fn& entries = {});
+                                           const entry_fn& entries = {},
+                                           std::span<const std::size_t> order = {});
 
 }  // namespace hsc::linear
