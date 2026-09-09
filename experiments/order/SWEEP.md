@@ -143,7 +143,17 @@ reified order and hierarchy, human-readable, diffable, tweakable by hand,
 buildable by any tool that writes parentheses. The sweep should export it
 beside every run, so page 7 can show and diff the shapes that won.
 
-## 7. What decides the next sweep
+## 7. The epoch experiment that follows
+
+With the stop state and the surface orders in place (`sched/algorithm.md`):
+run every heuristic for a fixed budget through `hsc FILE --stdin` with
+`(budget S) (reach R saturate) (stock R)`, compare the stocks across shapes
+by what is comparable — the leaf domains, the states, the local states of
+the subshapes that both shapes have — then fuse the sets different shapes
+reached (rewrite to one shape with `(use-shape …)`, join) and continue from
+the best. The first scenario of the coordinator, by hand.
+
+## 8. What decides the next sweep
 
 Discard the dominated. Read the unique wins by hand (page 7). Turn a
 recurring pattern into a rule (a contraction threshold, a FORCE seed, a
