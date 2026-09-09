@@ -224,3 +224,49 @@ reachable part of a backward closure the raw inverse is already right — no
 reachable state has an unreachable successor — so protection is about
 spurious edges and about the size of the sets carried, and is applied only
 to the events that need it.
+
+## 10. The existential image (`has_image`)
+
+A second reading of the same terms. `has_image(h, S)` answers the question
+"is `h(S)` empty?" by producing a **witness**: a nonempty `W ⊆ h(S)`, or `0`
+exactly when `h(S) = 0`. It never builds `h(S)` when a part of it will do.
+Correct by the additivity of every term (`h(A ∪ B) = h(A) ∪ h(B)`): a
+witness of a part is a witness of the whole.
+
+    has_image(id, S)          = S
+    has_image(Σ hᵢ, S)        = the first has_image(hᵢ, S) ≠ 0, else 0
+    has_image(a ∘ b, S)       = W_b := has_image(b, S); 0 if W_b = 0;
+                                 else W_a := has_image(a, W_b); W_a if ≠ 0;
+                                 else has_image(a, b(S))                 (a may miss the witness of b)
+    has_image(node(h, t), d)  = the first arc (P, T) of d with
+                                 w_h := has_image(h, P) ≠ 0 and w_t := has_image(t, T) ≠ 0,
+                                 as the rectangle (w_h, w_t); else 0
+    has_image(lfp h, S)       = S                                       (a closure contains its seed)
+    has_image(saturate…, S)   = S
+    has_image(within(D), S)   = S ∩ D
+    has_image(expr, S)        = expr(S)                                  (the case engine, in full)
+    at a leaf                 = the theory's has_image_local, by default apply_local
+
+The interesting case is the **deflationary closure**. `gfp(h)·S ≠ 0` iff `S`
+holds a cycle of `h`; a cycle found with a *part* of `h` inside a *part* of
+`S` is a cycle of the whole:
+
+    has_image(gfp h, d) at a composite sort, h = Σ hᵢ flattened,
+      F = { t : node(id, t) ∈ h },  L = { g : node(g, id) ∈ h }:
+        for each arc (P, T) of d:
+          w := has_image(gfp(Σ F), T)   ≠ 0  →  rectangle(P, w)        a cycle below the cut, head fixed
+          w := has_image(gfp(Σ L), P)   ≠ 0  →  rectangle(w, T)        a cycle in the head, tail fixed
+        else gfp(h)·d in full
+
+Soundness: a set `X ⊆ T` with `X ⊆ F(X)` (a post-fixpoint of `X ↦ X ∩ F(X)`)
+gives `P ⊗ X ⊆ h(P ⊗ X)` since `node(id, t)` leaves the head alone, so
+`P ⊗ X ⊆ gfp(h)·d`. The recursion reaches the leaves, where a cycle within one
+coordinate is decided by the plain iteration `X ↦ X ∩ h(X)` in the leaf
+algebra (no leaf term is needed for it). Completeness is the fallback's: a
+cycle that alternates parts is only found in full. This is libDDD's "fast
+SCC detection" (`Fixpoint::has_image`), stated for terms.
+
+`has_image` is memoised like `apply` (the traversal order is fixed, so the
+witness is a function of its arguments). What it buys: a `nonempty?` question
+on a filtered set stops at the first arc that passes; whether a set holds a
+cycle is answered without the cycle hull when a component cycles on its own.

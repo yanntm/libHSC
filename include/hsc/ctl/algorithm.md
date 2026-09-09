@@ -131,18 +131,36 @@ whether the verdict is negated. This is VIS's `compareValue`. The MCC seed
 is a single marking; a seed with several states always asks the negated
 question (all initial states must satisfy φ).
 
-## 6. Evaluation order and memo
+## 6. Evaluation order, memo, and the existential leaves
 
 Set expressions and `Sat` nodes are interned like formulas and evaluated
-once. A `nonempty?` leaf is a code comparison with `0`. `any` stops at the
-first nonempty child — the existential short-circuit at the tree level; the same discipline *inside* a leaf (a
-witness subset instead of the full set, `has_image`) is a later
-optimisation, not part of these rules.
+once. `any` stops at the first nonempty child — the existential
+short-circuit at the tree level.
+
+A `nonempty?` leaf does not need the set it names, only whether it is empty,
+and its outermost operator is answered **existentially** (`core/algorithm.md`
+§10, `has_image`), the operand below it built in full:
+
+    nonempty?(init)            = I ≠ ∅
+    nonempty?(filter(r, f))    = has_image(sel_f, [r]) ≠ 0
+    nonempty?(ey(r))           = has_image(next, [r]) ≠ 0
+    nonempty?(fwdu(r, q))      = [r] ≠ ∅                     the closure contains its seed
+    nonempty?(fwdg(r, q))      = reach_q ≠ ∅ and (dead ∩ reach_q ≠ ∅ or has_image(gfp(next), reach_q) ≠ 0)
+    nonempty?(restrict(r, φ))  = [r] ∩ Sat(φ) ≠ ∅
+
+with `[r]` the full evaluation of `r`. Backward, `EG` asks
+`has_image(gfp(pred), Sat f)` before paying the hull, and skips it when there
+is no cycle; `has_cycles` is `has_image(gfp(next), R)`. The witness subsets
+are never memoised as the value of a set expression — the two readings keep
+separate tables.
+
+**Variation point.** `HSC_CTL_EXIST=0` turns the existential leaves off
+(every set in full) to measure what they buy.
 
 The `pred`-free fragment — everything the rules leave as `ey / fwdu / fwdg
-/ filter` — needs `next`, the selectors, `dead`, `lfp` and `gfp` only. A
-model without inverted events answers exactly that fragment and refuses the
-`restrict` leaves whose formula has a path operator.
+/ filter` — needs `next`, the selectors, `dead`, `lfp` and `gfp` only. The
+inverted events are asked for lazily, the first time a backward operator
+needs them; a model that cannot provide them refuses those nodes.
 
 ## 7. Verdict
 
