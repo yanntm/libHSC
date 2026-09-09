@@ -216,10 +216,10 @@ need not exist. The two verdicts of the search are sound in complementary
 settings: **reachable** on the original net (capped set or nothing
 removed), **unreachable** on the abstract net (every place exact). The
 pass now takes the reachable verdict only when no place was removed
-(`refute_back`'s `exact_net`). What is lost with it — the paths on
-partially covered nets, most of the sample's 592 reachable verdicts came
-from fully covered ones — can come back from a second search on the capped
-set (handoff item).
+(`refute_back`'s `exact_net`). What is lost with it is small: of the
+sample's 592 reachable verdicts, **563 came from fully covered nets** (118
+runs) and 29 from partially covered ones (36 runs); those 29 can come back
+from a second search on the capped set of the original net (handoff item).
 
 The sweep continues on the faulty binary for the LP rows, which it does not
 affect; its `hscb` rows are to be redone with the fix.

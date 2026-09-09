@@ -41,8 +41,8 @@ anywhere. The two over-approximations are complementary (LP: cardinality,
    path need not exist — two wrong verdicts in the full sweep, report
    §2.7). A second search on the *capped* set of the original net, in the
    main session, would give those paths back soundly: the converses are
-   then the original events'. Measure how many of the sample's 592
-   reachable verdicts came from partially covered nets first.
+   then the original events'. Worth 29 of the sample's 592 reachable
+   verdicts (563 came from fully covered nets): low priority.
 4. **Goals over removed places** (SupplyChain: 15 of 16 skipped): the
    place removed is the one the question reads. ω-values (ledger #2) or
    a bound from the LP (`Petri/src/lp`, "how high can this sum go") would
