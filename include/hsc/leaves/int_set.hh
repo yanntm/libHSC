@@ -193,7 +193,7 @@ class int_set_theory final : public core::support_algebra {
   mem::intern<int_set> table_;
   mem::intern<int_term> terms_;
   lia::expr_factory exprs_;
-  std::vector<std::int32_t> scratch_;  ///< reused by of() and interval()
+  std::vector<std::int32_t> scratch_;  ///< reused by of(), interval() and the set operations
 };
 
 }  // namespace hsc::leaves
