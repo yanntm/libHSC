@@ -20,7 +20,7 @@ namespace hsc::surface {
 
 namespace {
 
-namespace lv = hsc::petri::louvain;
+namespace lv = hsc::order::louvain;
 
 /// Flow-like edges: control (read-only) positions point at written ones,
 /// weighted 1/(|ctrl|·|write|); tiny self-loops keep isolated leaves. An event

@@ -30,9 +30,9 @@
 //-----------------------------------------------------------------------------
 // see readme.txt for more details
 
-#include "hsc/petri/louvain/louvain.h"
+#include "hsc/order/louvain/louvain.h"
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 using namespace std;
 
 
@@ -283,4 +283,4 @@ Louvain::one_level() {
   return improvement;
 }
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain

@@ -31,9 +31,9 @@
 // see README.txt for more details
 
 
-#include "hsc/petri/louvain/modularity.h"
+#include "hsc/order/louvain/modularity.h"
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 using namespace std;
 
 
@@ -71,4 +71,4 @@ Modularity::quality() {
   return q;
 }
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain

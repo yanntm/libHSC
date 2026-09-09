@@ -10,7 +10,7 @@
 
 #include <vector>
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 
 /// One weighted undirected edge of the input graph.
 struct edge {
@@ -29,4 +29,4 @@ struct edge {
     int nb_nodes, const std::vector<edge>& edges,
     long double precision = 1e-6L);
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain

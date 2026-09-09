@@ -27,7 +27,7 @@ module itself stays edges-in / tree-out and knows nothing of either.
 
 ## Curation (what we changed)
 
-* Wrapped each file in `namespace hsc::petri::louvain`, and replaced global
+* Wrapped each file in `namespace hsc::order::louvain`, and replaced global
   `using namespace std;` in the **headers** with scoped `using`-declarations —
   no `std` leaks to includers. The `.cpp` keep a namespace-scoped `using
   namespace std;`.

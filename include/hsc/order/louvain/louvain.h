@@ -44,7 +44,7 @@
 #include "hsc/order/louvain/graph_binary.h"
 #include "hsc/order/louvain/quality.h"
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 
 using std::vector;
 
@@ -94,6 +94,6 @@ class Louvain {
   bool one_level();
 };
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain
 
 #endif // LOUVAIN_H

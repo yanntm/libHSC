@@ -46,7 +46,7 @@
 // libHSC: vendored from Louvain-BinaryBuild (GPL/LGPL-3.0), curated — wrapped in
 // a namespace with scoped using-declarations instead of a global `using
 // namespace std`. See README.md.
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 
 using std::vector;
 using std::pair;
@@ -161,6 +161,6 @@ Graph::neighbors(int node) {
     return make_pair(links.begin()+degrees[node-1], weights.begin());
 }
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain
 
 #endif // GRAPH_H

@@ -16,7 +16,7 @@
 
 #include <cstddef>
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 
 /// Control positions above which an event reads as a synchronisation.
 inline constexpr std::size_t max_control = 8;
@@ -35,4 +35,4 @@ inline constexpr std::size_t max_induced = 64;
   return ctrl <= max_control;
 }
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain

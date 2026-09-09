@@ -31,9 +31,9 @@
 // see README.txt for more details
 
 
-#include "hsc/petri/louvain/quality.h"
+#include "hsc/order/louvain/quality.h"
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 using namespace std;
 
 
@@ -41,6 +41,6 @@ Quality::~Quality() {
   n2c.clear();
 }
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain
 
 

@@ -32,9 +32,9 @@
 
 
 #include <fstream>
-#include "hsc/petri/louvain/graph_binary.h"
+#include "hsc/order/louvain/graph_binary.h"
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 using namespace std;
 
 
@@ -216,5 +216,5 @@ Graph::display_binary(char *outfile) {
   foutput.write((char *)(&links[0]),sizeof(int)*nb_links);
 }
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain
 

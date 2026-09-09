@@ -6,16 +6,16 @@
 // internal: reading `qual->n2c` and calling `partition2graph_binary` is the same
 // thing `main_louvain` did, kept behind the edges-in / tree-out boundary.
 
-#include "hsc/petri/louvain/community.h"
+#include "hsc/order/louvain/community.h"
 
 #include <map>
 #include <vector>
 
-#include "hsc/petri/louvain/graph_binary.h"
-#include "hsc/petri/louvain/louvain.h"
-#include "hsc/petri/louvain/modularity.h"
+#include "hsc/order/louvain/graph_binary.h"
+#include "hsc/order/louvain/louvain.h"
+#include "hsc/order/louvain/modularity.h"
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 using namespace std;
 
 namespace {
@@ -85,4 +85,4 @@ vector<vector<int>> louvain_tree(int nb_nodes, const vector<edge>& edges,
   return levels;
 }
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain

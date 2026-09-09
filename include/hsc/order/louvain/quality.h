@@ -38,7 +38,7 @@
 
 #include "hsc/order/louvain/graph_binary.h"
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 
 using std::string;
 using std::vector;
@@ -69,6 +69,6 @@ class Quality {
   virtual long double quality()=0;
 };
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain
 
 #endif // QUALITY_H

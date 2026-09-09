@@ -36,7 +36,7 @@
 
 #include "hsc/order/louvain/quality.h"
 
-namespace hsc::petri::louvain {
+namespace hsc::order::louvain {
 
 using std::vector;
 
@@ -89,6 +89,6 @@ Modularity::gain(int node, int comm, long double dnc, long double degc) {
   return (dnc - totc*degc/m2);
 }
 
-}  // namespace hsc::petri::louvain
+}  // namespace hsc::order::louvain
 
 #endif // MODULARITY_H
