@@ -336,7 +336,37 @@ most formulas hit a `restrict` leaf and wait for M3.
   oracle agree; the explicit checker was caught once on it. The `dead_f`
   term is how the symbolic engine gets it right; keep it in every `EG`.
 
-## 8. Not a paper yet
+## 8. What the paper could take
+
+Three facts surfaced by the engineering, each stated in the calculus's
+vocabulary in `core/algorithm.md` (§9, §10, §11) and checked by a
+differential over random models (`tests/test_operations.cc`):
+
+* **Inversion preserves locality.** A term denotes an additive map, hence a
+  relation; the converse of a product relation is the product of the
+  converses, of a union the union, of a composition the reversed
+  composition re-potentialised by the right factor's image. An inverted
+  term touches exactly the positions of the original, so the F/L/G partition
+  of the backward system is the forward one and backward saturation is the
+  same rewrite over inverted events. The theory contract stays
+  pushforward-only: the converse is an optional leaf capability, spelled in
+  the leaf's own term language plus one action (`choose(S)`). The potential
+  is projected, not carried: the product of projections is the largest
+  constraint a product selector can express, hence the largest inversion
+  can carry without a straddling term.
+* **The existential reading.** `has_image` is a second interpretation of
+  the same terms — a witness subset or nothing — correct by additivity; for
+  the deflationary closure a cycle found with a part of the events inside a
+  part of the set is a cycle of the whole, which is libDDD's fast SCC
+  detection stated for terms.
+* **Composition of products is a product.** `node(a,b) ∘ node(c,d) =
+  node(a∘c, b∘d)`, with the leaf composing its own terms; a filtered event
+  is still a product and a constrained closure saturates like a plain one.
+  Where libDDD needs the selector/commutation rewrite of `fixpoint`, the
+  calculus gets the local part of it from this law and needs the rewrite
+  only for crossing selectors.
+
+## 9. Not a paper yet
 
 The engineering value is direct (MCC CTL examinations with the same driver
 we already run). The calculus content — inversion preserving the F/L/G
