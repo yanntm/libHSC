@@ -39,7 +39,8 @@ struct translator::ctl_state {
   std::optional<code> dead;   ///< the reachable deadlocks, once `reach` is
   /// The inverted events against `R`, exact ones raw and the others
   /// protected by `within(R)`; empty when some event has no converse.
-  std::vector<code> pred;
+  /// Computed the first time a formula needs a backward operator.
+  std::optional<std::vector<code>> pred;
 };
 
 translator::ctl_state& translator::ctl() {
@@ -173,7 +174,6 @@ void translator::do_ctl(const datum& form) {
         st.dead = *st.reach;
       }
     }
-    st.pred = invert_events(form, *st.reach);
   }
   ctl::model m;
   m.sort = top_;
@@ -181,10 +181,15 @@ void translator::do_ctl(const datum& form) {
   m.init = seed();
   m.next_events = events_;
   if (idle_event_) m.next_events.push_back(core::op_table::id);  // the self-loop
-  m.pred_events = st.pred;
-  if (idle_event_ && !m.pred_events.empty()) {
-    m.pred_events.push_back(core::op_table::id);  // self-converse
-  }
+  m.pred_events = [this, &st, &form]() -> std::span<const code> {
+    if (!st.pred) {
+      st.pred = invert_events(form, *st.reach);
+      if (idle_event_ && !st.pred->empty()) {
+        st.pred->push_back(core::op_table::id);  // self-converse
+      }
+    }
+    return *st.pred;
+  };
   m.selector = [this](ctl::node_id f) { return state_selector(f); };
   m.dead = *st.dead;
   ctl::checker chk(mgr_, m, st.fw);

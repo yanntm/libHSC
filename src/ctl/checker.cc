@@ -3,6 +3,9 @@
 /// (`hsc/ctl/checker.hh`, `algorithm.md` §3–§7).
 #include "hsc/ctl/checker.hh"
 
+#include <cstdlib>
+#include <string>
+
 #include "hsc/core/diagram.hh"
 #include "hsc/core/manager.hh"
 #include "hsc/core/operation.hh"
@@ -33,17 +36,23 @@ checker::checker(core::manager& mgr, const model& m, forward& fw)
 // --- the model's operations -------------------------------------------------
 
 checker::code checker::step(bool backward, code s) {
-  if (events(backward).empty() || s == core::none) return core::none;
-  if (!steps_built_) {
-    next_step_ = m_.next_events.empty()
-                     ? core::none
-                     : core::sum_at(mgr_, m_.sort, m_.next_events);
-    pred_step_ = m_.pred_events.empty()
-                     ? core::none
-                     : core::sum_at(mgr_, m_.sort, m_.pred_events);
-    steps_built_ = true;
+  const std::span<const code> evs = events(backward);
+  if (evs.empty() || s == core::none) return core::none;
+  code& stp = backward ? pred_step_ : next_step_;
+  bool& built = backward ? pred_built_ : next_built_;
+  if (!built) {
+    stp = core::sum_at(mgr_, m_.sort, evs);
+    built = true;
   }
-  return mgr_.diagrams().apply_local(backward ? pred_step_ : next_step_, s);
+  return mgr_.diagrams().apply_local(stp, s);
+}
+
+bool checker::existential_enabled() {
+  static const bool on = [] {
+    const char* e = std::getenv("HSC_CTL_EXIST");
+    return e == nullptr || std::string(e) != "0";
+  }();
+  return on;
 }
 
 checker::code checker::closure(bool backward, code sel, bool before) {
@@ -116,13 +125,78 @@ bool checker::has_cycles() {
     if (m_.next_events.empty()) {
       cycles_ = false;
     } else {
-      step(false, m_.reach);  // builds the step terms
-      const code hull = mgr_.diagrams().apply_local(
-          mgr_.operations().gfp(next_step_), m_.reach);
-      cycles_ = hull != core::none;
+      step(false, m_.reach);  // builds the step term
+      const code g = mgr_.operations().gfp(next_step_);
+      const code w = existential_enabled()
+                         ? mgr_.diagrams().has_image(g, m_.reach)
+                         : mgr_.diagrams().apply_local(g, m_.reach);
+      cycles_ = w != core::none;
     }
   }
   return *cycles_;
+}
+
+std::optional<bool> checker::nonempty(set_id s) {
+  if (!existential_enabled()) {
+    const std::optional<code> v = eval(s);
+    if (!v) return std::nullopt;
+    return *v != core::none;
+  }
+  const set_expr e = fw_.set(s);
+  core::diagram_engine& diagrams = mgr_.diagrams();
+  switch (e.kind) {
+    case set_op::init:
+      return m_.init != core::none;
+    case set_op::filter: {
+      const std::optional<code> a = eval(e.arg);
+      if (!a) return std::nullopt;
+      if (*a == core::none) return false;
+      const fnode& n = f_[e.f];
+      if (n.kind == op::tru) return true;
+      if (n.kind == op::fls) return false;
+      auto it = sel_memo_.find(e.f);
+      if (it == sel_memo_.end())
+        it = sel_memo_.emplace(e.f, m_.selector(e.f)).first;
+      return diagrams.has_image(it->second, *a) != core::none;
+    }
+    case set_op::ey: {
+      const std::optional<code> a = eval(e.arg);
+      if (!a) return std::nullopt;
+      if (*a == core::none || m_.next_events.empty()) return false;
+      step(false, m_.reach);  // builds the step term
+      return diagrams.has_image(next_step_, *a) != core::none;
+    }
+    case set_op::fwdu: {
+      // The closure contains its seed.
+      const std::optional<code> a = eval(e.arg);
+      if (!a) return std::nullopt;
+      return *a != core::none;
+    }
+    case set_op::fwdg: {
+      const std::optional<code> a = eval(e.arg);
+      if (!a) return std::nullopt;
+      const std::optional<code> seed = restrict(*a, e.f);
+      if (!seed) return std::nullopt;
+      if (*seed == core::none) return false;
+      const std::optional<code> rq =
+          constrained_lfp(false, *seed, e.f, /*before=*/true);
+      if (!rq) return std::nullopt;
+      const std::optional<code> reach_q = restrict(*rq, e.f);
+      if (!reach_q) return std::nullopt;
+      if (*reach_q == core::none) return false;
+      if (diagrams.meet(m_.dead, *reach_q) != core::none) return true;
+      if (m_.next_events.empty() || !has_cycles()) return false;
+      step(false, *reach_q);
+      return diagrams.has_image(mgr_.operations().gfp(next_step_), *reach_q) !=
+             core::none;
+    }
+    case set_op::restrict_: {
+      const std::optional<code> v = eval(s);
+      if (!v) return std::nullopt;
+      return *v != core::none;
+    }
+  }
+  return std::nullopt;
 }
 
 // --- set expressions --------------------------------------------------------
@@ -191,14 +265,14 @@ std::optional<checker::code> checker::eval(set_id s) {
 std::optional<checker::code> checker::sat_eu(node_id f, node_id g) {
   const std::optional<code> sg = sat(g);
   if (!sg) return std::nullopt;
-  if (m_.pred_events.empty()) return std::nullopt;
+  if (events(true).empty()) return std::nullopt;
   return constrained_lfp(true, *sg, f, /*before=*/false);
 }
 
 std::optional<checker::code> checker::sat_eg(node_id f) {
   const std::optional<code> sf = sat(f);
   if (!sf) return std::nullopt;
-  if (m_.pred_events.empty()) return std::nullopt;
+  if (events(true).empty()) return std::nullopt;
   core::diagram_engine& diagrams = mgr_.diagrams();
   // D ∪ lfp(sel_f ∘ pred)·D ∪ gfp(pred)·Sat(f), D = dead ∩ Sat(f)
   const code d = diagrams.meet(m_.dead, *sf);
@@ -206,8 +280,11 @@ std::optional<checker::code> checker::sat_eg(node_id f) {
   if (!res) return std::nullopt;
   if (*sf != core::none && has_cycles()) {
     step(true, *sf);  // ensures pred_step_
-    *res = diagrams.join(*res, diagrams.apply_local(
-                                   mgr_.operations().gfp(pred_step_), *sf));
+    const code g = mgr_.operations().gfp(pred_step_);
+    // A witness first: no cycle in Sat f means no hull to pay for.
+    if (!existential_enabled() || diagrams.has_image(g, *sf) != core::none) {
+      *res = diagrams.join(*res, diagrams.apply_local(g, *sf));
+    }
   }
   return res;
 }
@@ -248,12 +325,12 @@ std::optional<checker::code> checker::sat(node_id f) {
       }
       case op::ex: {
         const std::optional<code> s = sat(n.kids[0]);
-        if (s && !m_.pred_events.empty()) r = step(true, *s);
+        if (s && !events(true).empty()) r = step(true, *s);
         break;
       }
       case op::ax: {  // ¬EX¬f
         const std::optional<code> s = sat(f_.negate(n.kids[0]));
-        if (s && !m_.pred_events.empty()) r = neg(step(true, *s));
+        if (s && !events(true).empty()) r = neg(step(true, *s));
         break;
       }
       case op::ef:
@@ -307,9 +384,9 @@ verdict checker::ask(q_id qi) {
     case q_op::never:
       return verdict::no;
     case q_op::nonempty: {
-      const std::optional<code> s = eval(q.set);
+      const std::optional<bool> s = nonempty(q.set);
       if (!s) return verdict::unknown;
-      return *s != core::none ? verdict::yes : verdict::no;
+      return *s ? verdict::yes : verdict::no;
     }
     case q_op::any: {
       bool unknown = false;

@@ -34,7 +34,9 @@ struct model {
   core::code reach = core::none;  ///< `R`
   core::code init = core::none;   ///< the seed, `I ⊆ R`
   std::vector<core::code> next_events;  ///< forward event terms at `sort`
-  std::vector<core::code> pred_events;  ///< inverted terms; empty: unavailable
+  /// The inverted event terms, asked for the first time a backward operator
+  /// needs them; an empty span means unavailable (those nodes are refused).
+  std::function<std::span<const core::code>()> pred_events;
   /// The selector term of a state formula (a guard-only event at `sort`):
   /// applied to a set it keeps the states where the formula holds. Never
   /// asked for a constant.
@@ -58,14 +60,21 @@ class checker {
   /// inverted events).
   std::optional<core::code> sat(node_id f);
 
-  /// Whether `R` has a cycle: `gfp(next)·R ≠ ∅`, computed once.
+  /// Whether `R` has a cycle: `gfp(next)·R ≠ ∅` by its witness, once.
   bool has_cycles();
+  /// Is the set of \p s nonempty? Existential at the outermost operator
+  /// (`algorithm.md` §6) when enabled, else by `eval`; `nullopt` when refused.
+  std::optional<bool> nonempty(set_id s);
+  /// The `HSC_CTL_EXIST` variation point (default on).
+  static bool existential_enabled();
 
  private:
   using code = core::code;
   /// The events of a direction: forward, or the inverted ones.
-  [[nodiscard]] std::span<const code> events(bool backward) const {
-    return backward ? m_.pred_events : m_.next_events;
+  [[nodiscard]] std::span<const code> events(bool backward) {
+    if (!backward) return m_.next_events;
+    if (!pred_) pred_ = m_.pred_events ? m_.pred_events() : std::span<const code>{};
+    return *pred_;
   }
   /// The one-step image (`backward`: preimage) of \p s; `none` for no
   /// events.
@@ -111,7 +120,9 @@ class checker {
   std::optional<bool> cycles_;
   code next_step_ = core::none;  ///< the one-step forward term, built once
   code pred_step_ = core::none;
-  bool steps_built_ = false;
+  bool next_built_ = false;
+  bool pred_built_ = false;
+  std::optional<std::span<const code>> pred_;  ///< the inverted events, once asked
 };
 
 }  // namespace hsc::ctl
