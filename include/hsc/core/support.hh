@@ -10,6 +10,9 @@
 #include <iosfwd>
 
 #include "hsc/core/code.hh"
+#include <cstdint>
+#include <functional>
+
 #include "hsc/util/errors.hh"
 
 namespace hsc::core {
@@ -30,6 +33,50 @@ class support_algebra {
   support_algebra() = default;
   support_algebra(const support_algebra&) = delete;
   support_algebra& operator=(const support_algebra&) = delete;
+
+  /// \brief The stop of a theory's own long loops (a leaf closure over a
+  /// counter that never stops growing on an unbounded net). The manager
+  /// installs both at import: `stopping` says whether a stop is due, and a
+  /// loop that stops returns what it has after `mark_partial` (`manager.hh`).
+  /// Nothing installed: the loop runs to its end.
+  struct stop_hooks {
+    std::function<bool()> stopping;
+    std::function<void()> mark_partial;
+  };
+  void set_stop_hooks(stop_hooks hooks) { hooks_ = std::move(hooks); }
+  [[nodiscard]] bool stopping() const { return hooks_.stopping && hooks_.stopping(); }
+  /// The amortised poll of a per-element loop (a filter or a shift over a
+  /// large set): one increment and a mask per call, the stop consulted once
+  /// per few thousand; throws `interrupted` when it is due, and the nearest
+  /// closure loop returns what it had.
+  void poll() {
+    if ((++polls_ & 0x3FFF) == 0 && stopping()) throw interrupted("deadline reached");
+  }
+  void mark_partial() const {
+    if (hooks_.mark_partial) hooks_.mark_partial();
+  }
+  /// \brief Whether a closure of this theory broke out because its domain
+  /// grew past the divergence limit (`set_domain_limit`) — the signal of an
+  /// unbounded place, read between epochs; cleared by `clear_diverged`.
+  [[nodiscard]] bool diverged() const noexcept { return diverged_; }
+  void clear_diverged() noexcept { diverged_ = false; }
+  /// The number of values a closure's domain may reach before it breaks out
+  /// (default 65536; `HSC_DOMAIN_LIMIT` in the tools).
+  void set_domain_limit(std::size_t values) noexcept { domain_limit_ = values; }
+
+ protected:
+  void note_divergence() {
+    diverged_ = true;
+    mark_partial();
+  }
+  std::size_t domain_limit_ = 65536;
+
+ private:
+  stop_hooks hooks_;
+  bool diverged_ = false;
+  std::uint32_t polls_ = 0;
+
+ public:
 
   /// \name Tier G, less what interning gives for free
   ///

@@ -38,6 +38,8 @@ class manager {
   std::pair<theory_index, Theory&> import(Args&&... args) {
     auto owned = std::make_unique<Theory>(std::forward<Args>(args)...);
     Theory& ref = *owned;
+    // the theory's long loops stop with the manager, returning what they have
+    ref.set_stop_hooks({[this] { return stopping(); }, [this] { mark_partial(); }});
     theories_.push_back(std::move(owned));
     return {static_cast<theory_index>(theories_.size() - 1), ref};
   }
