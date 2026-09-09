@@ -290,3 +290,18 @@ proof. Whether the 854 sit inside ITS-Tools' 1098 or beside them needs its
 list; the next lever on our side is the second step — the entries of a
 slice traced one layer further back inside `S`, a `k`-induction the SMT
 route does not take.
+
+### 2.11 Depth 2 per slice (measured, too expensive as written)
+
+`--dead-depth 2`: the entries of a slice traced one layer further back
+inside `S`, under every live event (the first layer keeps its sign-aware
+restriction), the initial marking checked on each layer. BugTracking, 900 s
+budget (`dead_bt_d2.err`): **200 candidates tested, 144 killed**, 4.5 s a
+candidate — the second layer under 2701 live converses is what the first
+layer's restriction avoids. The kill rate on those 200 smallest slices (72 %
+against the one-step test's 250 of 2701 in its first pass) says the second
+step sees what the first does not; the cost says it must be restricted the
+same way — the events entering the *first layer's* markings, which is not
+a guard slice: the leaves the layer's atoms constrain, or only the
+survivors of a converged depth-1 run (1915 here) under a per-candidate
+cap. Left as an option, documented as expensive.
