@@ -45,7 +45,7 @@ reachable set itself on the default shape (BART-PT-002: 7 s for 17424
 states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 60 s, while `--shape louvain --force` answers 16/16 in 21 s).
 
-### m5a, m5b, m5c
+### m5a to m5d
 
 | run | answered | wrong | open | complete files | vs previous (runs up / down) |
 |---|---|---|---|---|---|
@@ -53,13 +53,17 @@ states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 | m5a | 6141 | 0 | 3267 | 341 | 60 / 48 vs m4 |
 | m5b | 6181 | 0 | 3227 | 344 | 28 / 12 vs m5a; 63 / 45 vs m4 |
 | m5c | 6224 | 0 | 3184 | 348 | 39 / 25 vs m5b; 68 / 33 vs m4 |
+| m5d | 6331 | 0 | 3077 | 359 | 36 / 13 vs m5c; 76 / 22 vs m4 |
 
 The evaluation discipline (m5a), the fusion (m5b) and the fair-share
 scheduler (m5c) each buy about forty answers over 588 runs (6101 → 6224,
 +2%); the rounds of m5a cost complete files, which the fair shares give
 back. One file (IBM703-PT-none CTLF, 16 → 1–3) exposed the fast cycle
-witness as a loss — addressed in m5d. Six m5c runs ended by the outer
-`timeout` rather than the tool's own alarm (to look at: a phase the alarm
-does not reach).
+witness as a loss — turning it off (m5d) is the largest single gain,
++107 answers and 11 more complete files. Over the four steps: 6101 → 6331
+answered (+3.8%), 357 → 359 complete files, 0 wrong throughout. The six
+runs ended by the outer `timeout` in m5c/m5d are the largest nets of the
+list (ServersAndClients-PT-200320 / -400160, RERS2020-PT-pb101), whose
+parsing and emission precede the tool's alarm.
 
 Further rows are appended as the runs complete.

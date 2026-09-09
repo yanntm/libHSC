@@ -138,3 +138,8 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    still pays the full hull afterwards — `EG` cost 3.8 s instead of a
    fraction. The fast path is now opt-in (`HSC_CTL_SCCFAST=1`); IBM703 is
    back to 16/16, Angiogenesis keeps 5/16. Benchmarked as `m5d`.
+18. **The benchmark, all four steps** (`README.md` here): 6101 → 6141 (m5a)
+   → 6181 (m5b) → 6224 (m5c) → 6331 (m5d) answered over 588 runs, 0 wrong
+   at every step, complete files 357 → 359, 76 runs up and 22 down against
+   the baseline. The fast-cycle-witness fix is the largest single step
+   (+107). The shape variant (`m5e`, Louvain + FORCE) runs last.
