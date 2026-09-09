@@ -6,8 +6,7 @@
 #include <algorithm>
 #include <cstdint>
 
-#include <unordered_map>
-#include <unordered_set>
+#include "hsc/order/profile.hh"
 #include "surface_translator.hh"
 
 namespace hsc::surface {
@@ -328,64 +327,16 @@ void translator::do_nodes(const datum& form) {
        << '\n';
 }
 
-/// `(profile NAME)`: the representation size level by level — for every sort
-/// of the shape reached by the result, in frontier order, the leaves it spans,
-/// its distinct nodes and their arcs. A wide belly between two levels says
-/// those levels are correlated: bring them closer, or bracket what lies
-/// between them.
+/// `(profile NAME)`: nodes and arcs per level of the shape (`order/profile.hh`),
+/// one line per sort in frontier order with the leaves it spans.
 void translator::do_profile(const datum& form) {
   const code c = named(arg(form, 1, "result name"));
-  const core::shape_table& sh = mgr_.shapes();
-  // The span of every sort of the shape: first frontier position and width.
-  std::unordered_map<core::shape_code, std::pair<std::size_t, std::size_t>> span;
-  std::size_t next = 0;
-  const auto walk = [&](auto&& self, core::shape_code s) -> std::pair<std::size_t, std::size_t> {
-    if (sh.kind(s) == core::shape_kind::leaf) {
-      const auto r = std::make_pair(next++, std::size_t{1});
-      span[s] = r;
-      return r;
-    }
-    if (sh.kind(s) == core::shape_kind::unit) return {next, 0};
-    const auto h = self(self, sh.head(s));
-    const auto t = self(self, sh.tail(s));
-    const auto r = std::make_pair(h.first, h.second + t.second);
-    span[s] = r;
-    return r;
-  };
-  walk(walk, top_);
-  // Distinct nodes and arcs per sort.
-  std::unordered_map<core::shape_code, std::pair<std::size_t, std::size_t>> counts;
-  std::unordered_set<code> seen;
-  std::vector<core::shape_code> order;
-  const auto visit = [&](auto&& self, code n) -> void {
-    if (n == core::none || !seen.insert(n).second) return;
-    const core::shape_code s = mgr_.diagrams().sort_of(n);
-    if (sh.kind(s) != core::shape_kind::pair) return;
-    auto& k = counts[s];
-    if (k.first == 0) order.push_back(s);
-    ++k.first;
-    const std::span<const core::arc> arcs = mgr_.diagrams().arcs(n);
-    k.second += arcs.size();
-    const bool head_node = sh.kind(sh.head(s)) == core::shape_kind::pair;
-    const bool tail_node = sh.kind(sh.tail(s)) == core::shape_kind::pair;
-    for (const core::arc& a : arcs) {
-      if (head_node) self(self, a.prime);
-      if (tail_node) self(self, a.sub);
-    }
-  };
-  visit(visit, c);
-  std::ranges::sort(order, [&](core::shape_code a, core::shape_code b) {
-    const auto [fa, wa] = span[a];
-    const auto [fb, wb] = span[b];
-    return fa != fb ? fa < fb : wa > wb;
-  });
-  out_ << sym(form.items()[1]) << " profile " << order.size() << " levels\n";
-  for (const core::shape_code s : order) {
-    const auto [first, width] = span[s];
-    const auto [nodes, arcs] = counts[s];
-    out_ << "  " << order_[first];
-    if (width > 1) out_ << ".." << order_[first + width - 1] << " (" << width << ')';
-    out_ << " nodes " << nodes << " arcs " << arcs << '\n';
+  const std::vector<order::level_profile> levels = order::profile(mgr_, top_, c);
+  out_ << sym(form.items()[1]) << " profile " << levels.size() << " levels\n";
+  for (const order::level_profile& l : levels) {
+    out_ << "  " << order_[l.first];
+    if (l.width > 1) out_ << ".." << order_[l.first + l.width - 1] << " (" << l.width << ')';
+    out_ << " nodes " << l.nodes << " arcs " << l.arcs << '\n';
   }
 }
 
