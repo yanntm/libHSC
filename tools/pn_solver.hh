@@ -134,6 +134,11 @@ class solver {
         nonempty(hsc::petri::at_least(form, hint, pnames))) {
       lo = hint;  // the hint is reached; it may still be exceeded
     }
+    // The declared bound is a lower estimate of what the leaves hold (a leaf's
+    // domain is raised as the fixpoint needs): grow the upper end until
+    // `form >= hi+1` is unreachable, then bisect. Without this the search
+    // was capped at the estimate — DoubleExponent-PT-003 answered 163 for 841.
+    while (nonempty(hsc::petri::at_least(form, hi + 1, pnames))) hi = 2 * hi + 1;
     // invariant: form >= lo is reachable (R is non-empty), form >= hi+1 is not
     while (lo < hi) {
       const long long mid = lo + (hi - lo + 1) / 2;
