@@ -87,16 +87,26 @@ first: `E >= K` non-empty answers `K` in one probe.
 
 ### `--witness`
 
-After each CTL verdict, the surface's `(witness Q)` (manual §8g) is fed
-and its tree forwarded to **stderr** — stdout keeps the `FORMULA` protocol
-alone. The block opens with `WITNESS <name>`; then, indented by
-subformula depth, states as words with their zero places dropped
-(`((p1 2) (p3 1))`), events as transition names, and `;` notes saying
-what holds where or why no path is shown (a universal subformula holds
-by exhaustion; a `TRUE` verdict of a universal property has no path). The
-inverted events the backtrack needs are built on the first request, once
-per run. A witness that runs into the deadline prints `WITNESS <name>
-TIMEOUT`.
+Every verdict that rests on a non-empty set gets its witness on
+**stderr** — stdout keeps the `FORMULA` protocol alone. The two kinds are
+one idea: a run of the net, found symbolically (`hsc/trace/`, manual §8g),
+states as words with their zero places dropped (`((p1 2) (p3 1))`), events
+as transition names.
+
+* **Reachability, invariant, deadlock**: when the selection is non-empty
+  (`TRUE` for a reachability or deadlock property, `FALSE` for an
+  invariant — its counterexample), `WITNESS <name> path K` then a shortest
+  run from the initial marking (fed once as `(word hsc-pn-I …)`) to a
+  selected state, K steps, states and transitions alternating.
+* **CTL**: after the verdict, the surface's `(witness Q)` tree:
+  `WITNESS <name>`, then, indented by subformula depth, the runs the
+  forward form stands for and `;` notes saying what holds where or why no
+  path is shown (a universal subformula holds by exhaustion; a `TRUE`
+  verdict of a universal property has no path). A witness that runs into
+  the deadline prints `WITNESS <name> TIMEOUT`.
+
+The inverted events the backtrack needs are built on the first request,
+once per run; bounds have no witness.
 
 ### `--states`
 
