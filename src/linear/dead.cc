@@ -2,6 +2,8 @@
 /// \brief The two deadness tests (`hsc/linear/dead.hh`).
 #include "hsc/linear/dead.hh"
 
+#include <algorithm>
+
 #include "hsc/core/diagram.hh"
 #include "hsc/core/manager.hh"
 #include "hsc/util/errors.hh"
@@ -42,8 +44,14 @@ dead_report dead_transitions(core::manager& mgr, core::shape_code, core::code se
                      d.apply_local(guards[i], init) == core::none;
       if (candidate[i]) ++r.candidates;
     }
+    // the candidates cheap first: the smallest slices, unless the caller ordered them
     std::vector<std::size_t> visit(order.begin(), order.end());
-    if (visit.empty()) for (std::size_t i = 0; i < n; ++i) visit.push_back(i);
+    if (visit.empty()) {
+      for (std::size_t i = 0; i < n; ++i) if (candidate[i]) visit.push_back(i);
+      std::vector<double> size(n, 0);
+      for (const std::size_t i : visit) size[i] = d.cardinal(en[i]);
+      std::stable_sort(visit.begin(), visit.end(), [&](std::size_t a, std::size_t b) { return size[a] < size[b]; });
+    }
     try {
       for (bool changed = true; changed;) {
         changed = false;

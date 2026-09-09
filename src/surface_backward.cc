@@ -37,8 +37,20 @@ std::vector<std::size_t> translator::events_writing(const std::unordered_set<std
   std::vector<std::size_t> out;
   for (std::size_t i = 0; i < events_.size(); ++i) {
     if (leaves.empty() || i >= event_writes_.size() || event_writes_[i].empty()) { out.push_back(i); continue; }
-    for (const std::string& w : event_writes_[i])
+    for (const auto& [w, dir] : event_writes_[i])
       if (leaves.count(w)) { out.push_back(i); break; }
+  }
+  return out;
+}
+
+std::vector<std::size_t> translator::events_entering(const std::unordered_map<std::string, int>& wanted) {
+  std::vector<std::size_t> out;
+  for (std::size_t i = 0; i < events_.size(); ++i) {
+    if (wanted.empty() || i >= event_writes_.size() || event_writes_[i].empty()) { out.push_back(i); continue; }
+    for (const auto& [w, dir] : event_writes_[i]) {
+      const auto it = wanted.find(w);
+      if (it != wanted.end() && (it->second == 0 || dir == 0 || dir == it->second)) { out.push_back(i); break; }
+    }
   }
   return out;
 }

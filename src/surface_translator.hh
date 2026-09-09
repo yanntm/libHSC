@@ -557,6 +557,9 @@ class translator final : public name_scope {
   void do_backward(const datum& form);
   const std::vector<code>& converses_against(const datum& at, code potential);
   std::vector<std::size_t> events_writing(const std::unordered_set<std::string>& leaves);
+  /// The events that can move a leaf in a wanted direction: \p wanted maps a
+  /// leaf to +1 (an increase enters), -1 (a decrease enters) or 0 (either).
+  std::vector<std::size_t> events_entering(const std::unordered_map<std::string, int>& wanted);
   code pre_within(code x, code set, std::span<const code> conv, std::span<const std::size_t> which);
   void pump(const datum& form, const std::string& name);
   void do_stock(const datum& form);
@@ -635,9 +638,10 @@ class translator final : public name_scope {
   /// written); empty for an always-enabled event. What `(deadlock)` reads.
   std::vector<std::vector<datum>> event_guards_;
   std::vector<std::size_t> event_guard_of_;  ///< per event of events_, its entry in event_guards_ (SIZE_MAX: none)
-  /// Per event of events_, the leaves its `do` clauses write (names); empty
-  /// when unknown (a family). What the backward forms filter events by.
-  std::vector<std::vector<std::string>> event_writes_;
+  /// Per event of events_, the leaves its `do` clauses write (name and
+  /// direction: +1 for `+=`, -1 for `-=`, 0 otherwise); empty when unknown
+  /// (a family). What the backward forms filter events by.
+  std::vector<std::vector<std::pair<std::string, int>>> event_writes_;
   /// The raw converses of the default system per potential set (`(pre …)`,
   /// `(backward …)`), in the events' order.
   std::unordered_map<code, std::vector<code>> converses_;

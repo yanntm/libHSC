@@ -52,7 +52,8 @@ using entry_fn = std::function<core::code(std::size_t i, core::code en, const st
 /// Stopped, the report carries what was decided so far (sound: every
 /// verdict stands on tests that completed).
 /// \p order, when not empty, is the order in which the candidates are
-/// visited in every pass (the cheap ones first, so a budget yields verdicts).
+/// visited in every pass; empty, the smallest slices go first (a budget
+/// then yields verdicts).
 [[nodiscard]] dead_report dead_transitions(core::manager& mgr, core::shape_code top, core::code set,
                                            core::code init, std::span<const core::code> events,
                                            std::span<const core::code> guards,
