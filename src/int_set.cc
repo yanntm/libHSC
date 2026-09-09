@@ -191,6 +191,7 @@ core::code int_set_theory::invert_local(core::code term, core::code domain) {
       std::vector<std::int32_t> out;
       out.reserve(from.size());
       for (const std::int32_t v : from) {
+        poll();
         std::int32_t nv;
         if (__builtin_add_overflow(v, t.arg, &nv)) {
           throw overflow_error("int32 overflow inverting a shift by " +
@@ -428,6 +429,7 @@ core::code int_set_theory::filter(core::code set, lia::bexpr g) {
   if (g == lia::btrue) return set;
   std::vector<std::int32_t> out;
   for (const std::int32_t v : elements(set)) {
+    poll();  // a guard over a huge domain is a loop of seconds
     const std::int32_t env[] = {v};
     if (exprs_.eval_bool(g, env) == lia::expr_factory::truth::yes) {
       out.push_back(v);  // ⊥ excludes, like a failed guard
@@ -469,8 +471,19 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
   if (t.shape == int_shape::lfp) {
     // Naive iteration. A theory is free to fuse a closure instead; this one
     // does not try, which is what makes it the honest oracle.
+    // An unbounded counter never converges here: the loop stops with the
+    // manager (a partial domain, marked), and breaks out on its own when the
+    // domain passes the divergence limit — the signal of an unbounded place.
     core::code x = value;
     for (;;) {
+      if (stopping()) {
+        mark_partial();
+        return x;
+      }
+      if (elements(x).size() > domain_limit_) {
+        note_divergence();
+        return x;
+      }
       const core::code y = join(x, apply_local(t.a, x));
       if (y == x) return x;
       x = y;
@@ -497,9 +510,17 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
       // wrap — it is the theory's job to represent classes finitely, and when
       // it cannot (an unbounded net), it says so here rather than lie.
       const auto from = elements(kept);
+      // A domain past the divergence limit is the signal of an unbounded
+      // place (`support.hh`): note it, and stop the enclosing closure, which
+      // returns what it had — a partial set the divergence watch reads.
+      if (from.size() > domain_limit_) {
+        note_divergence();
+        throw interrupted("domain limit: a place runs past " + std::to_string(domain_limit_) + " values");
+      }
       std::vector<std::int32_t> out;
       out.reserve(from.size());
       for (const std::int32_t v : from) {
+        poll();
         std::int32_t nv;
         if (__builtin_add_overflow(v, t.arg, &nv)) {
           throw overflow_error("int32 overflow shifting " + std::to_string(v) +
