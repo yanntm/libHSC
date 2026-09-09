@@ -28,4 +28,12 @@ struct unsupported_error : std::runtime_error {
   using std::runtime_error::runtime_error;
 };
 
+/// \brief A computation stopped by its caller's deadline. Raised from the
+/// iteration loops of the calculus when the manager's interrupt hook says so;
+/// nothing partial is cached, so the work already memoised stays valid and
+/// the question can be asked again with a larger budget.
+struct interrupted : std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
+
 }  // namespace hsc

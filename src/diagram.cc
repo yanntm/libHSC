@@ -230,6 +230,7 @@ code diagram_engine::gfp_at(shape_code sort, code term, code value) {
   support_algebra& algebra = owner_.algebra(sort);
   code x = value;
   for (;;) {
+    owner_.check_interrupt();
     const code y = algebra.meet(x, algebra.apply_local(term, x));
     if (y == x || y == none) return y;
     x = y;
@@ -372,6 +373,7 @@ code diagram_engine::do_apply(code term, code d) {
       const code h = t.operand(0);
       code x = d;
       for (;;) {
+        owner_.check_interrupt();
         const code y = join(x, apply_local(h, x));
         if (y == x) return x;
         x = y;
@@ -388,6 +390,7 @@ code diagram_engine::do_apply(code term, code d) {
       const code h = t.operand(0);
       code x = d;
       for (;;) {
+        owner_.check_interrupt();
         const code y = meet(x, apply_local(h, x));
         if (y == x) return x;
         x = y;
@@ -406,6 +409,7 @@ code diagram_engine::do_apply(code term, code d) {
       code current = d;
       code previous = none;
       do {
+        owner_.check_interrupt();
         previous = current;
         current = apply_local(f_part, current);
         current = apply_local(l_part, current);

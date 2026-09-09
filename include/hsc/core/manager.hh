@@ -6,6 +6,7 @@
 /// by one object and reaches the code that uses it as an explicit argument.
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -13,6 +14,7 @@
 #include "hsc/core/diagram.hh"
 #include "hsc/core/operation.hh"
 #include "hsc/core/shape.hh"
+#include "hsc/util/errors.hh"
 #include "hsc/core/support.hh"
 
 namespace hsc::core {
@@ -65,6 +67,14 @@ class manager {
   /// applying an expr term with none registered is a logic error.
   void set_cases(case_evaluator* cases) noexcept { cases_ = cases; }
   [[nodiscard]] case_evaluator* cases() const noexcept { return cases_; }
+  /// \brief The interrupt hook: a predicate the iteration loops of the
+  /// calculus consult once per round; when it answers true the loop throws
+  /// `hsc::interrupted`. Empty (the default) never interrupts. A deadline is
+  /// the intended use; the check is a call per round, never per node.
+  void set_interrupt(std::function<bool()> hook) { interrupt_ = std::move(hook); }
+  void check_interrupt() const {
+    if (interrupt_ && interrupt_()) throw interrupted("deadline reached");
+  }
 
  private:
   shape_table shapes_;
@@ -72,6 +82,7 @@ class manager {
   std::vector<std::unique_ptr<support_algebra>> theories_;
   std::unique_ptr<diagram_engine> diagrams_;
   case_evaluator* cases_ = nullptr;
+  std::function<bool()> interrupt_;
 };
 
 }  // namespace hsc::core
