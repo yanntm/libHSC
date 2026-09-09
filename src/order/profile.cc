@@ -146,25 +146,35 @@ std::vector<local_states> subshape_states(core::manager& mgr, core::shape_code t
 }
 
 std::vector<leaf_domain> leaf_domains(core::manager& mgr, core::shape_code top, core::code set) {
+  // Leaf sorts are per theory, not per position: the frontier position
+  // travels down (head at the sort's first position, tail after the head's
+  // width), and the domain of each position is the union of the primes met
+  // there.
   const spans sp = walk_spans(mgr.shapes(), top);
   const core::shape_table& sh = mgr.shapes();
   const core::diagram_engine& d = mgr.diagrams();
-  // the union of the primes of every node whose head is a leaf, per leaf
-  std::unordered_map<core::shape_code, core::code> dom;
-  for (const auto& [sort, nodes] : nodes_by_sort(mgr, set)) {
-    const core::shape_code head = sh.head(sort);
-    if (sh.kind(head) != core::shape_kind::leaf) continue;
-    core::support_algebra& alg = mgr.algebra(head);
-    core::code u = dom.count(head) ? dom[head] : core::none;
-    for (const core::code n : nodes)
-      for (const core::arc& a : d.arcs(n)) u = u == core::none ? a.prime : alg.join(u, a.prime);
-    dom[head] = u;
-  }
+  std::vector<core::code> dom(sp.leaf_at.size(), core::none);
+  std::unordered_set<std::uint64_t> seen;  // (node, position)
+  const auto visit = [&](auto&& self, core::code n, core::shape_code s, std::size_t first) -> void {
+    if (n == core::none || sh.kind(s) != core::shape_kind::pair) return;
+    if (!seen.insert((static_cast<std::uint64_t>(n) << 20) ^ first).second) return;
+    const core::shape_code hs = sh.head(s), ts = sh.tail(s);
+    const bool head_leaf = sh.kind(hs) == core::shape_kind::leaf;
+    const std::size_t hw = head_leaf ? 1 : sp.of.at(hs).second;
+    for (const core::arc& a : d.arcs(n)) {
+      if (head_leaf) {
+        core::code& u = dom[first];
+        u = u == core::none ? a.prime : mgr.algebra(hs).join(u, a.prime);
+      } else {
+        self(self, a.prime, hs, first);
+      }
+      self(self, a.sub, ts, first + hw);
+    }
+  };
+  visit(visit, set, top, 0);
   std::vector<leaf_domain> out;
   for (std::size_t p = 0; p < sp.leaf_at.size(); ++p) {
-    const core::shape_code leaf = sp.leaf_at[p];
-    const auto it = dom.find(leaf);
-    out.push_back({p, it == dom.end() || it->second == core::none ? 0.0 : mgr.algebra(leaf).cardinal(it->second)});
+    out.push_back({p, dom[p] == core::none ? 0.0 : mgr.algebra(sp.leaf_at[p]).cardinal(dom[p])});
   }
   return out;
 }
