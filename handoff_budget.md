@@ -10,8 +10,7 @@ tasks as continuations kept as data, one budget for time and memory).
    state on the manager, partial results kept out of the caches, the
    surface orders `(budget S)` / `NAME partial` / `(reach … from)` /
    `(stock … since …)` (`examples/models/budget_hanoi.hsc` exercises the
-   loop), PetriSpot's `sched/` vendored. Next: `hsc --stdin` (orders
-   streamed, one answer flushed per form); the reachable set as a `Task`
+   loop), PetriSpot's `sched/` vendored. `hsc --stdin` streams orders, one answer flushed per form. Next: the reachable set as a `Task`
    (`run(slice)` = budget, reach from, stock; slices growing geometrically;
    the report from the stock); a CTL property as a task.
 2. **Set metrics between epochs** (§3b): extend `order/profile` with fan-in

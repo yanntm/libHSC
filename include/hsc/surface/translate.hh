@@ -16,6 +16,7 @@
 #include <functional>
 #include <optional>
 #include <memory>
+#include <istream>
 #include <string>
 #include <vector>
 
@@ -64,6 +65,14 @@ struct session_arg {
 int run_session(const std::vector<session_arg>& args, std::ostream& out,
                 std::ostream& err,
                 const std::map<std::string, long long>& params = {});
+/// \brief The streamed session: \p args as `run_session`, then orders read
+/// from \p in one top-level form at a time, each answered and flushed before
+/// the next is read — an engine driven by another tool over a pipe. A bad
+/// order is reported on \p err and the stream goes on; the stream's end ends
+/// the session. \return as `run_session`.
+int run_stream(const std::vector<session_arg>& args, std::istream& in,
+               std::ostream& out, std::ostream& err,
+               const std::map<std::string, long long>& params = {});
 
 /// \brief An incremental session: forms fed in batches to one translator,
 /// results persisting between batches. For a driver that decides its next
@@ -79,12 +88,11 @@ class session {
   /// Give \p forms meaning, writing command output to the session's stream.
   /// \return the number of `expect` assertions failed so far.
   int feed(const std::vector<datum>& forms);
-  /// \brief A deadline for the forms fed next: the predicate is consulted
-  /// once per iteration round of the calculus and a computation it stops
+  /// \brief The deadline of every form fed next (`core::manager::set_deadline`):
+  /// a closure that runs out returns what it has, marked partial (the form
+  /// prints `NAME partial`); a computation that cannot use a partial value
   /// reports as interrupted (a `ctl` form answers `TIMEOUT`, its memoised
-  /// partial results kept for a later batch). Empty clears it.
-  /// The deadline of every following form (`core::manager::set_deadline`);
-  /// `nullopt` clears it.
+  /// exact results kept for a later batch). `nullopt` clears it.
   void set_deadline(std::optional<std::chrono::steady_clock::time_point> at);
 
  private:

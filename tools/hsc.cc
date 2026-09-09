@@ -39,6 +39,11 @@ int main(int argc, char** argv) {
                      "repeatable, may sit between files")
           ->allow_extra_args(false);
 
+  bool stream = false;
+  app.add_flag("--stdin", stream,
+               "after the files and -e forms, read orders from standard input one form at a "
+               "time, answering and flushing each: the engine driven by another tool");
+
   std::vector<std::string> defines;
   app.add_option("-D", defines,
                  "override a (param NAME …) from the command line, as "
@@ -79,6 +84,7 @@ int main(int argc, char** argv) {
       args.push_back({false, inlines[ne++]});
     }
   }
+  if (stream) return hsc::surface::run_stream(args, std::cin, std::cout, std::cerr, params);
   if (args.empty()) {
     std::cerr << "nothing to run: give a .hsc file or -e forms\n";
     return 2;

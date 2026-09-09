@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <cctype>
 #include <fstream>
 #include <optional>
 #include <sstream>
@@ -563,6 +564,85 @@ int run_session(const std::vector<session_arg>& args, std::ostream& out,
     err << label << ": internal error: " << e.what() << '\n';
     return 3;
   }
+}
+
+namespace {
+
+/// Read one top-level form from \p in into \p text: characters until the
+/// parentheses balance back to zero, `;` comments and strings respected.
+/// False at the end of the stream with nothing read.
+bool read_form(std::istream& in, std::string& text) {
+  text.clear();
+  int depth = 0;
+  bool in_string = false, in_comment = false, seen = false;
+  char c;
+  while (in.get(c)) {
+    if (in_comment) {
+      if (c == '\n') in_comment = false;
+      continue;
+    }
+    if (in_string) {
+      text += c;
+      if (c == '"') in_string = false;
+      continue;
+    }
+    if (c == ';') { in_comment = true; continue; }
+    if (!seen && std::isspace(static_cast<unsigned char>(c))) continue;
+    seen = true;
+    text += c;
+    if (c == '"') in_string = true;
+    else if (c == '(') ++depth;
+    else if (c == ')') { --depth; if (depth <= 0) return true; }
+    else if (depth == 0 && std::isspace(static_cast<unsigned char>(c))) return true;  // a bare atom
+  }
+  return seen;
+}
+
+}  // namespace
+
+int run_stream(const std::vector<session_arg>& args, std::istream& in,
+               std::ostream& out, std::ostream& err,
+               const std::map<std::string, long long>& params) {
+  std::vector<datum> root;
+  std::size_t nth = 0;
+  for (const session_arg& a : args) {
+    if (a.is_file) {
+      root.push_back(datum::list({datum::atom("input", 0), datum::atom(a.text, 0)}, 0));
+      continue;
+    }
+    ++nth;
+    try {
+      for (datum& f : parse(a.text)) root.push_back(std::move(f));
+    } catch (const parse_error& e) {
+      err << "-e #" << nth << ": parse error: " << e.what() << '\n';
+      return 2;
+    }
+  }
+  session s(out);
+  int failures = 0;
+  try {
+    std::vector<std::filesystem::path> stack;
+    failures = s.feed(expand(splice_inputs(std::move(root), std::filesystem::current_path(), stack),
+                             /*families=*/true, params));
+  } catch (const std::exception& e) {
+    err << "session: " << e.what() << '\n';
+    return 2;
+  }
+  out.flush();
+  // The orders, one at a time, each answered before the next is read.
+  std::string text;
+  while (read_form(in, text)) {
+    try {
+      std::vector<std::filesystem::path> stack;
+      failures = s.feed(expand(splice_inputs(parse(text), std::filesystem::current_path(), stack),
+                               /*families=*/true, params));
+    } catch (const std::exception& e) {
+      out << "error " << e.what() << '\n';  // the stream's reader sees it in order
+      err << "order: " << e.what() << '\n';
+    }
+    out.flush();
+  }
+  return failures == 0 ? 0 : 1;
 }
 
 }  // namespace hsc::surface

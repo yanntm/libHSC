@@ -3,6 +3,7 @@
 | binary | role |
 |---|---|
 | `hsc` | run a `.hsc` session: files and `-e` forms spliced in order (`doc/hsc_manual.md`) |
+| `hsc --stdin` | the same engine driven by another tool: files and `-e` forms first, then orders read from standard input one form at a time, each answered and flushed — `(budget S)`, `(reach R saturate)`, `(stock R)`, `(reach R2 saturate from R)` make the epoch loop a conversation (`include/hsc/sched/algorithm.md`) |
 | `hsc-pn` | answer Petri net properties symbolically: PNML or PNET in, MCC XML or s-expression properties in, the `FORMULA` line protocol out |
 | `hsc-mcc` | the MCC examinations StateSpace and OneSafe on a PNML net (superseded by `hsc-pn`, kept while the harness driver moves over) |
 | `nupn2hsc` | import a PNML/NUPN net and emit the `.hsc` model (text only) |

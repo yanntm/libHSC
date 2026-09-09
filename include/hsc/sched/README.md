@@ -27,6 +27,7 @@ same objects fit with a few distinctions, spelled out in `algorithm.md`.
 |---|---|---|
 | the stop state: a deadline or a request, `stopping()` polled per round, results marked partial and kept out of the caches, reset at the root | `core/manager`, `core/diagram`, `mem/cache` | built |
 | the surface orders: `(budget S)`, `NAME partial`, `(reach … from NAME)`, `(stock NAME [since OTHER])` | `src/surface_query.cc`, manual §4 | built |
+| the engine driven over a pipe: `hsc FILE --stdin`, one order in, one answer out and flushed | `src/surface_run.cc` (`run_stream`), `tools/hsc.cc` | built |
 | polling: the closure loops at their round boundaries (a call per round, never per node); the tool's phases | `core/diagram`, `tools/` | loops done, phases to do |
 | `Slice`, `SliceReport`, `Task`, `Scheduler` | vendored from PetriSpot `Petri/src/sched/` (`Task.h`, `Scheduler.h`, namespace `petri::sched`) by `vendor.sh`, the include path the only edit | vendored |
 | symbolic tasks: reachable set, a CTL property, a shape heuristic, a count | `sched/tasks.hh` | to build |
