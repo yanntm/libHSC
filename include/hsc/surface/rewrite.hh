@@ -69,6 +69,10 @@ rewrite(std::vector<datum> forms, std::span<const pass> passes);
 /// point on top of FORCE: which end of an order sits at the top matters.
 [[nodiscard]] rewrite_result reorder_reverse(std::vector<datum> forms,
                                              const datum& directive);
+/// \brief `(use-shape FILE)`: the shape read from a file — the expression
+/// `hsc-pn --export-shape` writes, or one a hand or another tool wrote.
+[[nodiscard]] rewrite_result use_shape(std::vector<datum> forms,
+                                       const datum& directive);
 
 /// \brief `(flatten)`: the shape becomes the flat spine of the current
 /// frontier order — hierarchy deliberately erased.

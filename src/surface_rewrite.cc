@@ -363,6 +363,7 @@ std::vector<pass_def> pass_registry() {
           {"hotbit", hotbit},
           {"reorder-force", reorder_force},
           {"reorder-reverse", reorder_reverse},
+          {"use-shape", use_shape},
           {"flatten", flatten},
           {"simplify-arrays", simplify_arrays},
           {"declare-domains",

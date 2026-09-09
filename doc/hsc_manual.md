@@ -261,6 +261,7 @@ certificate; `unfold` always enumerates.
 (hotbit [MIN [MAX]])         ; directive: one-hot encode enumerated leaves, §8c
 (reorder-force)              ; directive: FORCE order from event supports, §8c
 (reorder-reverse)            ; directive: the shape mirrored at every level, §8c
+(use-shape FILE)             ; directive: the shape read from a file (as hsc-pn --export-shape writes it), §8c
 (flatten)                    ; directive: the flat spine of the frontier, §8c
 (simplify-arrays)            ; directive: dissolve statically-accessed arrays, §8c
 (decompose-louvain)          ; directive: hierarchical shape by clustering, §8c

@@ -16,10 +16,12 @@
 #include <cstdint>
 #include <limits>
 #include <numeric>
+#include <fstream>
 #include <sstream>
 
 #include "hsc/order/force.hh"
 #include "hsc/surface/rewrite.hh"
+#include "hsc/surface/sexpr.hh"
 #include "hsc/surface/spec.hh"
 #include "hsc/xpl/interpret/model.hh"
 
@@ -161,6 +163,35 @@ rewrite_result reorder_reverse(std::vector<datum> forms, const datum&) {
     f = datum::list({f.items()[0], unparse(root)}, f.line());
   }
   return {std::move(forms), true, "the shape is mirrored at every level"};
+}
+
+/// `(use-shape FILE)`: the shape read from a file — one `(spine …)` /
+/// `(balanced …)` expression over the leaf names, with or without a `(shape`
+/// wrapper, as `hsc-pn --export-shape` writes it. The reified order and
+/// hierarchy, computed by any means, inspected or tweaked by hand, put back.
+rewrite_result use_shape(std::vector<datum> forms, const datum& directive) {
+  if (directive.items().size() != 2 || !directive.items()[1].is_atom()) {
+    return {std::move(forms), false, "use-shape takes one file name"};
+  }
+  const std::string& path = directive.items()[1].text();
+  std::ifstream in(path, std::ios::binary);
+  if (!in) return {std::move(forms), false, "use-shape: cannot open " + path};
+  std::stringstream buf;
+  buf << in.rdbuf();
+  std::vector<datum> read = parse(buf.str());
+  if (read.empty() || !read.front().is_list()) {
+    return {std::move(forms), false, "use-shape: no shape expression in " + path};
+  }
+  datum shape = read.front();
+  if (shape.head() == "shape" && shape.items().size() == 2) shape = shape.items()[1];
+  bool placed = false;
+  for (datum& f : forms) {
+    if (!f.is_list() || f.items().empty() || f.head() != "shape") continue;
+    f = datum::list({f.items()[0], shape}, f.line());
+    placed = true;
+  }
+  if (!placed) return {std::move(forms), false, "no shape"};
+  return {std::move(forms), true, "the shape is the one of " + path};
 }
 
 rewrite_result flatten(std::vector<datum> forms, const datum&) {
