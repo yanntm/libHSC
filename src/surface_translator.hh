@@ -549,6 +549,8 @@ class translator final : public name_scope {
   void do_full(const datum& form);
   void do_dead(const datum& form);
   void do_equality(const datum& form);
+  void do_at_most(const datum& form);
+  void linear_constraint(const datum& form, bool at_most);
   void do_intersect(const datum& form);
   void pump(const datum& form, const std::string& name);
   void do_stock(const datum& form);

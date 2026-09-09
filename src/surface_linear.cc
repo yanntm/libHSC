@@ -48,7 +48,12 @@ void translator::do_full(const datum& form) {
 /// that satisfy the equality, built directly (`linear/equality.hh`); the
 /// domains are BOX's own, so the set is exactly `BOX ∩ {Σ C·LEAF = K}`;
 /// coefficients nonnegative.
-void translator::do_equality(const datum& form) {
+void translator::do_equality(const datum& form) { linear_constraint(form, false); }
+void translator::do_at_most(const datum& form) { linear_constraint(form, true); }
+
+/// `(equality NAME BOX K (* C LEAF)*)` / `(at-most NAME BOX K (* C LEAF)*)`:
+/// the words of BOX with `Σ C·LEAF = K`, or `≤ K`, built directly.
+void translator::linear_constraint(const datum& form, bool at_most) {
   if (top_ == core::none) fail(form, "equality before shape");
   const std::string& name = sym(arg(form, 1, "result name"));
   const code box = named(arg(form, 2, "box"));
@@ -105,8 +110,8 @@ void translator::do_equality(const datum& form) {
   linear::leaf_access acc;
   acc.values = [&](std::size_t p) -> std::span<const std::int32_t> { return domains[p]; };
   acc.subset = [&](std::size_t, std::span<const std::int32_t> vs) -> code { return theory_->of(vs); };
-  results_[name] = linear::equality(mgr_, top_, coeff, k, acc);
-  out_ << name << " equality " << (results_[name] == core::none ? 0.0 : mgr_.diagrams().cardinal(results_[name])) << '\n';
+  results_[name] = linear::equality(mgr_, top_, coeff, k, acc, at_most);
+  out_ << name << (at_most ? " at-most " : " equality ") << (results_[name] == core::none ? 0.0 : mgr_.diagrams().cardinal(results_[name])) << '\n';
 }
 
 /// `(intersect NAME A B*)`: the meet of bound results.

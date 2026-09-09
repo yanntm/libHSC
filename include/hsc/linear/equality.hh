@@ -29,10 +29,11 @@ struct leaf_access {
 };
 
 /// \brief The words of the shape rooted at \p top whose leaves lie in their
-/// domains and satisfy `Σ coeff[p] · x_p = k`; `coeff` per frontier position,
-/// every coefficient ≥ 0. `none` when no word does.
+/// domains and satisfy `Σ coeff[p] · x_p = k` — or `≤ k` with \p at_most, the
+/// residual sums below k kept instead of pruned; `coeff` per frontier
+/// position, every coefficient ≥ 0. `none` when no word does.
 [[nodiscard]] core::code equality(core::manager& mgr, core::shape_code top,
                                   std::span<const long long> coeff, long long k,
-                                  const leaf_access& leaves);
+                                  const leaf_access& leaves, bool at_most = false);
 
 }  // namespace hsc::linear

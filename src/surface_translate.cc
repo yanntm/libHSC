@@ -52,6 +52,7 @@ void translator::dispatch(const datum& form) {
   else if (kw == "full") do_full(form);
   else if (kw == "dead") do_dead(form);
   else if (kw == "equality") do_equality(form);
+  else if (kw == "at-most") do_at_most(form);
   else if (kw == "intersect") do_intersect(form);
   else if (kw == "budget") do_budget(form);
   else if (kw == "print") do_print(form);

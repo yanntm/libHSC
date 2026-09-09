@@ -19,7 +19,7 @@ using by_sum = std::map<long long, core::code>;
 }  // namespace
 
 core::code equality(core::manager& mgr, core::shape_code top, std::span<const long long> coeff,
-                    long long k, const leaf_access& leaves) {
+                    long long k, const leaf_access& leaves, bool at_most) {
   if (k < 0) return core::none;
   const core::shape_table& sh = mgr.shapes();
   core::diagram_engine& d = mgr.diagrams();
@@ -78,8 +78,13 @@ core::code equality(core::manager& mgr, core::shape_code top, std::span<const lo
     return memo.emplace(key, std::move(out)).first->second;
   };
   const by_sum& all = sums(sums, top, 0);
-  const auto it = all.find(k);
-  return it == all.end() ? core::none : it->second;
+  if (!at_most) {
+    const auto it = all.find(k);
+    return it == all.end() ? core::none : it->second;
+  }
+  core::code r = core::none;  // every residual sum ≤ k (the map holds none above)
+  for (const auto& [w, c] : all) r = r == core::none ? c : d.join(r, c);
+  return r;
 }
 
 }  // namespace hsc::linear

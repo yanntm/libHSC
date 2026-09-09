@@ -245,6 +245,7 @@ certificate; `unfold` always enumerates.
 (full NAME [(LEAF LO HI)]*)  ; the product of the leaf domains (declared, or given), the box every marking lies in
 (dead NAME SET [step] [ignore LEAF*]) ; the events dead on SET: never enabled (guard atoms on ignored, merely capped leaves dropped); with `step`, also enabled in one step only from markings SET rules out
 (equality NAME BOX K (* C LEAF)*) ; the words of BOX (a product) with Σ C·LEAF = K, built directly (C ≥ 0)
+(at-most NAME BOX K (* C LEAF)*)  ; the same with Σ C·LEAF ≤ K
 (intersect NAME A B*)        ; the meet of bound results
 (stock NAME [since OTHER])   ; take stock: states, nodes, per level nodes/arcs/local states (gained since OTHER), values per leaf
 (budget SECONDS)             ; every following form runs at most SECONDS; a closure that runs out returns a partial set — `NAME partial`
