@@ -17,7 +17,8 @@ examination) under `timeout` and `ulimit -v`, the tool's own `--totalTime`
 one second under the cap so it prints `UNKNOWN` for what it left open,
 verdicts compared with the oracle, one TSV line per run under `results/`.
 `models_le1e7.txt` lists the 294 P/T instances with a known state count of
-at most 10^7 and a CTL oracle (the `-SS.out` counts of the oracle archive).
+at most 10^7 and a CTL oracle (the `-SS.out` counts of the oracle archive);
+`models_1e7_1e9.txt` the 129 between 10^7 and 10^9, for longer caps.
 Runs, logs and extracted inputs live under `tests/logs/mcc2026/` (not
 tracked).
 
