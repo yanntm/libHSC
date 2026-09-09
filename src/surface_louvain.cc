@@ -10,8 +10,8 @@
 #include <algorithm>
 #include <sstream>
 
-#include "hsc/petri/louvain/community.h"
-#include "hsc/petri/louvain/hyperedge.hh"
+#include "hsc/order/louvain/community.h"
+#include "hsc/order/louvain/hyperedge.hh"
 #include "hsc/surface/rewrite.hh"
 #include "hsc/surface/spec.hh"
 #include "hsc/xpl/interpret/model.hh"

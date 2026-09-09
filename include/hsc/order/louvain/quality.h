@@ -36,7 +36,7 @@
 
 #include <sstream>
 
-#include "hsc/petri/louvain/graph_binary.h"
+#include "hsc/order/louvain/graph_binary.h"
 
 namespace hsc::petri::louvain {
 

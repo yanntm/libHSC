@@ -34,7 +34,7 @@
 #ifndef MODULARITY_H
 #define MODULARITY_H
 
-#include "hsc/petri/louvain/quality.h"
+#include "hsc/order/louvain/quality.h"
 
 namespace hsc::petri::louvain {
 

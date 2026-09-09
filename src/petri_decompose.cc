@@ -14,8 +14,8 @@
 #include <vector>
 
 #include "hsc/petri/core/MatrixCol.h"
-#include "hsc/petri/louvain/community.h"
-#include "hsc/petri/louvain/hyperedge.hh"
+#include "hsc/order/louvain/community.h"
+#include "hsc/order/louvain/hyperedge.hh"
 
 #include <cstdlib>
 

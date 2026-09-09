@@ -63,7 +63,7 @@ the walk engine and the CTL checker are **not** vendored.
   mandatory. Given the flows, each one's support is one more hyperedge (weight
   `HSC_INV_WEIGHT`, default 1, shared over its pairs, bounded like a
   transition's): places an invariant ties together attract each other, which
-  is what keeps a token conservation from straddling a cluster frontier. `louvain/hyperedge.hh` bounds what a single transition may
+  is what keeps a token conservation from straddling a cluster frontier. `order/louvain/hyperedge.hh` bounds what a single transition may
   contribute — a hyperedge of support k relates its places pairwise at a cost
   quadratic in k, and a transition wide enough to matter is a synchronisation
   rather than a progression, so it is left out instead of expanded.

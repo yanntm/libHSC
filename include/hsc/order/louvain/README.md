@@ -1,4 +1,4 @@
-# `petri/louvain/` — community detection, vendored
+# `order/louvain/` — community detection, vendored
 
 Louvain modularity clustering, adopted from **Louvain-BinaryBuild**
 (<https://github.com/lip6/Louvain-BinaryBuild>), the multi-criteria community
@@ -33,7 +33,7 @@ module itself stays edges-in / tree-out and knows nothing of either.
   namespace std;`.
 * Deleted the global `to_string` template from `quality.h` (it clashed with
   `std::to_string`; nothing used it).
-* Rewrote the internal `#include "x.h"` to `#include "hsc/petri/louvain/x.h"`.
+* Rewrote the internal `#include "x.h"` to `#include "hsc/order/louvain/x.h"`.
 
 Otherwise the algorithm is untouched. Built (with `community.cpp` and the Petri
 side) into the `petri_import` library, deliberately without our strict warnings.

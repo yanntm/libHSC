@@ -41,8 +41,8 @@
 #include <vector>
 #include <map>
 
-#include "hsc/petri/louvain/graph_binary.h"
-#include "hsc/petri/louvain/quality.h"
+#include "hsc/order/louvain/graph_binary.h"
+#include "hsc/order/louvain/quality.h"
 
 namespace hsc::petri::louvain {
 

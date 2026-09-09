@@ -4,11 +4,11 @@
 # The vendored Louvain method (adopted, not authored: no strict warnings),
 # shared by the Petri importer and the (decompose-louvain) rewrite pass.
 add_library(hsc_louvain STATIC
-  louvain/graph_binary.cpp
-  louvain/quality.cpp
-  louvain/modularity.cpp
-  louvain/louvain.cpp
-  louvain/community.cpp)
+  order/louvain/graph_binary.cpp
+  order/louvain/quality.cpp
+  order/louvain/modularity.cpp
+  order/louvain/louvain.cpp
+  order/louvain/community.cpp)
 target_include_directories(hsc_louvain PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(hsc PUBLIC hsc_louvain)
 
@@ -47,7 +47,7 @@ target_sources(hsc PRIVATE
   lia_bool.cc
   lia_int.cc
   query.cc
-  force.cc
+  order/force.cc
   event.cc
   xpl/eval.cc
   xpl/model.cc
