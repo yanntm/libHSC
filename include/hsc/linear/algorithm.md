@@ -38,13 +38,24 @@ For a transition `t` with guard `en(t)` (a selector):
    `t` (the first enabling marking on the path from the initial one), that
    predecessor is in `S`, and its successor would be in the image.
 
-The image `next(S ∖ en(t)(S))` is one step of every transition over a set the
-size of `S`: the cost class of one saturation round on `S`. Computed once
-(`I = next(S)` is enough — `next(S ∖ en(t))` ⊆ `next(S)`, and the test
-`en(t)(S) ∩ I' = ∅` with `I' = next(S ∖ en(t))` is sharper; the cheap
-variant tests `en(t)(S) ∩ next(S) = ∅` first, sound, and the sharper one
-only for the transitions that survive), it serves every transition: this is
-where a diagram beats one linear program per (transition, producer, place).
+The image `next(S ∖ en(t)(S))` is one step over a set the size of `S`: the
+cost class of one saturation round on `S`. It is computed once for all
+transitions (`I = next(S)` suffices: `next(S ∖ en(t)) ⊆ next(S)`, so
+`en(t)(S) ∩ I = ∅` is a sound cheap test, and the sharper
+`en(t)(S) ∩ next(S ∖ en(t)) = ∅`, one image each, is reserved for the few
+transitions the cheap test leaves alive), and it is an image under the
+**live candidates only**: a transition already proved dead never fires
+from a reachable marking, so the first enabling marking of `t` is reached
+by a live one. The never-enabled transitions contribute nothing anyway
+(`en(u)(S) = ∅` ⇒ `u(S) = ∅`) but each costs a traversal of `S` to find
+out — on BugTracking, the image under all 27 370 events did not return in
+385 s where 24 601 of them were already dead. Every kill shrinks the live
+set, so the test **iterates**: image under the live candidates, verdicts,
+again while a transition fell; each round is sharper than the last (a
+one-step kill of `u` removes `u` from the step of the next round). The
+untested transitions (no exact guard) stay in the step: they may fire.
+This is where a diagram beats one linear program per (transition,
+producer, place): one image serves every transition of a round.
 
 Both tests are sound (they under-approximate the dead transitions) and
 incomplete (a spurious marking of `S ∖ R` may enable `t`, or reach an

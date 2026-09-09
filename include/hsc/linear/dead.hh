@@ -27,19 +27,23 @@ enum class verdict : unsigned char {
 struct dead_report {
   std::vector<verdict> verdicts;
   std::size_t never_enabled = 0, one_step = 0, alive = 0, untested = 0;
+  std::size_t rounds = 0;  ///< images of the set computed by the one-step test
 };
 
 /// \brief The verdicts for \p events over \p set (an over-approximation of
 /// the reachable set, closed under firing where it is exact), \p init the
 /// initial states, \p guards the enabling selector of each event or `none`
-/// for untested. \p step is the sum of the events (one image of the set is
-/// computed once); with \p sharpen, a transition the cheap test leaves alive
-/// gets the exact one (`next(set ∖ en(t))`, one image each) while their count
-/// is at most \p sharpen.
-/// With \p with_step false only the first test runs (no image of the set).
+/// for untested. \p exact, when not empty, says per event whether its guard
+/// is the whole one: the one-step test needs it, "never enabled" does not.
+/// With \p with_step, one image of the set under the transitions not yet
+/// proved dead (the untested included) tests every candidate; the rounds
+/// repeat while a transition falls. A transition the cheap test leaves alive
+/// gets the exact one (`next(set ∖ en(t))`, one image each) while their
+/// count in a round is at most \p sharpen.
 [[nodiscard]] dead_report dead_transitions(core::manager& mgr, core::shape_code top, core::code set,
                                            core::code init, std::span<const core::code> events,
-                                           std::span<const core::code> guards, core::code step,
-                                           bool with_step = true, std::size_t sharpen = 0);
+                                           std::span<const core::code> guards,
+                                           std::span<const char> exact = {}, bool with_step = true,
+                                           std::size_t sharpen = 0);
 
 }  // namespace hsc::linear

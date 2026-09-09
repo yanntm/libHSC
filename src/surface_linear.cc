@@ -158,20 +158,14 @@ void translator::do_dead(const datum& form) {
     }
     guards[i] = read_evterm(datum::list(std::move(when), form.line()));
   }
-  const code step = (with_step && !events_.empty()) ? core::sum_at(mgr_, top_, events_) : core::none;
-  linear::dead_report r =
-      linear::dead_transitions(mgr_, top_, set, seed(), events_, guards, step, with_step, /*sharpen=*/256);
+  const linear::dead_report r = linear::dead_transitions(mgr_, top_, set, seed(), events_, guards, exact,
+                                                         with_step, /*sharpen=*/256);
   for (std::size_t i = 0; i < events_.size(); ++i) {
-    if (r.verdicts[i] == linear::verdict::one_step && !exact[i]) {  // the step test needs the exact guard
-      r.verdicts[i] = linear::verdict::alive;
-      --r.one_step;
-      ++r.alive;
-    }
     if (r.verdicts[i] == linear::verdict::never_enabled) out_ << name << " dead " << event_names_[i] << " never\n";
     else if (r.verdicts[i] == linear::verdict::one_step) out_ << name << " dead " << event_names_[i] << " step\n";
   }
   out_ << name << " dead-summary never " << r.never_enabled << " step " << r.one_step << " alive " << r.alive
-       << " untested " << r.untested << '\n';
+       << " untested " << r.untested << " rounds " << r.rounds << '\n';
 }
 
 }  // namespace hsc::surface
