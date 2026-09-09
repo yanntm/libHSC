@@ -284,23 +284,30 @@ int main(int argc, char** argv) {
       if (solver.answer(properties[i], std::cout)) g_open[i] = 0;
     }
     if (any_ctl && end) {
-      double budget = std::max(1.0, total_time / 64.0);
-      for (;;) {
-        bool open = false, progress = false;
-        for (std::size_t i = 0; i < properties.size(); ++i) {
-          if (!g_open[i] || properties[i].kind != petri::expr::PropertyKind::CTL) continue;
+      // Fair shares in two passes: a property may take twice the remaining
+      // budget divided by the properties still open; what it leaves is shared
+      // again by the second pass; the last pass gives the rest to one. Work
+      // interrupted is lost except what was memoised, so passes are few.
+      std::vector<std::size_t> open;
+      for (std::size_t i = 0; i < properties.size(); ++i)
+        if (g_open[i] && properties[i].kind == petri::expr::PropertyKind::CTL) open.push_back(i);
+      for (int pass = 0; pass < 3 && !open.empty(); ++pass) {
+        std::vector<std::size_t> still;
+        for (std::size_t k = 0; k < open.size(); ++k) {
           const clock::time_point now = clock::now();
-          if (now >= *end) break;
-          const auto slice = std::chrono::duration_cast<clock::duration>(std::chrono::duration<double>(budget));
-          solver.set_deadline(std::min(*end, now + slice));
-          if (solver.answer(properties[i], std::cout)) { g_open[i] = 0; progress = true; }
-          else open = true;
+          if (now >= *end) { still.insert(still.end(), open.begin() + static_cast<std::ptrdiff_t>(k), open.end()); break; }
+          const double remaining = std::chrono::duration<double>(*end - now).count();
+          const double left = static_cast<double>(open.size() - k);
+          const double slice = pass == 0 ? std::max(1.0, 2.0 * remaining / left)
+                               : pass == 1 ? std::max(1.0, remaining / left)
+                                           : remaining;
+          const auto d = std::chrono::duration_cast<clock::duration>(std::chrono::duration<double>(slice));
+          solver.set_deadline(std::min(*end, now + d));
+          if (solver.answer(properties[open[k]], std::cout)) g_open[open[k]] = 0;
+          else still.push_back(open[k]);
         }
         solver.set_deadline(std::nullopt);
-        if (!open || clock::now() >= *end) break;
-        if (budget >= total_time) break;  // a full-budget round already ran
-        budget *= 4;
-        (void)progress;
+        open = still;
       }
     } else if (any_ctl) {
       for (std::size_t i = 0; i < properties.size(); ++i) {

@@ -47,12 +47,13 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
    no token (read arcs, self-loops): they are edges of the reachability graph
    — a deadlock they enable is none, a cycle they close is one — and only
    the fixpoint can do without them.
-   CTL properties run after the others, in **rounds**: each gets a
-   deadline of a 64th of `--totalTime` first, fourfold more each round, so
-   the cheap formulas are answered before an expensive one can take the
-   whole budget; a property stopped by its deadline keeps what it memoised
-   and resumes there in the next round. Without `--totalTime` they run in
-   order to their end.
+   CTL properties run after the others under **fair shares**: a property
+   may take twice the remaining budget divided by the properties still
+   open, what it leaves is shared again by a second pass, and a last pass
+   gives the rest to one — so an expensive formula cannot take the whole
+   budget from the cheap ones, and the work lost at an interruption (all
+   but what was memoised) happens at most twice per property. Without
+   `--totalTime` they run in order to their end.
 5. **Answers.** The line protocol of `INTEROP.md` section 5 on stdout,
    flushed per line; the loader's log and every diagnostic on stderr.
 
