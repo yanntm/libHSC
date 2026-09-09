@@ -5,11 +5,17 @@ Ledger: `research_notes/ideas.md` #1, #2, #3, #17, #18.
 
 ## Engineering — next
 
-1. **The one-step test on BugTracking's 2769 survivors** (`--dead-step`):
-   how many of ITS-Tools' 1098 SMT kills it reaches, and the cost of the
-   image of the invariant set (8905 nodes under Sloan). Then iterate: flows
-   of the net without its dead transitions (fewer transitions, more flows,
-   tighter bounds), test again.
+1. **The one-step test backward, per slice** (`algorithm.md` §2, the
+   backward reading): the forward image of `S` does not return on
+   BugTracking (385 s, under all events or the 2769 live ones). Compute
+   `pre(en(t)(S)) ∩ (S ∖ en(t)(S))` instead, with the converses restricted
+   to `S` and to the live producers of the input places of `t`; iterate
+   while a transition falls. Before it, the **abstraction of uncovered
+   places** at the net level in hsc-pn (places and arcs removed, not
+   capped), which makes the step sound without the exactness gate. Target:
+   the 2769 survivors, against the 1098 ITS-Tools kills by SMT (61 s).
+   Then `(reach B backward from X within S)` for a general target `X`:
+   one step refutes, the fixpoint decides.
 2. **Mixed-sign flows as constraints**: the knapsack takes nonnegative
    coefficients only; a flow `Σ c·m = K` with signs needs residuals in both
    directions (bounded by the box) — or a split into two inequalities.
@@ -27,7 +33,13 @@ Ledger: `research_notes/ideas.md` #1, #2, #3, #17, #18.
    properties it refutes (a selector each); then the CTL checker's `EF`
    leaves; keep the best `S` of a run as a named result the driver reads.
 7. **Behind the ITS-Tools reducer** (`BK_TOOL=hscxred` in the harness):
-   the reduced nets are the population where `S` and `R` both change.
+   on StateSpace the `-rebuildPNML` branch returns before any reduction
+   (Application.java, the `if (rebuildPNML)` right after `createSPN`), so
+   the exported net is the raw one — BugTracking came out with its 27 370
+   transitions, and hsc-pn answered nothing in 300 s. Moving that block
+   below the StateSpace reductions (constant places, redundant transitions,
+   `applyReductions(STATESPACE)`) is a one-line change in ITS-Tools; the
+   reduced nets are the population where `S` and `R` both change.
 
 ## Known
 

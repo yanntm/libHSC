@@ -49,13 +49,34 @@ from a reachable marking, so the first enabling marking of `t` is reached
 by a live one. The never-enabled transitions contribute nothing anyway
 (`en(u)(S) = ∅` ⇒ `u(S) = ∅`) but each costs a traversal of `S` to find
 out — on BugTracking, the image under all 27 370 events did not return in
-385 s where 24 601 of them were already dead. Every kill shrinks the live
+385 s where 24 601 of them were already dead, and the image under the 2769
+live candidates alone did not return in 385 s either: the image of `S` is
+the largest object in reach, whatever the step. Every kill shrinks the live
 set, so the test **iterates**: image under the live candidates, verdicts,
 again while a transition fell; each round is sharper than the last (a
 one-step kill of `u` removes `u` from the step of the next round). The
 untested transitions (no exact guard) stay in the step: they may fire.
 This is where a diagram beats one linear program per (transition,
 producer, place): one image serves every transition of a round.
+
+**The backward reading of the same test** is the one to compute. A flow is
+an equality, preserved by firing in both directions, so the predecessor of
+a marking of `S` satisfies every flow; the converse events with their
+protection guards, restricted to `S`, are exact converses of real firings.
+Then `en(t)(S) ∩ next(S ∖ en(t)(S)) = ∅` reads `pre(en(t)(S)) ∩ (S ∖
+en(t)(S)) = ∅`: no marking of `S` outside the slice enters it. The slice
+`en(t)(S)` is thin where `S` is everything, and the only transitions that
+can enter it are the live producers of the input places of `t` — a handful
+of local applications on a slice per transition, instead of one image of
+`S`. The same test with any set `X` in place of `en(t)(S)` (`init ∩ X = ∅`
+and `pre(X) ∩ (S ∖ X) = ∅` ⇒ `X` unreachable) refutes a reachability
+target; `k` steps are `k`-induction; the fixpoint `pre*(X) ∩ S` is exact
+(the initial marking is in it iff `X` is reachable), finite over the
+covered places, and small when `X` is unreachable — backward analysis with
+the garbage predecessors pruned by the invariants. Soundness asks the
+uncovered places to be *removed* from the net (arcs included) rather than
+capped: that abstraction only adds behaviour, and the exactness gate on
+guards goes with it.
 
 Both tests are sound (they under-approximate the dead transitions) and
 incomplete (a spurious marking of `S ∖ R` may enable `t`, or reach an
@@ -74,7 +95,7 @@ Measured (the QLA oracle of `pnmcc-models-2026` as the reference):
 
 | net | transitions | dead found | oracle dead | wrong | time | note |
 |---|---|---|---|---|---|---|
-| BugTracking-PT-q3m016 (Sloan) | 27 370 | 24 601, all by the structural zeros | 24 601 | 0 | 15 s | ITS-Tools: the same 24 601 structurally, then 61 s of SMT for 1098 more the oracle leaves unknown |
+| BugTracking-PT-q3m016 (Sloan) | 27 370 | 24 601, all by the structural zeros | 24 601 | 0 | 15 s | ITS-Tools: the same 24 601 structurally, then 61 s of SMT for 1098 more the oracle leaves unknown (2523 unknown in all). The forward one-step test (`--dead-step`) built `S` in 15 s and did not finish its image in 385 s, under all events or under the 2769 live ones |
 | SupplyChain-PT-00005 | 43 | 0 | 0 | 0 | 0.03 s | 37 flows, 12 positive, 41 of 69 places covered |
 | TwoPhaseLocking-PT-nC00100vN | 6 | 0 | 0 | 0 | 0.2 s | the invariant set equals the reachable set here |
 
