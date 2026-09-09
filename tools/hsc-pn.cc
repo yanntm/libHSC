@@ -36,7 +36,7 @@
 #include "hsc/petri/parse/PropertyFile.h"
 #include "hsc/petri/to_surface.hh"
 #include "hsc/util/errors.hh"
-#include "pn_approx.hh"
+#include "pn_approx_pass.hh"
 #include "pn_solver.hh"
 
 namespace {
@@ -330,19 +330,6 @@ int main(int argc, char** argv) {
   opts.bound = bound;
   int effective_bound = bound;
   for (int m : net->getMarks()) effective_bound = std::max(effective_bound, m + 1);
-  // The linear facts first when the over-approximation is asked for: the
-  // leaf domains must reach the box, the converses being restricted to them.
-  hsc::petri::unit_tree tags;
-  hsc::pn::approx_set facts;
-  const int cap = effective_bound;
-  if (approx_time > 0 || dead_time > 0) {
-    if (!pnml.empty()) tags = hsc::petri::read_units(pnml);
-    facts = hsc::pn::approx_facts(*net, tags.present() ? &tags : nullptr, approx_time > 0 ? approx_time : dead_time);
-    const long long w = hsc::pn::widest_bound(facts);
-    if (w >= 0 && w + 1 > effective_bound) effective_bound = static_cast<int>(std::min<long long>(w + 1, 1 << 30));
-    opts.bound = effective_bound;
-  }
-
   std::ostringstream model;
   hsc::petri::to_surface(model, *net, units, opts);
   model << weight_forms;
@@ -396,47 +383,17 @@ int main(int argc, char** argv) {
     std::size_t refuted = 0;
     if (approx_time > 0 && !shape_only && dead_time == 0) {
       solver.set_deadline(std::nullopt);
-      hsc::pn::approx_options ao;
-      ao.flow_seconds = approx_time;
-      ao.cap = cap;
-      ao.units = approx_units;
-      ao.verbose = verbose;
-      hsc::pn::approx_set& A = facts;
-      hsc::pn::build_approx(solver, *net, tags.present() ? &tags : nullptr, A, ao);
-      hsc::pn::print_approx_stats(std::cerr, A, net->getPlaceCount());
-      const auto ta = std::chrono::steady_clock::now();
-      std::size_t open_before = 0, back_decided = 0, back_init = 0, back_closed = 0, back_open = 0, back_partial = 0;
-      for (std::size_t i = 0; i < properties.size(); ++i) {
-        if (!g_open[i]) continue;
-        ++open_before;
-        if (solver.refute(properties[i], "S", A.bound, std::cout)) {
-          g_open[i] = 0;
-          ++refuted;
-          if (verbose) std::cerr << "hsc-pn: refuted " << properties[i].name << " on S\n";
-        }
-      }
-      const auto tb = std::chrono::steady_clock::now();
-      if (approx_back > 0) {
-        const bool all_exact = A.covered == net->getPlaceCount();
-        for (std::size_t i = 0; i < properties.size(); ++i) {
-          if (!g_open[i]) continue;
-          solver.set_deadline(std::chrono::steady_clock::now() +
-                              std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(approx_back_time)));
-          std::string how;
-          const bool done = solver.refute_back(properties[i], "S", A.bound, all_exact, static_cast<std::size_t>(approx_back), std::cout, &how);
-          solver.set_deadline(std::nullopt);
-          if (how.rfind("init", 0) == 0) ++back_init; else if (how.rfind("closed", 0) == 0) ++back_closed;
-          else if (how.rfind("open", 0) == 0) ++back_open; else if (how.rfind("partial", 0) == 0) ++back_partial;
-          if (done) { g_open[i] = 0; ++back_decided; if (verbose) std::cerr << "hsc-pn: backward decided " << properties[i].name << " (" << how << ")\n"; }
-          else if (verbose && !how.empty()) std::cerr << "hsc-pn: backward left " << properties[i].name << " (" << how << ")\n";
-        }
-      }
-      std::cerr << "hsc-pn: approx refuted=" << refuted << " of " << open_before << " tests_s="
-                << std::chrono::duration<double>(tb - ta).count()
-                << " back_decided=" << back_decided << " back_init=" << back_init << " back_closed=" << back_closed
-                << " back_open=" << back_open << " back_partial=" << back_partial
-                << " back_s=" << std::chrono::duration<double>(std::chrono::steady_clock::now() - tb).count()
-                << " total_s=" << std::chrono::duration<double>(std::chrono::steady_clock::now() - t_model).count() << '\n';
+      hsc::petri::unit_tree tags;
+      if (!pnml.empty()) tags = hsc::petri::read_units(pnml);
+      hsc::pn::approx_pass_options po;
+      po.flow_seconds = approx_time;
+      po.cap = effective_bound;
+      po.units = approx_units;
+      po.back = static_cast<std::size_t>(approx_back);
+      po.back_time = approx_back_time;
+      po.verbose = verbose;
+      const hsc::pn::approx_pass_report rep = hsc::pn::run_approx_pass(*net, tags, properties, g_open, po, std::cout);
+      refuted = rep.refuted + rep.back_decided;
       if (approx_only) { print_open(std::cout); return 0; }
       if (total_time > 0) solver.set_deadline(t_model + std::chrono::milliseconds(total_time * 800));
       for (const std::string& l : solver.feed("(reach R saturate)")) {
@@ -477,42 +434,20 @@ int main(int argc, char** argv) {
       return 0;
     }
     if (dead_time > 0) {
-      // Dead transitions from the invariant set (include/hsc/linear/algorithm.md):
-      // a transition never enabled on it, or enabled only one step past what
-      // it rules out, is dead. The guard atoms on capped places are dropped.
-      hsc::pn::approx_options ao;
-      ao.flow_seconds = dead_time;
-      ao.cap = cap;
-      ao.units = approx_units;
-      ao.verbose = verbose;
-      hsc::pn::approx_set& A = facts;
-      hsc::pn::build_approx(solver, *net, tags.present() ? &tags : nullptr, A, ao);
-      const std::vector<std::string>& pnames = net->getPnames();
-      const std::size_t np = net->getPlaceCount();
-      const auto t2 = std::chrono::steady_clock::now();
-      std::size_t never = 0, step = 0, alive = 0, untested = 0;
-      std::vector<std::string> dead_names;
-      std::string dead_form = dead_step ? "(dead D S step ignore" : "(dead D S ignore";
-      for (std::size_t p = 0; p < np; ++p) if (!A.exact(p)) dead_form += ' ' + pnames[p];
-      for (const std::string& l : solver.feed(dead_form + ")")) {
-        if (l.rfind("D dead ", 0) == 0) {
-          const std::string rest = l.substr(7);
-          dead_names.push_back(rest.substr(0, rest.find(' ')));
-          if (rest.find(" never") != std::string::npos) ++never; else ++step;
-        } else if (l.rfind("D dead-summary", 0) == 0) {
-          std::istringstream in(l.substr(15));
-          std::string k; std::size_t v;
-          while (in >> k >> v) { if (k == "alive") alive = v; else if (k == "untested") untested = v; }
-        }
-      }
-      const double tests_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t2).count();
-      std::cout << "DEAD_TRANSITIONS " << (never + step) << " of " << net->getTransitionCount() << " (never " << never
-                << ", one step " << step << ", alive " << alive << ", untested " << untested << ")"
-                << " flows " << A.flows.size() << " positive " << A.positive.size() << " covered places " << A.covered
-                << " of " << np << " (never marked " << A.zeros << ", unit constraints " << A.unit_constraints << ")"
-                << " box " << A.box_states << " set " << A.set_states << " states"
-                << " times flows " << A.flows_s << " s, set " << A.set_s << " s, tests " << tests_s << " s" << std::endl;
-      if (verbose) for (const std::string& n : dead_names) std::cerr << "DEAD " << n << '\n';
+      // Dead transitions from the invariant set (include/hsc/linear/algorithm.md),
+      // in the pass's own session on the abstract net.
+      hsc::petri::unit_tree tags;
+      if (!pnml.empty()) tags = hsc::petri::read_units(pnml);
+      hsc::pn::approx_pass_options po;
+      po.flow_seconds = dead_time;
+      po.cap = effective_bound;
+      po.units = approx_units;
+      po.dead = true;
+      po.dead_step = dead_step;
+      po.verbose = verbose;
+      const hsc::pn::approx_pass_report rep = hsc::pn::run_approx_pass(*net, tags, properties, g_open, po, std::cout);
+      std::cout << rep.dead_line << std::endl;
+      if (verbose) for (const std::string& n : rep.dead_names) std::cerr << "DEAD " << n << '\n';
       return 0;
     }
     if (verbose) {

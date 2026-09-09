@@ -160,7 +160,13 @@ a net for ITS-Tools to reduce first.
 ### `--approx`, `--dead`
 
 The over-approximation first (`include/hsc/linear/`, ideas #19). `--approx S`
-builds the invariant set `S ⊇ R` in the session before the fixpoint: the
+runs a pass of its own (`tools/pn_approx_pass.hh`) before the fixpoint: the
+net is **abstracted** to the places the linear facts bound — the others
+removed with their arcs (`tools/pn_abstract.hh`), which only adds
+behaviour, so every impossibility proved there holds of the original net
+for a question over kept places — its model emitted under the Sloan order
+with leaf domains as wide as the box, in a session separate from the main
+one; there the invariant set `S ⊇ R` is built: the
 P-flows within S seconds, the positive ones as bounds and equality
 diagrams, the never-marked places bounded by 0, every place bounded by 1
 when the PNML carries a safe NUPN tag, and with `--approx-units` one token
@@ -168,21 +174,20 @@ at most per NUPN unit (`(at-most …)`); the box `F`, the constraints, `S`
 their meet (`tools/pn_approx.hh`). Then every open reachability, invariant
 and deadlock property is tried on `S`: a goal that selects nothing of `S`
 is unreachable — `FALSE` for a reachability, `TRUE` for an invariant,
-`FALSE` for a deadlock — with the technique `TOPOLOGICAL`; a goal that
-reads a place `S` only caps, or that `S` does not rule out, stays open and
-goes to `R`. `--approx-only` stops there (UNKNOWN for the rest). The set
+`FALSE` for a deadlock (only when no place was removed) — with the
+technique `TOPOLOGICAL`; a goal that reads a removed place, or that `S`
+does not rule out, stays open and goes to `R`. `--approx-only` stops there (UNKNOWN for the rest). The set
 is built without a deadline: a partial set would not over-approximate.
 `--approx-back K` then runs, for every property `S` alone leaves open, a
 backward search inside `S` from the goal's markings (`(backward …)`,
 manual §8h), up to K layers under `--approx-back-time` seconds each: a
 layer that meets the initial marking is a real path (the converses are
 exact), so the goal is reachable; a search that closes with nothing left
-proves it unreachable, a verdict taken only when every place is exact in
-`S` (a capped predecessor would be missed). Technique `K_INDUCTION`.
-`--dead S [--dead-step]` builds the same set and prints the transitions
-dead on it (`DEAD_TRANSITIONS …`, names under `-v`), no fixpoint. With
-`--approx` or `--dead` the leaf domains are widened to the box's bounds,
-which the converses are restricted to.
+proves it unreachable — sound because every place of the abstract net is
+exact in `S`. Technique `K_INDUCTION`.
+`--dead S [--dead-step]` runs the same pass for the transitions dead on
+`S` (`DEAD_TRANSITIONS …`, names under `-v`; with `--dead-step` the
+one-step test backward per slice), no fixpoint.
 `hsc-pn: approx …` on stderr is the record: flows, covered places, zeros,
 unit constraints, the sizes of `F` and `S`, the times, the count refuted.
 

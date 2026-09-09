@@ -54,6 +54,11 @@ class solver {
   /// Forward the witness tree of every CTL verdict to stderr (`--witness`).
   void set_witness(bool on) { witness_ = on; }
 
+  /// The place names the properties' indices refer to, when the properties
+  /// were parsed against another net than the session's (an abstraction
+  /// keeps the names): used wherever a goal is spelled out.
+  void set_property_names(const std::vector<std::string>& names) { prop_names_ = &names; }
+
   /// What constant places removed by the producer held (PNET's `PDROP`).
   /// Those tokens sit in every marking, so they add to the per-marking total,
   /// and each value is a candidate for the largest marking of a place.
@@ -120,7 +125,7 @@ class solver {
               const std::vector<long long>& bound, std::ostream& out) {
     using ::petri::expr::Expression;
     using ::petri::expr::PropertyKind;
-    const std::vector<std::string>& pnames = net_.getPnames();
+    const std::vector<std::string>& pnames = property_names();
     switch (p.kind) {
       case PropertyKind::Reachability:
       case PropertyKind::Invariant: {
@@ -169,7 +174,7 @@ class solver {
     const bool inv = p.kind == PropertyKind::Invariant;
     const Expression goal = ::petri::expr::simplify(inv ? Expression::makeNot(p.body) : p.body);
     if (goal.isConstant() || reads_capped(goal, bound)) return false;
-    const std::vector<std::string>& pnames = net_.getPnames();
+    const std::vector<std::string>& pnames = property_names();
     std::string places;
     places_of(goal, pnames, places);
     const std::string x = next_name(), b = next_name();
@@ -194,7 +199,7 @@ class solver {
   /// the initial marking (named once as a word) to the selection \p q.
   void witness_path(const std::string& name, const std::string& q) {
     if (!seed_named_) {
-      const std::vector<std::string>& pnames = net_.getPnames();
+      const std::vector<std::string>& pnames = property_names();
       const std::vector<int>& marks = net_.getMarks();
       std::string w = "(word hsc-pn-I";
       for (std::size_t i = 0; i < pnames.size(); ++i) {
@@ -225,7 +230,7 @@ class solver {
   /// one pass over the diagram, exact. The hint (an UpperBounds hint) is not
   /// needed and only checked against the result in verbose mode.
   long long maximum(const ::petri::expr::LinearAtom& form, long long hint) {
-    const std::vector<std::string>& pnames = net_.getPnames();
+    const std::vector<std::string>& pnames = property_names();
     std::string q = "(max-sum R";
     for (const auto& [place, coeff] : form.terms) q += " (* " + std::to_string(coeff) + ' ' + pnames[place] + ')';
     const std::string v = value_of(feed(q + ")"), "R max-sum ");
@@ -238,7 +243,7 @@ class solver {
   bool answer(const ::petri::expr::Property& p, std::ostream& out) {
     using ::petri::expr::Expression;
     using ::petri::expr::PropertyKind;
-    const std::vector<std::string>& pnames = net_.getPnames();
+    const std::vector<std::string>& pnames = property_names();
     switch (p.kind) {
       case PropertyKind::Reachability:
       case PropertyKind::Invariant: {
@@ -357,6 +362,8 @@ class solver {
 
   std::string next_name() { return "hsc-pn-q" + std::to_string(++counter_); }
 
+  const std::vector<std::string>& property_names() const { return prop_names_ != nullptr ? *prop_names_ : net_.getPnames(); }
+
   [[nodiscard]] long long multiplicity(std::size_t t) const {
     return t < mult_.size() ? mult_[t] : 1;
   }
@@ -380,6 +387,7 @@ class solver {
   bool verbose_;
   bool witness_ = false;    ///< forward witnesses to stderr
   bool seed_named_ = false; ///< `(word hsc-pn-I …)` fed, for the paths
+  const std::vector<std::string>* prop_names_ = nullptr;  ///< see set_property_names
   std::vector<long long> mult_;  ///< empty means every multiplicity is 1
   bool arcs_countable_ = true;
   std::vector<long long> dropped_;  ///< markings of removed constant places

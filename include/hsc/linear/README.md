@@ -18,7 +18,9 @@ dependency: the selectors build the set, one image tests the step.
 | `equality.hh` / `src/linear/equality.cc` | the diagram of a nonnegative linear equality — or inequality `≤ K` — over a box, built directly (a knapsack along the shape) |
 | `dead.hh` / `src/linear/dead.cc` | the two deadness tests over an over-approximating set |
 | `src/surface_linear.cc` (bindings) | `(full NAME [(LEAF LO HI)]*)`, `(equality NAME BOX K (* C LEAF)*)`, `(at-most NAME BOX K (* C LEAF)*)`, `(intersect NAME A B*)`, `(dead NAME SET [step] [ignore LEAF*])` |
-| `tools/pn_approx.hh` (client) | the invariant set of a net in a session: flows, structural zeros, the NUPN safe tag and unit constraints, box, equalities, meet |
+| `tools/pn_approx.hh` (client) | the linear facts of a net (flows, structural zeros, the NUPN safe tag) and the invariant set in a session: box, equalities, unit constraints, meet |
+| `tools/pn_abstract.hh` (client) | the net without its uncovered places (arcs removed): more behaviour, so every impossibility carries over |
+| `tools/pn_approx_pass.hh` (client) | the pass in its own session on the abstract net: `S`, the properties refuted, the backward searches, the dead transitions |
 | `hsc-pn --approx S [--approx-only] [--approx-units]` (client) | the reachability, invariant and deadlock properties refuted on the set before the fixpoint (`tools/README.md`) |
 | `hsc-pn --dead S [--dead-step]` (client) | flows within S seconds, structural zeros, box, equalities, tests; the dead transitions of the net (names under `-v`) |
 

@@ -97,3 +97,24 @@ AirplaneLD-PT-0010, `--approx-units --approx-back 50`, 2 s per property:
 Every open formula of Airplane was reachable, and the backward search
 found the path in a few layers of a 142 272-marking set. The other verdict
 (closed) did not occur here. Logs `tests/logs/unreach/airb_*`.
+
+### 2.3 BugTracking: the one-step test backward, per slice (measured)
+
+`hsc-pn --dead 20 --dead-step` with the test rewritten backward
+(`pre(en(t)) ∩ (S ∖ en(t))` under the live events writing a leaf the guard
+reads, iterated): **24 771 of 27 370 dead** — 24 601 by the structural
+zeros, **170 by the one-step test** — in 188 s (tests 179 s, about 65 ms
+per candidate slice over 2769 candidates). Against the QLA oracle: the 170
+are all among its 2523 unknowns, 0 contradicted. ITS-Tools' SMT kills 1098
+of those unknowns in 61 s; 170 in 179 s is the first backward cut, with
+the whole per-slice cost still on the table (the slices are not thin in
+nodes). Log: `tests/logs/unreach/dead_bt_back.err`.
+
+Caveat, and the fix that followed: this run took `S` with the 94 uncovered
+places *capped*, so a real predecessor beyond a cap could be missed and
+the one-step verdicts were not guaranteed sound (the oracle did not catch
+one, but that is not a proof). The pass now runs on the **abstract net**
+— the uncovered places removed with their arcs (`tools/pn_abstract.hh`),
+in a session of its own (`tools/pn_approx_pass.hh`) — where every place is
+exact and every verdict is sound for the original net on the places kept.
+The rerun on the abstract net is next.
