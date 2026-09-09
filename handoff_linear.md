@@ -36,24 +36,31 @@ anywhere. The two over-approximations are complementary (LP: cardinality,
    too big to compile in the budget (AirplaneLD-PT-2000). Instruments:
    `(stock S)`, the profile; a node budget on the construction; the
    atom's shape-friendliness.
-3. **Goals over removed places** (SupplyChain: 15 of 16 skipped): the
+3. **Paths on partially covered nets**: the reachable verdict of the
+   backward search is taken only when no place was removed (an abstract
+   path need not exist — two wrong verdicts in the full sweep, report
+   §2.7). A second search on the *capped* set of the original net, in the
+   main session, would give those paths back soundly: the converses are
+   then the original events'. Measure how many of the sample's 592
+   reachable verdicts came from partially covered nets first.
+4. **Goals over removed places** (SupplyChain: 15 of 16 skipped): the
    place removed is the one the question reads. ω-values (ledger #2) or
    a bound from the LP (`Petri/src/lp`, "how high can this sum go") would
    cover it; the LP already answers those goals — the portfolio answer is
    to run both.
-4. **The 304 searches cut at 2 s** on the sample: which layer count, which
+5. **The 304 searches cut at 2 s** on the sample: which layer count, which
    set sizes; a longer budget for the last open properties of a run; the
    first layer's `writing` restriction extended to later layers by the
    leaves the frontier's atoms read.
-5. **The dead-transition rerun on BugTracking** through the abstraction
+6. **The dead-transition rerun on BugTracking** through the abstraction
    pass under the projected order (running as this is written): the 170
    one-step kills of the capped run, now sound; against ITS-Tools' 1098
    SMT kills (61 s). Then k layers per slice.
-6. **`--approx` before `R` in production** (the pass, then the fixpoint on
+7. **`--approx` before `R` in production** (the pass, then the fixpoint on
    the concrete net): the harness measurement (`BK_TOOL=hsc`), and the
    ITS-Tools `-rebuildPNML` early return on StateSpace (Application.java,
    right after `createSPN`) that hands `hscxred` the raw net.
-7. Later: CTL `EF` leaves on `S`; a deadlock refutation on the abstract net
+8. Later: CTL `EF` leaves on `S`; a deadlock refutation on the abstract net
    (lost when a place is removed); traps and siphons as constraints;
    learning invariants from `S ∖ R` (ledger #17).
 

@@ -201,3 +201,25 @@ dependency structure the removed places carry. Not a soundness matter, a
 shape one, and the same lesson as everywhere in this project: the set's
 cost is the order's. Fix: the pass now orders the abstract net by the
 original net's Sloan order projected onto the kept places.
+
+### 2.7 Two wrong verdicts, and the rule they teach (measured)
+
+The full-corpus sweep (binary 1d53acc, the abstraction pass) produced, in
+its first 178 rows, **two wrong verdicts**, both `hscb`, both *reachable*
+answers from a backward search on a net with removed places
+(CANConstruction-PT-005 RF-09, 24 places removed; CircularTrains-PT-024
+RC-03, 17 removed). The sample sweep of §2.5, run on the capped set before
+the abstraction existed, had none. The flaw is exact: a layer meeting the
+initial marking is a path of the net the converses belong to — the
+*abstract* net, which has more behaviour than the original, so its paths
+need not exist. The two verdicts of the search are sound in complementary
+settings: **reachable** on the original net (capped set or nothing
+removed), **unreachable** on the abstract net (every place exact). The
+pass now takes the reachable verdict only when no place was removed
+(`refute_back`'s `exact_net`). What is lost with it — the paths on
+partially covered nets, most of the sample's 592 reachable verdicts came
+from fully covered ones — can come back from a second search on the capped
+set (handoff item).
+
+The sweep continues on the faulty binary for the LP rows, which it does not
+affect; its `hscb` rows are to be redone with the fix.
