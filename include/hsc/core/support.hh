@@ -85,6 +85,16 @@ class support_algebra {
   virtual code has_image_local(code term, code value) {
     return apply_local(term, value);
   }
+  /// \brief Whether \p term maps disjoint sets to disjoint sets — an
+  /// injective partial function on elements: a guard, a bijection such as a
+  /// shift, their composition. Advisory: `false` is always safe and is the
+  /// default; a `true` lets the canonicalizer skip the sieve on the primes
+  /// one application produces, since they stay pairwise disjoint
+  /// (`algorithm.md` §5).
+  [[nodiscard]] virtual bool injective(code term) const {
+    (void)term;
+    return false;
+  }
   /// \brief The converse of a local term, restricted to \p domain.
   ///
   /// Every term denotes an additive map, hence a relation; this is the
