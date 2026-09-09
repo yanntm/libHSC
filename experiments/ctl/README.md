@@ -35,6 +35,7 @@ Machine: the development workstation (20 cores, 64 GB), 8 runs side by side,
 | `results/m5c_le1e7.tsv` | f78cf27 (fair-share scheduler instead of rounds) | the scheduler |
 | `results/m5d_le1e7.tsv` | the fast cycle witness of `has_image(gfp)` turned off (opt-in) | the fix of the IBM703 regression |
 | `results/m5e_le1e7.tsv` | the same with `--shape louvain --force` | the shape (one configuration of the driver's portfolio) |
+| `results/m5f_le1e7.tsv` | the same with `--shape nupn --force` | the second configuration of the portfolio |
 
 ### m4 baseline
 
@@ -55,7 +56,8 @@ states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 | m5c | 6224 | 0 | 3184 | 348 | 39 / 25 vs m5b; 68 / 33 vs m4 |
 | m5d | 6331 | 0 | 3077 | 359 | 36 / 13 vs m5c; 76 / 22 vs m4 |
 | m5e (Louvain + FORCE) | 7267 | 0 | 2141 | 429 | 124 / 59 vs m5d |
-| best of m5d and m5e per run | 7765 | 0 | — | 460 | the driver's portfolio, two of its four configurations |
+| m5f (nupn + FORCE) | 7067 | 0 | 2341 | 402 | 97 / 24 vs m5d |
+| best of m5d, m5e, m5f per run | 7897 | 0 | — | 471 | the driver's portfolio, three of its four configurations |
 
 `results/m5e_1e7_1e9.tsv`: the 129 instances between 10^7 and 10^9 states,
 120 s, Louvain + FORCE, 4 side by side with 8 GB each — the correctness

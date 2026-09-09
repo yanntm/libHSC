@@ -183,6 +183,31 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    integer domain, not the depth of any closure; a profile of `R` on the
    8-counter net follows.
 
+23. **Throughput of one image on a wide integer domain** (profile of `R`
+   on TwoPhaseLocking-PT-nC00100vN under callgrind, `tests/logs/ctl_probe/`):
+   half the instructions were the canonicalizer's sieve run on the image
+   of every node whose head a transition touches, a fifth were malloc and
+   free, a tenth the linear regroup by sub. Three changes, each measured
+   on that reachable set (2.2 s, three runs each) and each passing the
+   130 ctest suites and the sample nets: the int_set set operations build
+   into the theory's scratch buffer (2.2 → 2.0 s); an advisory
+   `injective(term)` on the support contract — a guard or a shift keeps
+   disjoint primes disjoint — lets the image path skip the sieve (2.0 →
+   1.8 s; `core/algorithm.md` §5); the accumulator indexes its entries by
+   sub past eight of them (1.8 → 1.6 s). Instructions 19.0 G → 11.9 G
+   before the third change. A tried and dropped step: a direct-mapped
+   memo of int_set meet/minus/join pairs — no measurable gain, the pairs
+   do not repeat. Left for you: the sanctioned hash combiner is now the
+   top line (13.5%), run over every arc of every interned node — a design
+   choice I did not touch. Binary snapshot `hsc-pn-m6a`; its benchmark is
+   queued behind the portfolio read.
+24. **Portfolio read, second configuration** (`m5f`, `--shape nupn
+   --force`): 7067 answered, 0 wrong, 402 complete files; 97 runs up and
+   24 down against `m5d`. FORCE on the NUPN shape is worth almost as much
+   as Louvain + FORCE (7267) with fewer losses; the best of the three per
+   run is 7897 answered and 471 complete files. The fourth configuration
+   (`louvain` alone) runs now.
+
 ## Where things stand for you
 
 * `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the
