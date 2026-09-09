@@ -49,26 +49,40 @@ checker::code checker::step(bool backward, code s) {
   return mgr_.diagrams().apply_local(stp, s);
 }
 
+checker::code checker::hull_step(bool backward, code s) {
+  if (!backward || hull_events(true).data() == events(true).data()) return step(backward, s);
+  if (s == core::none) return core::none;
+  if (!raw_pred_built_) {
+    raw_pred_step_ = core::sum_at(mgr_, m_.sort, hull_events(true));
+    raw_pred_built_ = true;
+  }
+  return mgr_.diagrams().apply_local(raw_pred_step_, s);
+}
+
 checker::code checker::hull(bool backward, code x0) {
   core::diagram_engine& diagrams = mgr_.diagrams();
-  const std::span<const code> h = events(backward);
-  const std::span<const code> conv = events(!backward);
+  const std::span<const code> h = hull_events(backward);
+  const std::span<const code> conv = hull_events(!backward);
   if (x0 == core::none || h.empty()) return x0;
   static const bool rounds = [] {
     const char* e = std::getenv("HSC_CTL_GFP");
     return e != nullptr && std::string(e) == "rounds";
   }();
   if (rounds || conv.size() != h.size()) {
+    if (backward && h.data() != events(true).data()) {
+      hull_step(true, x0);  // ensures raw_pred_step_
+      return diagrams.apply_local(mgr_.operations().gfp(raw_pred_step_), x0);
+    }
     return diagrams.apply_local(mgr_.operations().gfp(step_term(backward)), x0);
   }
   // The frontier form: one full image, then work proportional to what moved.
   code x = x0;
-  code d = diagrams.minus(x, step(backward, x));
+  code d = diagrams.minus(x, hull_step(backward, x));
   while (d != core::none) {
     mgr_.check_interrupt();
     x = diagrams.minus(x, d);
     if (x == core::none) return x;
-    const code c = diagrams.meet(step(backward, d), x);
+    const code c = diagrams.meet(hull_step(backward, d), x);
     if (c == core::none) break;
     code k = core::none;
     for (std::size_t i = 0; i < h.size() && k != c; ++i) {
