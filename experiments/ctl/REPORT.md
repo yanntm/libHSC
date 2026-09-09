@@ -163,6 +163,26 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    correctness check on the larger corpus passes; the yield halves per run
    against the small corpus.
 
+21. **What the empty runs wait on** (the 72 of `m5e_1e7_1e9`): not the
+   `gfp`. They are counter nets (TwoPhaseLocking, SwimmingPool,
+   BridgeAndVehicles, TokenRing, Anderson, Peterson, FireWire, Sudoku…)
+   where the Louvain shape never finishes the reachable set —
+   TwoPhaseLocking-PT-nC00100vN has 8 places, 100 tokens each, 10^7
+   states: `R` takes 1.3 s on the flat spine, 55k nodes, and does not
+   finish in 15 s under the three-cluster Louvain shape. The driver's
+   portfolio covers this with its `nupn` configurations; the record for
+   the big corpus at `nupn` is queued after the portfolio read. As a
+   baseline, ITS-Tools with its SDD engine did not finish that reachable
+   set within the same 15 s cap (bounded, not waited on).
+22. **Where the time goes on those nets** (new observation point: the
+   trace prints the `gfp` rounds of every scope): an `EG` runs 2 to 9
+   rounds; every backward closure — `EG`, `AG`, `AF`, `EU` — costs about
+   one `R` (1.0–1.3 s on TwoPhaseLocking, 0.6–1.0 s on Angiogenesis-05);
+   with 3–5 temporal operators per formula, a formula costs 5 s and the
+   file 80–100 s. The lever is the throughput of one image over a wide
+   integer domain, not the depth of any closure; a profile of `R` on the
+   8-counter net follows.
+
 ## Where things stand for you
 
 * `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the
