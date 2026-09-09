@@ -145,10 +145,25 @@ in themselves: a variable whose domain has grown far past its initial
 tokens, and keeps growing epoch after epoch, is a candidate unbounded
 place — a saturation that will diverge inside its tight loop if nobody
 looks. The epoch should break out, report the variables going wild, and a
-coverability-like check (a ω-marking argument on the offending places, or
-the walker's bound-raising search) can then confirm the divergence and
-answer the bound questions instead of spending the budget. DoubleExponent
-still explodes honestly; the unbounded nets stop being timeouts.
+cheap confirmation can then settle it instead of spending the budget.
+
+The confirmation is a **pumping pair**, not a coverability engine. For a
+Petri net, a reachable `m` and a run `m →σ m'` with `m' ≥ m` componentwise
+and `m'(p) > m(p)` prove `p` unbounded: by monotonicity `σ` fires again from
+`m'`, and again. The partial set is sound (every state in it is reachable),
+so: take the leaf `p` whose domain runs away, its largest value `X` seen,
+and a shortest path from the initial state to a state with `p = X`
+(`trace/path`, inside the partial set); scan that concrete run for a pair
+`i < j` with `m_j ≥ m_i` and `m_j(p) > m_i(p)` — a run that reaches a large
+`X` almost always contains the loop it pumped. Failing that, the run to
+`p = X+1`, or a path from the states at `X` to those at `X+1` and the same
+scan; failing that, a Parikh guide — a vector `x ≥ 0` with `C·x ≥ 0` and
+`(C·x)_p > 0`, the state equation's own certificate of a pump, found by the
+invariant machinery — handed to the walker as the sequence to realise from
+a reachable state. A confirmed pump answers the StateSpace examination at
+once: `MAX_TOKEN_IN_PLACE`, `MAX_TOKEN_PER_MARKING`, `STATES` and
+`TRANSITIONS` are all `+inf`. DoubleExponent still explodes honestly, being
+bounded; the unbounded nets stop being timeouts.
 
 **What an epoch may do.** Test the known goals on the partial set (every
 positive reachability claim is sound on it; negative claims and exact

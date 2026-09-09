@@ -19,7 +19,10 @@ tasks as continuations kept as data, one budget for time and memory).
    task reports them. No instrumentation inside saturation.
 2b. **The divergence watch** (`algorithm.md` §3b): between epochs, leaf
    domains growing far past the initial tokens → break out, report the
-   variables, trigger a coverability-like confirmation.
+   variables, confirm by a pumping pair on a shortest path to the largest
+   value seen (`trace/path` on the partial set, scan for `m_j ≥ m_i` with
+   `p` strictly up), else a Parikh guide for the walker; a confirmed pump
+   answers the four StateSpace values `+inf`.
 3. **The budget object**: time and memory, `remaining()`, polls only in
    loops that can exceed a second, deadlines exact to a second or two; the
    alarm behind a flag (armed first thing, done); `hsc-pn`'s phases on the
