@@ -45,6 +45,7 @@ target_sources(hsc PRIVATE
   surface_ctl.cc
   surface_trace.cc
   surface_cover.cc
+  surface_linear.cc
   surface_spec.cc
   dve_parser.cc
   dve_to_surface.cc
@@ -53,6 +54,9 @@ target_sources(hsc PRIVATE
   query.cc
   order/force.cc
   order/profile.cc
+  linear/full.cc
+  linear/dead.cc
+  linear/equality.cc
   event.cc
   xpl/eval.cc
   xpl/model.cc

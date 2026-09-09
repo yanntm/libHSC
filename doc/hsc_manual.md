@@ -242,6 +242,10 @@ certificate; `unfold` always enumerates.
 (profile NAME)               ; nodes and arcs per level of the shape, frontier order
 (max-sum NAME [(* C LEAF)]*) ; the maximum of a linear form over the states, one pass (all leaves, coefficient 1, by default)
 (pump NAME [LEAF])           ; an unboundedness witness: a pumping pair on a shortest path to the leaf's largest value, §8g
+(full NAME [(LEAF LO HI)]*)  ; the product of the leaf domains (declared, or given), the box every marking lies in
+(dead NAME SET [step])       ; the events dead on SET: never enabled; with `step`, also enabled in one step only from markings SET rules out
+(equality NAME BOX K (* C LEAF)*) ; the words of BOX (a product) with Σ C·LEAF = K, built directly (C ≥ 0)
+(intersect NAME A B*)        ; the meet of bound results
 (stock NAME [since OTHER])   ; take stock: states, nodes, per level nodes/arcs/local states (gained since OTHER), values per leaf
 (budget SECONDS)             ; every following form runs at most SECONDS; a closure that runs out returns a partial set — `NAME partial`
 ; `hsc FILE --stdin` then reads forms from standard input one at a time, answering and flushing each: an engine driven over a pipe

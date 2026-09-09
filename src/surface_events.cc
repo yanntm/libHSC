@@ -323,6 +323,7 @@ void translator::do_event(const datum& form) {
   }
   events_.push_back(ev);
   event_names_.push_back(name);
+  event_guard_of_.push_back(event_guards_.size() - 1);
 }
 
 void translator::define_event(const datum& at, const std::string& name, code term) {

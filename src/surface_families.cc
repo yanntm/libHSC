@@ -257,6 +257,7 @@ void translator::do_family(const datum& form) {
   if (term == core::op_table::id) return;
   events_.push_back(term);
   event_names_.push_back(name);
+  event_guard_of_.push_back(SIZE_MAX);  // a family: no guard atoms recorded
   guards_complete_ = false;  // a family's guards are not atoms: no (deadlock)
 }
 

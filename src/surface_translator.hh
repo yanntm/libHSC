@@ -546,6 +546,10 @@ class translator final : public name_scope {
   void do_budget(const datum& form);
   void do_max_sum(const datum& form);
   void do_pump(const datum& form);
+  void do_full(const datum& form);
+  void do_dead(const datum& form);
+  void do_equality(const datum& form);
+  void do_intersect(const datum& form);
   void pump(const datum& form, const std::string& name);
   void do_stock(const datum& form);
 
@@ -622,6 +626,7 @@ class translator final : public name_scope {
   /// Per declared event, the atoms of its `when` clauses (the guard as
   /// written); empty for an always-enabled event. What `(deadlock)` reads.
   std::vector<std::vector<datum>> event_guards_;
+  std::vector<std::size_t> event_guard_of_;  ///< per event of events_, its entry in event_guards_ (SIZE_MAX: none)
   /// False once a family entered the default system: its guards are not
   /// enumerable as atoms, so `(deadlock)` is refused.
   bool guards_complete_ = true;

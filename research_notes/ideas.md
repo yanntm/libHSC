@@ -25,6 +25,9 @@ first experiment that would tell. Status: `open` (not tried), `promising`
 | 14 | **Louvain guided by flows** (sign-aware cliques, heavy-flow contraction). | places an invariant ties attract each other | measured: complementary, never a default | — | promising (TokenRing 2 → 16, RwMutex 16 → 0; `experiments/order/README.md`) |
 | 15 | **Memory as a budget**: a memory deadline polled like time; parking drops caches, keeps the set. | the nodes cap at 6 GB; the losers of a portfolio should park, not die | the manager's footprint, cheaply | the in-process shape portfolio | open (`handoff_budget.md`) |
 
+| 17 | **Learning inductive invariants from the over-approximation.** The invariant set `S ⊇ R` contains unreachable markings; where a reachability question is answered "no" by `R` but `S` says "maybe", the gap is a linear invariant the state equation misses. Guess candidates (from the gap's structure, from the flows' cone), prove them inductive on `S` (one image), tighten `S`, repeat: an inductive invariant certifies every unreachability (Leroux), so the loop aims at the certificate itself. | a proof object instead of a fixpoint; feedback between the linear and the symbolic sides | guessing is the hard part; each round costs an image of `S` | a small bounded net where `S ⊋ R`: which linear constraints separate them, are they inductive | open |
+| 18 | **Hard reachability questions for the contest**, drawn from the gap `S ∖ R` on nets we can compute both for: markings the state equation allows and the net forbids, phrased as reachability formulas. | harder than random formulas; a benchmark with certificates | biased toward what we answer | the nets where `S` and `R` differ most | open |
+
 Culling rule: an idea whose first experiment loses on the corpus goes to
 `culled` with its number; one that never gets its experiment within a few
 sessions is dropped from the table into git history.

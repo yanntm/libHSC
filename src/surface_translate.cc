@@ -49,6 +49,10 @@ void translator::dispatch(const datum& form) {
   else if (kw == "stock") do_stock(form);
   else if (kw == "max-sum") do_max_sum(form);
   else if (kw == "pump") do_pump(form);
+  else if (kw == "full") do_full(form);
+  else if (kw == "dead") do_dead(form);
+  else if (kw == "equality") do_equality(form);
+  else if (kw == "intersect") do_intersect(form);
   else if (kw == "budget") do_budget(form);
   else if (kw == "print") do_print(form);
   else if (kw == "expect") do_expect(form);
