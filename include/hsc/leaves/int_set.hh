@@ -158,6 +158,9 @@ class int_set_theory final : public core::support_algebra {
   /// extensional; `assign`, `havoc`, `apply` turn into `choose`; `shift`
   /// reverses; `sum` and `lfp` pointwise.
   core::code invert_local(core::code term, core::code domain) override;
+  /// A primitive whose action is `keep` or `shift` (its guard filters, its
+  /// action is a bijection); sums, closures and the other actions answer no.
+  [[nodiscard]] bool injective(core::code term) const override;
   /// \brief `after ∘ before` as one primitive when the table of
   /// `core/algorithm.md` §11 has a row for it (guards conjoin, the second
   /// guard read after the first action, actions compose); sums pointwise;
