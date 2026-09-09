@@ -9,8 +9,9 @@ Views: heuristics against each other (unique wins, marginal contribution,
 dominated by), the pairwise matrix (a click selects the pair), the instances
 heatmap with a metric selector, the scatter A against B, the cactus (runs
 complete within t; answers over time), families (mean rank), and one instance
-in depth (every heuristic's row, links to log and shape). `--logs DIR` makes
-the links relative to the pages folder.
+in depth (every heuristic's row, links to log and shape). `--logs DIR` links
+the runs as `/logs/<absolute path>` and writes `roots.json`, so
+`MCC-analysis/campaign/serve.py PAGES_DIR` serves pages and logs unchanged.
 """
 from __future__ import annotations
 
@@ -194,7 +195,7 @@ function instancesTable() {
 function detail(inst) {
   const r = DATA.instances.find(x => x.instance === inst); if (!r) return;
   let h = `<h3>${inst} (${r.family}, ${r.states === null ? "unknown size" : r.states.toExponential(2) + " states"})</h3><table class='plain'><tr><th>heuristic</th><th>status</th><th>answered</th><th>complete s</th><th>R s</th><th>R nodes</th><th>RSS GB</th><th>belly</th><th>shape</th><th></th></tr>`;
-  r.cells.forEach((c, k) => { if (!c) return; const base = `${DATA.logs}/${inst}-${DATA.exam}-${H[k]}`; h += `<tr><td>${H[k]}</td><td>${c[6]}${c[7]?' = '+c[7]:''}</td><td>${c[0]}</td><td>${fmt(c[1],1)}</td><td>${fmt(c[2],3)}</td><td>${fmt(c[3])}</td><td>${fmt(c[4],2)}</td><td>${fmt(c[5])}</td><td><code>${c[8]||''}</code></td><td>${DATA.logs ? `<a class="log" href="${base}.out" target="_blank">out</a><a class="log" href="${base}.err" target="_blank">err</a><a class="log" href="${base}.shape" target="_blank">shape</a>` : ''}</td></tr>`; });
+  r.cells.forEach((c, k) => { if (!c) return; const base = `logs${DATA.logs}/${inst}-${DATA.exam}-${H[k]}`; h += `<tr><td>${H[k]}</td><td>${c[6]}${c[7]?' = '+c[7]:''}</td><td>${c[0]}</td><td>${fmt(c[1],1)}</td><td>${fmt(c[2],3)}</td><td>${fmt(c[3])}</td><td>${fmt(c[4],2)}</td><td>${fmt(c[5])}</td><td><code>${c[8]||''}</code></td><td>${DATA.logs ? `<a class="log" href="${base}.out" target="_blank">out</a><a class="log" href="${base}.err" target="_blank">err</a><a class="log" href="${base}.shape" target="_blank">shape</a>` : ''}</td></tr>`; });
   $("#detail").html(h + "</table>");
   window.location.hash = inst;
 }
@@ -255,8 +256,10 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("tsv", nargs="+")
     ap.add_argument("-o", "--out", required=True)
-    ap.add_argument("--logs", default=None, help="results folder with the per-run .out/.err/.shape, as a path relative to the pages folder")
+    ap.add_argument("--logs", default=None, help="results folder with the per-run .out/.err/.shape; linked as /logs/<absolute path> and allowed in roots.json, the convention of MCC-analysis/campaign/serve.py")
     a = ap.parse_args()
+    if a.logs:
+        a.logs = os.path.abspath(a.logs)
     rows = load(a.tsv)
     resolve_dups(rows)
     exams = sorted({r["exam"] for r in rows})
@@ -274,6 +277,8 @@ def main() -> None:
         print(f"{e}: {d['n_instances']} instances, {d['n_full']} full, {len(page)//1024} kB")
     with open(os.path.join(a.out, "index.html"), "w") as f:
         f.write(INDEX.format(css=CSS, tag=html.escape(os.path.basename(a.tsv[0])), stamp=stamp, items="".join(items)))
+    with open(os.path.join(a.out, "roots.json"), "w") as f:  # what serve.py may hand out under /logs/
+        json.dump([a.logs] if a.logs else [], f)
     print(os.path.join(a.out, "index.html"))
 
 
