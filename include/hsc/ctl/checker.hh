@@ -37,6 +37,10 @@ struct model {
   /// The inverted event terms, asked for the first time a backward operator
   /// needs them; an empty span means unavailable (those nodes are refused).
   std::function<std::span<const core::code>()> pred_events;
+  /// The same converses unprotected (no `within(R)`), for the hulls, which
+  /// meet with their argument every round; optional — `pred_events` when
+  /// absent.
+  std::function<std::span<const core::code>()> raw_pred_events;
   /// The selector term of a state formula (a guard-only event at `sort`):
   /// applied to a set it keeps the states where the formula holds. Never
   /// asked for a constant.
@@ -103,9 +107,17 @@ class checker {
     if (!pred_) pred_ = m_.pred_events ? m_.pred_events() : std::span<const code>{};
     return *pred_;
   }
+  /// The events a hull steps with: the raw converses when offered.
+  [[nodiscard]] std::span<const code> hull_events(bool backward) {
+    if (!backward || !m_.raw_pred_events) return events(backward);
+    if (!raw_pred_) raw_pred_ = m_.raw_pred_events();
+    return raw_pred_->empty() ? events(true) : *raw_pred_;
+  }
   /// The one-step image (`backward`: preimage) of \p s; `none` for no
   /// events.
   code step(bool backward, code s);
+  /// The same with the hull's events (their sum, built once).
+  code hull_step(bool backward, code s);
   /// The saturated closure of the direction's events each composed with
   /// \p sel: for `before == true` the filter applies before the step
   /// (`t ∘ sel`, forward `fwdu`), else after it (`sel ∘ p`, backward
@@ -150,6 +162,9 @@ class checker {
   std::optional<bool> cycles_;
   code next_step_ = core::none;  ///< the one-step forward term, built once
   code pred_step_ = core::none;
+  code raw_pred_step_ = core::none;  ///< the hull's backward step, built once
+  bool raw_pred_built_ = false;
+  std::optional<std::span<const code>> raw_pred_;
   bool next_built_ = false;
   bool pred_built_ = false;
   std::optional<std::span<const code>> pred_;  ///< the inverted events, once asked
