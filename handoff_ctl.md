@@ -7,17 +7,20 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 
 ## Engineering — next
 
-1. **`hsc-pn` CTL examinations** (M4): `PropertyKind::CTL` in
-   `tools/pn_solver.hh` — the vendored `CtlFormula` rendered as `(ctl NAME …)`
-   text through `props_to_surface` (atoms as `select` atoms, `Deadlock` as
-   `(deadlock)`), the verdict read back from the session's `NAME ctl …` line;
-   `UNKNOWN` stays silent (no `FORMULA` line). Check against the `.solved`
-   oracles of PetriSpot `bench/models/*/CTL*` and add CTL samples to the
-   `pn_samples` test.
-2. **Measure** the inverse on the MCC nets: how many events get protected by
-   `within(R)` per model, backward set sizes vs `R`, time of `invert_events`.
+1. **Measure** on the MCC nets, per model: events protected by `within(R)`
+   (Raft-PT-02: 12 of 44), node counts of backward sets against `R`, time
+   of `invert_events`, share of formulas whose forward form has a `restrict`
+   leaf. Angiogenesis-PT-05 (42.7M states) answers one CTLC formula in 15 s;
+   where the time goes there is the first profile to take.
+2. **The campaign** (M6): CTLC / CTLF at 600 s on the cluster through
+   `MCC-drivers/hsc/`, beside the ITS-Tools sets; the `.hsc600` recipe of
+   `handoff_mcc.md`.
 3. Then the optimisations on the produced questions: `has_image`, the
    constrained-closure rewrite (M5).
+
+Fixtures and oracles come from `~/git/pnmcc-models-2026/website` only
+(`INPUTS/<model>.tgz`, `oracle.tar.gz`); older editions carry other formulas
+under the same ids.
 
 ## Theory — open
 
@@ -32,12 +35,11 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 * `ctl/formula.hh`, `ctl/forward.hh`: DAG, NNF, existential dual, the VIS
   rules to a question tree; the and-rule sends the right conjunct forward
   (a choice to re-examine, `ctl/algorithm.md` §4).
-* `op_kind::gfp`, `op_kind::within`; `core::inverter` (structural converse
-  relative to a potential); `support_algebra::invert_local` (optional,
-  default refuses); `int_set` `choose` and `invert_local`.
-* `ctl/checker.hh`: set expressions and backward `Sat`, saturated
-  constrained closures, deadlock semantics, refusal without inverted events.
-* Surface `(ctl …)`, `(expect-ctl …)`, `(gfp …)`, `(invert …)`,
-  `(deadlock)`; manual §8f; `examples/models/ctl_ring.hsc`,
-  `ctl_counter.hsc` (21 verdicts + backward checks, ctest); the inverse
-  differential over 150 random models in `tests/test_operations.cc`.
+* `op_kind::gfp`, `op_kind::within`; `core::inverter`;
+  `support_algebra::invert_local` (optional); `int_set` `choose` and
+  `invert_local`; differential over 150 random models.
+* `ctl/checker.hh`; surface `(ctl …)`, `(expect-ctl …)`, `(gfp …)`,
+  `(invert …)`, `(deadlock)`; manual §8f; `examples/models/ctl_*.hsc`.
+* `hsc-pn` answers CTLCardinality / CTLFireability; no-effect transitions
+  kept for CTL (self-loops are edges — the one wrong verdict before that);
+  `examples/mcc` fixtures + oracles, 96/96 on the three small nets.
