@@ -24,6 +24,8 @@ endif()
 if(HSC_BUILD_TESTS)
   add_test(NAME surface_hanoi3
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/hanoi3.hsc)
+  add_test(NAME surface_budget_hanoi
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/budget_hanoi.hsc)
   add_test(NAME surface_ring4
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/ring4.hsc)
   add_test(NAME surface_ring4b
