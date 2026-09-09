@@ -65,6 +65,8 @@ struct node_view {
 /// so the index stays valid while the sieve rewrites primes.
 class diagram_engine::accumulator {
  public:
+  /// \p expected is a capacity hint — the arcs of the operands — so the
+  /// entries do not regrow arc by arc.
   accumulator(support_algebra& head, std::size_t expected) : head_(head) {
     entries_.reserve(expected);
   }
