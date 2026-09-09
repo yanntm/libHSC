@@ -4,6 +4,30 @@ Narrative of the unsupervised session (started after the M4 commit
 2e11ecc), for the user to read at its end. Current state and next actions
 stay in `handoff_ctl.md`; the numbers in `README.md` here.
 
+## Summary (read this first)
+
+* The CTL checker is complete for the MCC examinations and **never wrong**
+  on the corpus tried: 0 wrong verdicts on every benchmark run of the 294
+  P/T instances below 10^7 states (about 6100 answered per run), and 96/96
+  on the three sample nets against the 2026 oracle.
+* Built this session, each documented first: the existential image
+  (`has_image`), the on-the-fly search inside constrained closures, an
+  interrupt hook with deadlines and a fair-share scheduler, product
+  composition fused into constrained closures, the protection variation
+  point, a `trace/` package with shortest paths and CTL witness trees, and
+  the `hsc-pn` / MCC-driver / ITS-Tools (`-hsc`) plumbing for the CTL
+  examinations. Differentials over random models for the inverse, the
+  fusion and the path search.
+* Measured (`README.md` here): the evaluation discipline buys a few percent
+  more answers; the bottlenecks that remain are the shape (a flat spine over
+  a thousand places, cured by the driver's Louvain configuration) and the
+  breadth-first `gfp` hull of `EG` on tens of millions of states.
+* Not done: no cluster run (as instructed); ITS-Tools and MCC-drivers
+  changes are committed but not pushed; libHSC is pushed so the CI
+  republishes `hsc-pn`.
+
+Numbers for m5b/m5c/m5d are filled in at the end of the session below.
+
 ## Starting point
 
 `hsc-pn` answers CTLCardinality / CTLFireability by the forward form; 96/96
