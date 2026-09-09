@@ -223,3 +223,23 @@ from a second search on the capped set of the original net (handoff item).
 
 The sweep continues on the faulty binary for the LP rows, which it does not
 affect; its `hscb` rows are to be redone with the fix.
+
+### 2.8 The full corpus, first pass (partial, faulty binary)
+
+The first full-corpus sweep (binary 1d53acc, before the reachable-verdict
+fix; `tests/logs/unreach/full/rows_partial_v1.tsv`) was killed by the
+system at 1203 of 1720 rows: eight `hsc-pn` runs in parallel plus the
+BugTracking job overran the machine's 64 GB. The sweep script now caps
+every run at 6 GB of virtual memory and runs 4 at a time. What landed:
+
+| engine | runs | formulas | answered | wrong | at the cap | failed | median |
+|---|---|---|---|---|---|---|---|
+| `hscb` | 602 | 9632 | 4607 (48 %) | 4 | 60 | 20 | 7.4 s |
+| `lp` | 601 | 9616 | 2374 (25 %) | 0 | 0 | 0 | 0.01 s |
+
+RC: `hscb` 2467 / 4832, `lp` 1843 / 4816. RF: `hscb` 2140 / 4800, `lp`
+531 / 4800. Pairwise `hscb` over `lp` on 383 instances, `lp` over `hscb`
+on 153. The 4 wrong verdicts are all reachable answers on nets with
+removed places (§2.7; RobotManipulation-PT-00005 adds two to the pair);
+the 20 failures are the deadline exception of §2.5. Both fixed in the
+binary of the second pass, running as this is written (`full2`).
