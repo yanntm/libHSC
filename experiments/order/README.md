@@ -48,6 +48,19 @@ benchmark as the yardstick and reachability as the cheap first signal.
 * `../ctl/summarize.py` reads the CTL bench TSVs; the sweep pages
   (`SWEEP.md` §2) are the next tool to write.
 
+## First read of `sweep1` (StateSpace rows, the sweep still running)
+
+8475 rows: 3363 ok, 4058 `noreach` (the honest majority: the reachable set
+is beyond 270 s under that shape), 162 timeouts (the 2 s margin, since
+widened to 30 s), 54 + 147 kills at the node's memory cap, 31 segfaults at
+1.7–3 GB on flat orders of big nets (under investigation), 3 **wrong**
+values — all one bug: `MAX_TOKEN_PER_MARKING` on DoubleExponent-PT-003
+answered 163 (the number of places) for 841, the maximum search being
+capped at Σ coefficient × (declared bound − 1) while the leaves had gone
+to 256. Fixed (`pn_solver.hh`: the upper end grows until `form ≥ hi+1` is
+unreachable); the same cap bounded every UpperBounds answer. The sweep's
+first return is a correctness fix.
+
 ## Protocol
 
 A heuristic enters as a flag or an environment variable, never as a new
