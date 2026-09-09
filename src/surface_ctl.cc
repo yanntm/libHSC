@@ -197,12 +197,18 @@ void translator::do_ctl(const datum& form) {
     if (idle_event_) m->next_events.push_back(core::op_table::id);  // the self-loop
     m->pred_events = [this, &st]() -> std::span<const code> {
       if (!st.pred) {
-        st.pred = invert_events(datum::list({}, st.pred_line), *st.reach);
+        st.raw_preds = std::vector<code>{};
+        st.pred = invert_events(datum::list({}, st.pred_line), *st.reach, &*st.raw_preds);
         if (idle_event_ && !st.pred->empty()) {
           st.pred->push_back(core::op_table::id);  // self-converse
+          st.raw_preds->push_back(core::op_table::id);
         }
       }
       return *st.pred;
+    };
+    m->raw_pred_events = [&st]() -> std::span<const code> {
+      st.model->pred_events();
+      return *st.raw_preds;
     };
     m->selector = [this](ctl::node_id f) { return state_selector(f); };
     m->dead = *st.dead;
@@ -246,7 +252,8 @@ void translator::do_expect_ctl(const datum& form) {
 /// `R` on `R`, else composed with `within(R)`. An event without a converse
 /// (a case bracket that assigns) leaves the whole list empty, with a note:
 /// the checker then refuses backward operators rather than guess.
-std::vector<code> translator::invert_events(const datum& at, code reach) {
+std::vector<code> translator::invert_events(const datum& at, code reach,
+                                            std::vector<code>* raw) {
   core::inverter inv(mgr_);
   core::diagram_engine& diagrams = mgr_.diagrams();
   std::vector<code> preds;
@@ -266,8 +273,10 @@ std::vector<code> translator::invert_events(const datum& at, code reach) {
       p = inv(top_, ev, reach);
     } catch (const unsupported_error& e) {
       out_ << "ctl: no backward operators (" << e.what() << ")\n";
+      if (raw != nullptr) raw->clear();
       return {};
     }
+    if (raw != nullptr) raw->push_back(p);
     bool guard = protect == "always";
     if (protect == "test") {
       const code img = diagrams.apply_local(p, reach);
@@ -323,23 +332,10 @@ void translator::do_witness(const datum& form) {
   ctl_state& st = ctl();
   const auto it = st.converted.find(name);
   if (it == st.converted.end() || !st.checker) fail(form, "no ctl property named '" + name + "'");
-  if (!st.raw_preds) {
-    st.raw_preds = std::vector<code>{};
-    try {
-      core::inverter inv(mgr_);
-      for (const code ev : events_) st.raw_preds->push_back(inv(top_, ev, *st.reach));
-    } catch (const unsupported_error&) {
-      st.raw_preds->clear();
-    }
-  }
   trace::graph g;
   g.sort = top_;
   g.events = st.model->next_events;
-  g.preds = *st.raw_preds;
-  if (idle_event_ && g.preds.size() + 1 == g.events.size()) {
-    st.raw_preds->push_back(core::op_table::id);
-    g.preds = *st.raw_preds;
-  }
+  g.preds = st.model->raw_pred_events();  // empty when there is no converse
   g.within = *st.reach;
   g.one_state = [this](code set) -> code {
     std::vector<std::int32_t> values;
