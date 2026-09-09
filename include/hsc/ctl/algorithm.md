@@ -183,6 +183,12 @@ intersected with `R` after each step (`never` is sound for verdicts at the
 seed — see `research_notes/invert.md` §3 — and keeps every backward closure
 a saturating one, at the price of spurious states carried).
 
+**Observation point.** `HSC_CTL_TRACE=1` prints, on stderr, the wall time
+of every `sat`, `eval` and `nonempty` scope, and the number of `gfp`
+rounds the diagram engine ran inside it (a round is one image and one
+meet). On the MCC nets tried, an `EG` costs 2 to 9 rounds: the closure is
+bound by the cost of one full image over the big set, not by its depth.
+
 The `pred`-free fragment — everything the rules leave as `ey / fwdu / fwdg
 / filter` — needs `next`, the selectors, `dead`, `lfp` and `gfp` only. The
 inverted events are asked for lazily, the first time a backward operator
