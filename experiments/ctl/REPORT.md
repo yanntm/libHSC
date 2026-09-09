@@ -237,6 +237,21 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    verdicts: 8.6 s without, 9.0 s with (the machine was loaded); the
    inverted events are built once on the first request.
 
+28. **Hulls on the raw converses** (`ctl/algorithm.md` §3, §6): 326 of
+   the 588 small-corpus runs invert their events and every one of them
+   protects some (TokenRing-PT-010: 1111 of 1111, Anderson-PT-05: 265 of
+   365, BridgeAndVehicles: 448 of 548) — a protected converse is
+   `within(R) ∘ pred_e`, one full meet with `R` per event per step. A hull
+   meets with its own argument every round, so it needs none of that: the
+   model now offers the raw converses beside the protected ones and every
+   hull steps with them (sound by construction; 130/130 ctest, 43/43
+   sample nets, same answers on the two nets in a 10 s window). The lfp
+   closures keep the protection, and that is where TokenRing's time goes:
+   `AU` and `EU` at 1.1–1.3 s each, breadth-first under 1111 protected
+   events. `HSC_CTL_PROTECT=never` (sound at the seed, spurious states
+   carried) is queued as a corpus run; the principled fix is the
+   constrained saturation of `ctl_directions.md` §4.4 — a theory item.
+
 ## Where things stand for you
 
 * `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the

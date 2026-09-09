@@ -28,8 +28,12 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
    is under A/B by instruction count). Wall time on this machine drifts
    with load: decide on callgrind counts, not on `time`.
 3. **Backward closures with protected events**: `compose(within(R), p)` is
-   an unfusable straddler; on nets where many events are protected the
-   backward closures are breadth-first. Measure how many, then decide.
+   an unfusable straddler. Measured: 326 of 588 small-corpus runs invert,
+   all of them protect some events, TokenRing-PT-010 all 1111 — its `AU` /
+   `EU` closures cost 1.1–1.3 s each. Hulls now take the raw converses
+   (no protection owed); the lfp closures still need it. Queued:
+   `HSC_CTL_PROTECT=never` on the small corpus. The fix is Theory's
+   constrained saturation (below).
 4. **The campaign** (M6): the `hsc` MCC driver declares CTLCardinality /
    CTLFireability (`~/git/MCC-drivers/hsc/`, committed); ITS-Tools `-hsc`
    also runs the checker on the CTL examinations (`~/git/ITStools`,
@@ -47,7 +51,11 @@ Variation points: `HSC_CTL_EXIST=0`, `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`.
 
 * A saturation schedule for `gfp` (none known; breadth-first for now).
 * The constrained-closure rewrite (`ctl_directions.md` §4.4) stated as a
-  rule in `saturate()`'s vocabulary, with its commutation criterion.
+  rule in `saturate()`'s vocabulary, with its commutation criterion — now
+  with evidence: `lfp(within(R) ∘ Σ pred_e)` is breadth-first wherever the
+  events are protected, and on counter nets that is every event; the
+  saturation should carry `R`'s sub-node down the recursion instead of
+  meeting with the whole of `R` at the top.
 
 ## Done
 
