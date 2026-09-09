@@ -14,10 +14,12 @@ dependency structure to an order or a tree, and its clients are adapters.
 |---|---|
 | `force.hh` / `src/order/force.cc` | FORCE: a one-dimensional spring layout over cliques and precedences |
 | `louvain/` | community detection (vendored Louvain) and `hyperedge.hh`, the bounds on what one hyperedge may contribute to the graph |
+| `cluster.hh` / `src/order/cluster.cc` | a hierarchy over positions from weighted edges, with invariants as signed cliques and heavy ones contracted into flat nodes (`HSC_INV_*`) |
+| `profile.hh` / `src/order/profile.cc` | the post-mortem instrument: nodes and arcs per sort of a computed set |
 | `src/surface_reorder.cc` (client) | the directives `(reorder-force)`, `(reorder-reverse)`, `(flatten)` over a spec's shape |
 | `src/surface_louvain.cc` (client) | the directive `(decompose-louvain)` over a spec's events |
 | `petri/decompose.hh` (client) | a NUPN unit tree for a bare net: co-occurrence graph, the P-flows as hyperedges, the contraction of heavy-constant flows |
-| `(profile NAME)` (`src/surface_query.cc`) | the post-mortem instrument: nodes and arcs per level of a computed set |
+| `(profile NAME)` (`src/surface_query.cc`, client) | prints `profile.hh` with the spec's leaf names |
 
 Variation points, all environment variables read once: `HSC_INV_WEIGHT`,
 `HSC_INV_CROSS`, `HSC_INV_MERGE` (the flows in the decomposition). What is
