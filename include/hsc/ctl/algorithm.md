@@ -175,7 +175,11 @@ what it memoised (sets, `Sat`, closures) stays for the next attempt. The
 cheap ones are answered before an expensive one can take the whole budget.
 
 **Variation points.** `HSC_CTL_EXIST=0` turns the existential leaves off
-(every set in full); `HSC_CTL_OTF=0` turns the on-the-fly search off.
+(every set in full); `HSC_CTL_OTF=0` turns the on-the-fly search off;
+`HSC_CTL_PROTECT=test|never|always` decides which inverted events are
+intersected with `R` after each step (`never` is sound for verdicts at the
+seed — see `research_notes/invert.md` §3 — and keeps every backward closure
+a saturating one, at the price of spurious states carried).
 
 The `pred`-free fragment — everything the rules leave as `ey / fwdu / fwdg
 / filter` — needs `next`, the selectors, `dead`, `lfp` and `gfp` only. The

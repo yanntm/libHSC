@@ -17,6 +17,7 @@
 /// state formula too. The checker runs the forward form (`hsc/ctl/`) over
 /// the default system from the seed; the reachable set is computed once and
 /// shared by every `ctl` form of the session.
+#include <cstdlib>
 #include <sstream>
 
 #include "hsc/ctl/checker.hh"
@@ -242,6 +243,15 @@ std::vector<code> translator::invert_events(const datum& at, code reach) {
   core::diagram_engine& diagrams = mgr_.diagrams();
   std::vector<code> preds;
   std::size_t protected_count = 0;
+  // HSC_CTL_PROTECT: `test` (default) protects the events whose inverse
+  // leaves R on R; `never` protects none — sound for verdicts relative to R
+  // (an exact converse yields true predecessors, and no reachable state has
+  // an unreachable successor), at the price of spurious states carried;
+  // `always` protects every event. A variation point to measure.
+  static const std::string protect = [] {
+    const char* e = std::getenv("HSC_CTL_PROTECT");
+    return e == nullptr ? std::string("test") : std::string(e);
+  }();
   for (const code ev : events_) {
     code p = core::none;
     try {
@@ -250,8 +260,12 @@ std::vector<code> translator::invert_events(const datum& at, code reach) {
       out_ << "ctl: no backward operators (" << e.what() << ")\n";
       return {};
     }
-    const code img = diagrams.apply_local(p, reach);
-    if (diagrams.minus(img, reach) != core::none) {
+    bool guard = protect == "always";
+    if (protect == "test") {
+      const code img = diagrams.apply_local(p, reach);
+      guard = diagrams.minus(img, reach) != core::none;
+    }
+    if (guard) {
       p = mgr_.operations().compose(mgr_.operations().within(reach), p);
       ++protected_count;
     }
