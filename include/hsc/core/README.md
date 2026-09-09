@@ -31,7 +31,9 @@ any particular leaf theory.
   within(D)` (`gfp`, the deflationary closure `X ↦ X ∩ h(X)`, is
   `algorithm.md` §8; `within(D)` is the constant selector `X ↦ X ∩ D`, a
   diagram read as a term). `inverter` builds the converse of a term relative
-  to a potential, structurally (`algorithm.md` §9). The term
+  to a potential, structurally (`algorithm.md` §9); `compose_at` fuses the
+  composition of product terms componentwise down the shape (§11), so a
+  filtered event is still a product and the saturation split still applies. The term
   **mirrors the shape tree** rather than naming an absolute variable, which
   buys two things libDDD structurally cannot have: skip is literally
   `term == id` (no oracle, no support set), and descending into a subtree

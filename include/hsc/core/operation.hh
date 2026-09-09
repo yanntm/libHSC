@@ -237,6 +237,12 @@ code sum_at(manager& mgr, shape_code sort, std::span<const code> events);
 /// rounds — and that is the whole point.
 code saturate(manager& mgr, shape_code sort, std::span<const code> events);
 
+/// \brief `after ∘ before` at \p sort, fused where the laws of `algorithm.md`
+/// §11 allow: componentwise through `node`, pointwise through sums, the
+/// theory's `term_compose` at a leaf. Where a leaf refuses, the composition
+/// stays an unfused `compose` term at the node above (correct, a straddler).
+code compose_at(manager& mgr, shape_code sort, code after, code before);
+
 /// \brief Inversion of terms relative to a potential (`algorithm.md` §9).
 ///
 /// `operator()(sort, term, P)` is the term of the converse of \p term whose

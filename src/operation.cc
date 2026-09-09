@@ -209,6 +209,47 @@ code saturate(manager& mgr, shape_code sort, std::span<const code> events) {
   return ops.saturate(f_part, l_part, across);
 }
 
+// --- composition -----------------------------------------------------------
+
+namespace {
+/// The fused composition, or throws `unsupported_error` where a leaf refuses.
+code compose_fused(manager& mgr, shape_code sort, code after, code before) {
+  op_table& ops = mgr.operations();
+  if (before == op_table::id) return after;
+  if (after == op_table::id) return before;
+  const shape_table& shapes = mgr.shapes();
+  if (shapes.kind(sort) != shape_kind::pair) {
+    return mgr.algebra(sort).term_compose(after, before);
+  }
+  const op_term& a = ops[after];
+  const op_term& b = ops[before];
+  if (a.kind == op_kind::sum) {
+    std::vector<code> parts;
+    for (const code s : a.operands()) parts.push_back(compose_fused(mgr, sort, s, before));
+    return ops.sum(parts);
+  }
+  if (b.kind == op_kind::sum) {
+    std::vector<code> parts;
+    for (const code s : b.operands()) parts.push_back(compose_fused(mgr, sort, after, s));
+    return ops.sum(parts);
+  }
+  if (a.kind == op_kind::node && b.kind == op_kind::node) {
+    const code h = compose_fused(mgr, shapes.head(sort), a.operand(0), b.operand(0));
+    const code t = compose_fused(mgr, shapes.tail(sort), a.operand(1), b.operand(1));
+    return ops.node(h, t);
+  }
+  throw unsupported_error("no structural composition for these terms");
+}
+}  // namespace
+
+code compose_at(manager& mgr, shape_code sort, code after, code before) {
+  try {
+    return compose_fused(mgr, sort, after, before);
+  } catch (const unsupported_error&) {
+    return mgr.operations().compose(after, before);
+  }
+}
+
 // --- inversion -------------------------------------------------------------
 
 code inverter::operator()(shape_code sort, code term, code potential) {
