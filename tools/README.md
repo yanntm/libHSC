@@ -38,8 +38,12 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
    `rcm` / `sloan` (flat, in a bandwidth-reducing order of the place
    dependency graph, `order/bandwidth.hh`), `random` (flat, a seeded
    shuffle — the control);
-   Under `-v`, once the reachable set is built, one `hsc-pn: stats` line
-   gives its cost and size (`reach_s`, `reach_nodes`, `reach_arcs`), its
+   The reachable set runs under four fifths of `--totalTime` as a
+   cooperative deadline (the alarm stays the backstop): when it runs out the
+   set is partial, nothing is answered from it, and the run says so.
+   Under `-v`, once the reachable set is built or cut, one `hsc-pn: stats`
+   line gives its cost and size (`reach_s`, `partial`, `reach_states`,
+   `reach_nodes`, `reach_arcs`), its
    widest level (`belly_nodes`, `belly_level`, `belly_span`) and the shape
    (`shape_depth`, `shape_units`, `shape_widest`); every verdict then adds
    `hsc-pn: answered <name> at <s>` — the record the order sweep collects

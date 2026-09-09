@@ -347,7 +347,15 @@ int main(int argc, char** argv) {
     // that produce the same order and hierarchy share it — the sweep runs
     // one of them.
     std::uint64_t sig = 1469598103934665603ull;
+    // The reachable set runs under the budget's deadline (four fifths of it:
+    // the alarm stays the backstop): a closure that runs out returns what it
+    // has, marked partial — reported, never answered from.
+    if (total_time > 0 && !shape_only) {
+      solver.set_deadline(t_model + std::chrono::milliseconds(total_time * 800));
+    }
+    bool r_partial = false;
     for (const std::string& l : solver.feed(model.str())) {
+      if (l == "R partial") r_partial = true;
       if (l.rfind("(shape", 0) == 0) {
         for (const unsigned char c : l) { sig ^= c; sig *= 1099511628211ull; }
         if (!export_shape.empty()) { std::ofstream f(export_shape); f << l << '\n'; }
@@ -355,6 +363,7 @@ int main(int argc, char** argv) {
         std::cerr << l << '\n';
       }
     }
+    solver.set_deadline(std::nullopt);
     const auto shape_signature = [&]() -> std::string {
       std::ostringstream o;
       o << std::hex << sig;
@@ -368,7 +377,11 @@ int main(int argc, char** argv) {
       // The statistics line of the sweeps (experiments/order/SWEEP.md §3):
       // the reachable set's cost and size, its widest level, the shape.
       const double reach_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t_model).count();
+      solver.set_deadline(std::nullopt);
       std::size_t nodes = 0, arcs = 0, belly = 0, belly_level = 0, belly_span = 0, level = 0;
+      double reach_states = 0;
+      for (const std::string& l : solver.feed("(count R)"))
+        if (l.rfind("R count ", 0) == 0) reach_states = std::atof(l.c_str() + 8);
       for (const std::string& l : solver.feed("(nodes R)"))
         if (l.rfind("R nodes ", 0) == 0) nodes = std::stoull(l.substr(8));
       for (const std::string& l : solver.feed("(profile R)")) {
@@ -394,7 +407,8 @@ int main(int argc, char** argv) {
         };
         walk(walk, units.root, 1);
       }
-      std::cerr << "hsc-pn: stats reach_s=" << reach_s << " reach_nodes=" << nodes << " reach_arcs=" << arcs
+      std::cerr << "hsc-pn: stats reach_s=" << reach_s << " partial=" << (r_partial ? 1 : 0) << " reach_states=" << reach_states
+                << " reach_nodes=" << nodes << " reach_arcs=" << arcs
                 << " belly_nodes=" << belly << " belly_level=" << belly_level << " belly_span=" << belly_span
                 << " shape_depth=" << depth << " shape_units=" << nunits << " shape_widest=" << widest
                 << " shape_sig=" << shape_signature() << '\n';
@@ -452,6 +466,13 @@ int main(int argc, char** argv) {
       }
     }
     print_open(std::cout);
+    if (r_partial) {
+      // nothing is answered from a partial set: the StateSpace values would be
+      // wrong, and the properties' selections unsound
+      if (verbose) std::cerr << "hsc-pn: the reachable set is partial, no answers\n";
+      print_open(std::cout);
+      return 0;
+    }
     if (states) solver.state_space(std::cout);
     else if (max_tokens) solver.max_tokens(std::cout);
   } catch (const hsc::overflow_error& e) {
