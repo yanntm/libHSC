@@ -270,3 +270,41 @@ SCC detection" (`Fixpoint::has_image`), stated for terms.
 witness is a function of its arguments). What it buys: a `nonempty?` question
 on a filtered set stops at the first arc that passes; whether a set holds a
 cycle is answered without the cycle hull when a component cycles on its own.
+
+## 11. Composition of product terms
+
+A term composed with a selector — `t ∘ sel` (filter, then step: the
+constrained forward closure) or `sel ∘ t` (step, then filter: the backward
+one) — is what a fixpoint under a constraint iterates. Written as a
+`compose` term it is a straddler: it names no side, so the saturation split
+puts it in G and the closure degrades to breadth-first. But relations on a
+product compose **componentwise**:
+
+    node(a, b) ∘ node(c, d)  =  node(a ∘ c, b ∘ d)          hence node(a, id) ∘ node(id, d) = node(a, d)
+    (Σ aᵢ) ∘ b = Σ (aᵢ ∘ b)         a ∘ (Σ bⱼ) = Σ (a ∘ bⱼ)
+    id ∘ b = b,   a ∘ id = a
+
+so the composition of two product terms is a product term, whose support is
+the union of the two, and the saturation split classifies it like any
+event. `compose_at(sort, after, before)` applies these laws down the shape
+and hands the leaves to the theory (`term_compose`, an optional capability
+whose default refuses); when a leaf refuses, the composition stays a
+`compose` term at that node — correct, merely not fused. Nothing else
+composes structurally (`lfp`, `gfp`, `saturate`, `within`, a case bracket).
+
+**At a leaf**, `int_set` composes `(g₂, act₂) ∘ (g₁, act₁)` — apply the
+first, then the second — into one primitive when it can: the guard is
+`g₁ ∧ g₂[after act₁]` and the action `act₂ ∘ act₁`:
+
+| `act₁` | `g₂` after it | `act₂ ∘ act₁` |
+|---|---|---|
+| `keep` | `g₂` | `act₂` |
+| `shift d` | `g₂[x ↦ x + d]` (an extensional `g₂` shifted by `−d`) | `keep → shift d`, `shift e → shift (d+e)`, `assign c → assign c`, `choose S → choose S`, `apply e → apply e[x ↦ x + d]` |
+| `assign c` | the constant `g₂(c)`: `false` is the zero term | `keep → assign c`, `shift e → assign (c+e)`, `assign c' → assign c'`, `choose S → choose S`, `apply e → assign e(c)` |
+| `choose S` / `havoc` | `S' := S ∩ g₂` (empty: zero) | `keep → choose S'`, `shift e → choose (S'+e)`, `assign c → assign c`, `choose T → choose T`, `apply e → choose e(S')` |
+| `apply e` | `g₂[x ↦ e]`, symbolic `g₂` only | `keep → apply e`, `shift d → apply (e + d)`, `assign c → assign c`, `choose S → choose S`, `apply e' → apply e'[x ↦ e]` (no modulo) |
+
+Guards conjoin as their kinds allow: two symbolic guards by `conj`, two
+sets by `meet`, a set against a symbolic guard by `filter`. Sums compose
+pointwise. Anything else (a closure, a modulo transform under substitution)
+refuses, and the composition stays unfused at the node above.
