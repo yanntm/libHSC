@@ -112,11 +112,42 @@ std::optional<checker::code> checker::constrained_lfp(bool backward,
   if (!s) return std::nullopt;
   code x = from;
   for (;;) {
+    mgr_.check_interrupt();
     const code img = before ? step(backward, diagrams.meet(x, *s))
                             : diagrams.meet(step(backward, x), *s);
     const code y = diagrams.join(x, img);
     if (y == x) return x;
     x = y;
+  }
+}
+
+bool checker::otf_enabled() {
+  static const bool on = [] {
+    const char* e = std::getenv("HSC_CTL_OTF");
+    return e == nullptr || std::string(e) != "0";
+  }();
+  return on;
+}
+
+std::optional<bool> checker::exists_through(set_id r0, node_id q, code sel) {
+  // Does a state satisfying the selector lie in lfp Z[r0 ∨ EY(Z ∧ q)]?
+  // Breadth-first from r0 through q-states, the goal tested on each new
+  // frontier: the search stops at the first hit instead of closing the set.
+  core::diagram_engine& diagrams = mgr_.diagrams();
+  const std::optional<code> a0 = eval(r0);
+  if (!a0) return std::nullopt;
+  if (*a0 == core::none) return false;
+  const std::optional<code> sq = sat(q);
+  if (!sq) return std::nullopt;
+  code seen = *a0;
+  code frontier = *a0;
+  for (;;) {
+    mgr_.check_interrupt();
+    if (diagrams.has_image(sel, frontier) != core::none) return true;
+    const code img = step(false, diagrams.meet(frontier, *sq));
+    frontier = diagrams.minus(img, seen);
+    if (frontier == core::none) return false;
+    seen = diagrams.join(seen, frontier);
   }
 }
 
@@ -148,12 +179,22 @@ std::optional<bool> checker::nonempty(set_id s) {
     case set_op::init:
       return m_.init != core::none;
     case set_op::filter: {
+      const fnode& n = f_[e.f];
+      if (n.kind == op::fls) return false;
+      const set_expr& below = fw_.set(e.arg);
+      if (n.kind != op::tru && below.kind == set_op::fwdu &&
+          !f_.is_state(below.f) && otf_enabled()) {
+        // A closure constrained by a temporal formula is breadth-first
+        // anyway: search it on the fly for the goal instead of closing it.
+        auto it = sel_memo_.find(e.f);
+        if (it == sel_memo_.end())
+          it = sel_memo_.emplace(e.f, m_.selector(e.f)).first;
+        return exists_through(below.arg, below.f, it->second);
+      }
       const std::optional<code> a = eval(e.arg);
       if (!a) return std::nullopt;
       if (*a == core::none) return false;
-      const fnode& n = f_[e.f];
       if (n.kind == op::tru) return true;
-      if (n.kind == op::fls) return false;
       auto it = sel_memo_.find(e.f);
       if (it == sel_memo_.end())
         it = sel_memo_.emplace(e.f, m_.selector(e.f)).first;

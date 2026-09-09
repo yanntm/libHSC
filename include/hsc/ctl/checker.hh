@@ -67,6 +67,10 @@ class checker {
   std::optional<bool> nonempty(set_id s);
   /// The `HSC_CTL_EXIST` variation point (default on).
   static bool existential_enabled();
+  /// The `HSC_CTL_OTF` variation point (default on): a goal inside a closure
+  /// constrained by a temporal formula is searched breadth-first, stopping
+  /// at the first hit.
+  static bool otf_enabled();
 
  private:
   using code = core::code;
@@ -96,6 +100,9 @@ class checker {
   std::optional<code> restrict(code s, node_id q);
   /// The subset of \p s where the state formula \p f holds.
   code filter(code s, node_id f);
+  /// Is a state of the selector \p sel reached from the set of \p r0 through
+  /// `q`-states? The on-the-fly search of `algorithm.md` §6.
+  std::optional<bool> exists_through(set_id r0, node_id q, code sel);
   verdict ask(q_id q);
   std::optional<code> sat_eu(node_id f, node_id g);
   std::optional<code> sat_eg(node_id f);

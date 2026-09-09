@@ -154,8 +154,27 @@ is no cycle; `has_cycles` is `has_image(gfp(next), R)`. The witness subsets
 are never memoised as the value of a set expression — the two readings keep
 separate tables.
 
-**Variation point.** `HSC_CTL_EXIST=0` turns the existential leaves off
-(every set in full) to measure what they buy.
+**On the fly.** A leaf `nonempty?(filter(fwdu(r, q), f))` whose constraint
+`q` is temporal has a closure that is breadth-first anyway (its constraint
+is data, `Sat q`); instead of closing it and then filtering, the search
+tests each new frontier for `f` and stops at the first hit:
+
+    seen := frontier := [r]
+    loop: has_image(sel_f, frontier) ≠ 0 → yes
+          frontier := next(frontier ∩ Sat q) ∖ seen;  empty → no
+          seen := seen ∪ frontier
+
+the emptiness check of a construction done while constructing it. A
+state-formula constraint keeps the saturated closure, which is cheap.
+
+**Deadlines.** Every iteration loop consults the manager's interrupt hook
+once per round; a property stopped by its deadline answers `TIMEOUT`, and
+what it memoised (sets, `Sat`, closures) stays for the next attempt. The
+`hsc-pn` driver asks the CTL properties in rounds of growing budget so the
+cheap ones are answered before an expensive one can take the whole budget.
+
+**Variation points.** `HSC_CTL_EXIST=0` turns the existential leaves off
+(every set in full); `HSC_CTL_OTF=0` turns the on-the-fly search off.
 
 The `pred`-free fragment — everything the rules leave as `ey / fwdu / fwdg
 / filter` — needs `next`, the selectors, `dead`, `lfp` and `gfp` only. The
