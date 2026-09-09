@@ -23,7 +23,8 @@ business (`MCC-drivers/hsc/`); this tool answers properties.
 ```
 hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc|sexpr]
        [--shape nupn|flat|louvain] [--force] [--bound N]
-       [--states | --max-tokens] [--deadlock NAME] [--totalTime S] [--printUnknown] [--export-hsc FILE] [-q]
+       [--states | --max-tokens] [--deadlock NAME] [--totalTime S] [--printUnknown] [--witness]
+       [--export-hsc FILE] [-q] [-v]
 ```
 
 ### Pipeline
@@ -83,6 +84,19 @@ Bounds: the surface has no per-expression maximum, and the leaf domain
 search on `k` with one `select` per probe: at most `log2(bound · Σ|c|)`
 probes, each a symbolic operation on the fixpoint. A hint `K` is checked
 first: `E >= K` non-empty answers `K` in one probe.
+
+### `--witness`
+
+After each CTL verdict, the surface's `(witness Q)` (manual §8g) is fed
+and its tree forwarded to **stderr** — stdout keeps the `FORMULA` protocol
+alone. The block opens with `WITNESS <name>`; then, indented by
+subformula depth, states as words with their zero places dropped
+(`((p1 2) (p3 1))`), events as transition names, and `;` notes saying
+what holds where or why no path is shown (a universal subformula holds
+by exhaustion; a `TRUE` verdict of a universal property has no path). The
+inverted events the backtrack needs are built on the first request, once
+per run. A witness that runs into the deadline prints `WITNESS <name>
+TIMEOUT`.
 
 ### `--states`
 
