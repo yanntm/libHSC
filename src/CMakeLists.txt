@@ -10,7 +10,8 @@ add_library(hsc_louvain STATIC
   order/louvain/modularity.cpp
   order/louvain/louvain.cpp
   order/louvain/community.cpp
-  order/cluster.cc)
+  order/cluster.cc
+  order/bandwidth.cc)
 target_include_directories(hsc_louvain PUBLIC ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(hsc PUBLIC hsc_louvain)
 
