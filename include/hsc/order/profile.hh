@@ -32,4 +32,23 @@ struct level_profile {
 [[nodiscard]] std::vector<level_profile> profile(core::manager& mgr, core::shape_code top,
                                                  core::code set);
 
+/// The local states a sort reached: the cardinal of the union of its nodes —
+/// which subshapes fired and found new states, compared between two sets.
+struct local_states {
+  core::shape_code sort = core::none;
+  std::size_t first = 0, width = 0;
+  double states = 0;
+};
+[[nodiscard]] std::vector<local_states> subshape_states(core::manager& mgr, core::shape_code top,
+                                                        core::code set);
+
+/// The values each leaf reached in \p set — the one metric comparable across
+/// shapes, every shape having the same leaves. `values` is the domain's size.
+struct leaf_domain {
+  std::size_t position = 0;
+  double values = 0;
+};
+[[nodiscard]] std::vector<leaf_domain> leaf_domains(core::manager& mgr, core::shape_code top,
+                                                    core::code set);
+
 }  // namespace hsc::order
