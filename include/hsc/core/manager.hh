@@ -7,6 +7,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <memory>
@@ -96,6 +97,14 @@ class manager {
   void check_interrupt() {
     if (stopping()) throw interrupted("deadline reached");
   }
+  /// \brief The poll of a hot loop that can run for seconds on one operation
+  /// (the canonicalizer's sieve on a wide head): amortised — the clock is
+  /// read once per few thousand calls — and, when stopping, it throws
+  /// `interrupted`, which the nearest closure loop catches to return what it
+  /// had (`diagram.cc`). One increment and a mask on the hot path.
+  void poll() {
+    if ((++polls_ & 0x3FFF) == 0 && stopping()) throw interrupted("deadline reached");
+  }
   ///@}
 
  private:
@@ -107,6 +116,7 @@ class manager {
   std::optional<std::chrono::steady_clock::time_point> deadline_;
   bool stop_ = false;
   bool partial_ = false;
+  std::uint32_t polls_ = 0;
 };
 
 }  // namespace hsc::core

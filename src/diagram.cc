@@ -172,6 +172,7 @@ void diagram_engine::sieve(shape_code sort, accumulator& acc,
     code rest = incoming.prime;
 
     for (arc& e : entries) {
+      owner_.poll();
       if (e.prime == none) continue;  // consumed by an earlier arc
       if (rest == none) break;
 
@@ -278,7 +279,13 @@ code diagram_engine::gfp_at(shape_code sort, code term, code value) {
       return x;
     }
     ++gfp_rounds_;
-    const code y = algebra.meet(x, algebra.apply_local(term, x));
+    code y;
+    try {
+      y = algebra.meet(x, algebra.apply_local(term, x));
+    } catch (const interrupted&) {  // from a poll inside the round
+      owner_.mark_partial();
+      return x;
+    }
     if (y == x || y == none) return y;
     x = y;
   }
@@ -426,7 +433,13 @@ code diagram_engine::do_apply(code term, code d) {
           owner_.mark_partial();
           return x;
         }
-        const code y = join(x, apply_local(h, x));
+        code y;
+        try {
+          y = join(x, apply_local(h, x));
+        } catch (const interrupted&) {
+          owner_.mark_partial();
+          return x;
+        }
         if (y == x) return x;
         x = y;
       }
@@ -447,7 +460,13 @@ code diagram_engine::do_apply(code term, code d) {
           return x;
         }
         ++gfp_rounds_;
-        const code y = meet(x, apply_local(h, x));
+        code y;
+        try {
+          y = meet(x, apply_local(h, x));
+        } catch (const interrupted&) {
+          owner_.mark_partial();
+          return x;
+        }
         if (y == x) return x;
         x = y;
       }
@@ -470,10 +489,15 @@ code diagram_engine::do_apply(code term, code d) {
           return current;
         }
         previous = current;
-        current = apply_local(f_part, current);
-        current = apply_local(l_part, current);
-        for (const code g : parts.subspan(2)) {
-          current = join(current, apply_local(g, current));
+        try {
+          current = apply_local(f_part, current);
+          current = apply_local(l_part, current);
+          for (const code g : parts.subspan(2)) {
+            current = join(current, apply_local(g, current));
+          }
+        } catch (const interrupted&) {  // from a poll inside the round: the last complete round stands
+          owner_.mark_partial();
+          return previous;
         }
       } while (current != previous);
       return current;
