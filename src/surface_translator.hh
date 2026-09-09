@@ -601,6 +601,9 @@ class translator final : public name_scope {
   /// False once a family entered the default system: its guards are not
   /// enumerable as atoms, so `(deadlock)` is refused.
   bool guards_complete_ = true;
+  /// True once a declared event compiled to `id`: an always-enabled no-op,
+  /// a self-loop on every state for the temporal operators.
+  bool idle_event_ = false;
   std::shared_ptr<ctl_state> ctl_;  ///< shared: deleter typed at make time
   double reach_seconds_ = 0.0;
   int failures_ = 0;

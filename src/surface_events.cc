@@ -304,9 +304,6 @@ void translator::do_event(const datum& form) {
     return;
   }
   define_event(form, name, ev);
-  if (ev == core::op_table::id) return;  // a no-op: skip in a seq,
-                                         // nothing for the default ALT
-  events_.push_back(ev);
   // The guard as written, for `(deadlock)`: every atom of every when clause.
   std::vector<datum> guard;
   for (const datum& clause : std::span(form.items()).subspan(2)) {
@@ -317,6 +314,14 @@ void translator::do_event(const datum& form) {
     }
   }
   event_guards_.push_back(std::move(guard));
+  if (ev == core::op_table::id) {
+    // A no-op: skip in a seq, nothing for the default ALT's fixpoint — but
+    // an always-enabled self-loop of the reachability graph, which the
+    // temporal operators see (no deadlock anywhere, every state on a cycle).
+    idle_event_ = true;
+    return;
+  }
+  events_.push_back(ev);
 }
 
 void translator::define_event(const datum& at, const std::string& name, code term) {

@@ -180,7 +180,11 @@ void translator::do_ctl(const datum& form) {
   m.reach = *st.reach;
   m.init = seed();
   m.next_events = events_;
+  if (idle_event_) m.next_events.push_back(core::op_table::id);  // the self-loop
   m.pred_events = st.pred;
+  if (idle_event_ && !m.pred_events.empty()) {
+    m.pred_events.push_back(core::op_table::id);  // self-converse
+  }
   m.selector = [this](ctl::node_id f) { return state_selector(f); };
   m.dead = *st.dead;
   ctl::checker chk(mgr_, m, st.fw);
