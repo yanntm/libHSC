@@ -14,8 +14,14 @@ dependency: the selectors build the set, one image tests the step.
 | piece | what |
 |---|---|
 | `algorithm.md` | the construction, the tests, their soundness, their cost |
-| `src/surface_linear.cc` | `(full NAME)`: the product of the leaf domains; `(dead NAME SET)`: the events dead on SET, by enabling and by one step |
-| `hsc-pn --dead S` (client) | the flows within S seconds → bounds and constraints → the invariant set → the dead transitions of the net, reported |
+| `full.hh` / `src/linear/full.cc` | the product of the leaf domains as a diagram |
+| `equality.hh` / `src/linear/equality.cc` | the diagram of a nonnegative linear equality over a box, built directly (a knapsack along the shape) |
+| `dead.hh` / `src/linear/dead.cc` | the two deadness tests over an over-approximating set |
+| `src/surface_linear.cc` (bindings) | `(full NAME [(LEAF LO HI)]*)`, `(equality NAME BOX K (* C LEAF)*)`, `(intersect NAME A B*)`, `(dead NAME SET [step] [ignore LEAF*])` |
+| `hsc-pn --dead S [--dead-step]` (client) | flows within S seconds, structural zeros, box, equalities, tests; the dead transitions of the net (names under `-v`) |
+
+First result: BugTracking-PT-q3m016, 24 601 of 27 370 transitions dead,
+every one confirmed by the QuasiLiveness oracle, 15 s (`algorithm.md` §3).
 
 Ideas ledger: `research_notes/ideas.md` #1 (this), #2 (ω-values for the
 uncovered places), #3 (the same test on PetriSpot's LP).

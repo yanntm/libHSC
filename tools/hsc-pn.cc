@@ -319,7 +319,7 @@ int main(int argc, char** argv) {
   // fixpoint, and its guard is read from the net for deadlock and for arc
   // counting; but it is an edge of the reachability graph — a self-loop, an
   // infinite path — which CTL cannot do without.
-  opts.skip_no_effect = !any_ctl;
+  opts.skip_no_effect = !any_ctl && dead_time == 0;  // every transition is tested for deadness, the no-effect ones included
   opts.bound = bound;
   int effective_bound = bound;
   for (int m : net->getMarks()) effective_bound = std::max(effective_bound, m + 1);
@@ -424,10 +424,32 @@ int main(int argc, char** argv) {
           if (bound[static_cast<std::size_t>(p)] < 0 || b < bound[static_cast<std::size_t>(p)]) bound[static_cast<std::size_t>(p)] = b;
         }
       }
-      std::size_t covered = 0;
+      // The structural zeros: a place with no token initially and no producer
+      // among the transitions that can fire stays empty, and its consumers
+      // cannot fire — a fixpoint over the net alone. Those places get the
+      // domain {0}: the box rules their consumers out before any flow does.
+      const MatrixCol<int>& pre_m = net->getFlowPT();
+      const MatrixCol<int>& post_m = net->getFlowTP();
+      const std::vector<int>& marks = net->getMarks();
+      std::vector<char> markable(np, 0);
+      for (std::size_t p = 0; p < np; ++p) markable[p] = marks[p] > 0;
+      for (bool changed = true; changed;) {
+        changed = false;
+        for (std::size_t t = 0; t < net->getTransitionCount(); ++t) {
+          const SparseArray<int>& in = pre_m.getColumn(t);
+          bool live = true;
+          for (std::size_t k = 0; k < in.size() && live; ++k) live = markable[in.keyAt(k)];
+          if (!live) continue;
+          const SparseArray<int>& out = post_m.getColumn(t);
+          for (std::size_t k = 0; k < out.size(); ++k)
+            if (!markable[out.keyAt(k)]) { markable[out.keyAt(k)] = 1; changed = true; }
+        }
+      }
+      std::size_t covered = 0, zeros = 0;
       std::string full = "(full F";
       for (std::size_t p = 0; p < np; ++p) {
         long long b = bound[p];
+        if (!markable[p]) { b = 0; ++zeros; bound[p] = 0; }  // never marked: a bound, and the tightest
         if (b >= 0) ++covered; else b = effective_bound - 1;  // a cap, not a bound
         full += " (" + pnames[p] + " 0 " + std::to_string(b) + ")";
       }
@@ -454,21 +476,15 @@ int main(int argc, char** argv) {
       for (const std::string& l : solver.feed("(count S) (nodes S)")) { if (l.rfind("S count ", 0) == 0) set_states = l.substr(8); if (verbose) std::cerr << l << '\n'; }
       const auto t2 = std::chrono::steady_clock::now();
       // the transitions whose guard reads a capped place are untested
-      const MatrixCol<int>& pre = net->getFlowPT();
       std::size_t never = 0, step = 0, alive = 0, untested = 0, capped_guard = 0;
       std::vector<std::string> dead_names;
-      for (const std::string& l : solver.feed(dead_step ? "(dead D S step)" : "(dead D S)")) {
+      // the capped places are told to the test: guard atoms on them are dropped
+      std::string dead_form = dead_step ? "(dead D S step ignore" : "(dead D S ignore";
+      for (std::size_t p = 0; p < np; ++p) if (bound[p] < 0) dead_form += ' ' + pnames[p];
+      for (const std::string& l : solver.feed(dead_form + ")")) {
         if (l.rfind("D dead ", 0) == 0) {
           const std::string rest = l.substr(7);
           const std::string tname = rest.substr(0, rest.find(' '));
-          std::size_t t = 0;
-          while (t < net->getTransitionCount() && net->getTnames()[t] != tname) ++t;
-          bool reads_capped = false;
-          if (t < net->getTransitionCount()) {
-            const SparseArray<int>& in = pre.getColumn(t);
-            for (std::size_t k = 0; k < in.size(); ++k) reads_capped = reads_capped || bound[in.keyAt(k)] < 0;
-          }
-          if (reads_capped) { ++capped_guard; continue; }
           dead_names.push_back(tname);
           if (rest.find(" never") != std::string::npos) ++never; else ++step;
         } else if (l.rfind("D dead-summary", 0) == 0) {
@@ -481,7 +497,7 @@ int main(int argc, char** argv) {
       const auto sec = [](auto a, auto b) { return std::chrono::duration<double>(b - a).count(); };
       std::cout << "DEAD_TRANSITIONS " << (never + step) << " of " << net->getTransitionCount() << " (never " << never
                 << ", one step " << step << ", alive " << alive + capped_guard << ", untested " << untested << ")"
-                << " flows " << flows.size() << " positive " << positive.size() << " covered places " << covered << " of " << np
+                << " flows " << flows.size() << " positive " << positive.size() << " covered places " << covered << " of " << np << " (never marked " << zeros << ")"
                 << " box " << box_states << " set " << set_states << " states"
                 << " times flows " << sec(t0, t1) << " s, set " << sec(t1, t2) << " s, tests " << sec(t2, t3) << " s" << std::endl;
       if (verbose) for (const std::string& n : dead_names) std::cerr << "DEAD " << n << '\n';

@@ -10,6 +10,7 @@
 /// event that is dead, then a summary.
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "hsc/core/operation.hh"
 #include "hsc/linear/dead.hh"
@@ -117,24 +118,55 @@ void translator::do_intersect(const datum& form) {
   out_ << name << " intersect " << (r == core::none ? 0.0 : mgr_.diagrams().cardinal(r)) << '\n';
 }
 
+/// `(dead NAME SET [step] [ignore LEAF*])`: the leaves after `ignore` are the
+/// ones SET only caps (no bound known): the guard atoms that read them are
+/// dropped — a weaker guard, so "never enabled" stays sound — and the one-step
+/// test, which needs SET exact where the transition looks, skips the events
+/// that read them.
 void translator::do_dead(const datum& form) {
   if (top_ == core::none) fail(form, "dead before shape");
   const std::string& name = sym(arg(form, 1, "result name"));
   const code set = named(arg(form, 2, "set"));
-  // the enabling selector of every event: its guard atoms as one (when …)
+  bool with_step = false;
+  std::unordered_set<std::string> ignored;
+  for (std::size_t i = 3, mode = 0; i < form.items().size(); ++i) {
+    const datum& d = form.items()[i];
+    if (d.is_atom() && d.text() == "step") with_step = true;
+    else if (d.is_atom() && d.text() == "ignore") mode = 1;
+    else if (mode == 1 && d.is_atom()) ignored.insert(d.text());
+    else fail(d, "dead takes NAME SET [step] [ignore LEAF*]");
+  }
+  const auto reads_ignored = [&](const datum& atom) {
+    bool r = false;
+    const auto walk = [&](auto&& self, const datum& x) -> void {
+      if (x.is_atom()) { if (ignored.count(x.text())) r = true; return; }
+      for (const datum& y : x.items()) self(self, y);
+    };
+    walk(walk, atom);
+    return r;
+  };
+  // the enabling selector of every event: its guard atoms as one (when …),
+  // the atoms on ignored leaves left out; `exact` says none was left out
   std::vector<code> guards(events_.size(), core::none);
+  std::vector<char> exact(events_.size(), 1);
   for (std::size_t i = 0; i < events_.size(); ++i) {
     const std::size_t g = i < event_guard_of_.size() ? event_guard_of_[i] : SIZE_MAX;
     if (g == SIZE_MAX || g >= event_guards_.size()) continue;
     std::vector<datum> when{datum::atom("when", form.line())};
-    for (const datum& a : event_guards_[g]) when.push_back(a);
+    for (const datum& a : event_guards_[g]) {
+      if (reads_ignored(a)) exact[i] = 0; else when.push_back(a);
+    }
     guards[i] = read_evterm(datum::list(std::move(when), form.line()));
   }
-  const bool with_step = form.items().size() > 3 && form.items()[3].is_atom() && form.items()[3].text() == "step";
   const code step = (with_step && !events_.empty()) ? core::sum_at(mgr_, top_, events_) : core::none;
-  const linear::dead_report r =
+  linear::dead_report r =
       linear::dead_transitions(mgr_, top_, set, seed(), events_, guards, step, with_step, /*sharpen=*/256);
   for (std::size_t i = 0; i < events_.size(); ++i) {
+    if (r.verdicts[i] == linear::verdict::one_step && !exact[i]) {  // the step test needs the exact guard
+      r.verdicts[i] = linear::verdict::alive;
+      --r.one_step;
+      ++r.alive;
+    }
     if (r.verdicts[i] == linear::verdict::never_enabled) out_ << name << " dead " << event_names_[i] << " never\n";
     else if (r.verdicts[i] == linear::verdict::one_step) out_ << name << " dead " << event_names_[i] << " step\n";
   }

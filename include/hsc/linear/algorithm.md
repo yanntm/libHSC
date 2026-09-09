@@ -6,6 +6,11 @@ A P-flow `f` of a net gives `Σ_p f_p · m(p) = K_f` on every reachable
 marking, `K_f = Σ f_p · m0(p)`. A semiflow (`f ≥ 0`) with `K_f` also bounds
 every place it covers: `m(p) ≤ ⌊K_f / f_p⌋`. So, from the flows:
 
+* the **structural zeros** first: a place with no token initially and no
+  producer among the transitions that can fire stays empty, a fixpoint over
+  the net alone; its domain is `{0}`, the tightest bound there is, and its
+  consumers cannot fire. On BugTracking-PT-q3m016 this alone is the whole
+  answer (§3);
 * a **domain** per covered place, `[0, B_p]` with `B_p` the least such
   bound; the uncovered places keep the domain the model declared (a cap,
   not a bound — §4);
@@ -47,12 +52,39 @@ enabling one).
 
 ## 3. Reading the result
 
-`(dead NAME SET)` prints, for the default system's events, the ones dead by
-test 1, then those dead by test 2, and the count that remain; `hsc-pn --dead`
-does it from a net's flows and prints the dead transitions' names. The
-first measure is BugTracking-PT-q3m016: 27 370 transitions, most of them
-dead by the structural tools; how many the invariant set alone kills, at
-what size and time, under which shape.
+`(dead NAME SET [step] [ignore LEAF*])` prints, for the default system's
+events, the ones dead by test 1, then those dead by test 2 (`step`), and a
+summary; `hsc-pn --dead S [--dead-step]` does it from a net: flows within S
+seconds, the structural zeros, the box, the equality diagrams (§5), the
+tests, the names under `-v`. The oracle of the test is the QuasiLiveness
+examination: a transition not quasi-live is dead.
+
+Measured (the QLA oracle of `pnmcc-models-2026` as the reference):
+
+| net | transitions | dead found | oracle dead | wrong | time | note |
+|---|---|---|---|---|---|---|
+| BugTracking-PT-q3m016 (Sloan) | 27 370 | 24 601, all by the structural zeros | 24 601 | 0 | 15 s | ITS-Tools: the same 24 601 structurally, then 61 s of SMT for 1098 more the oracle leaves unknown |
+| SupplyChain-PT-00005 | 43 | 0 | 0 | 0 | 0.03 s | 37 flows, 12 positive, 41 of 69 places covered |
+| TwoPhaseLocking-PT-nC00100vN | 6 | 0 | 0 | 0 | 0.2 s | the invariant set equals the reachable set here |
+
+Two lessons: the shape matters for the invariant set as it does for the
+reachable set (SupplyChain's set: 2.2 s under the NUPN order, 0.03 s under
+Sloan); and the tests must not be filtered by whole presets — a transition
+with a never-marked input place is dead whatever its other inputs, capped
+or not, so the guard atoms on capped places are *dropped* (a weaker guard,
+sound for "never enabled") rather than the transition skipped; the one-step
+test alone needs the exact guard.
+
+## 5. Building the equalities
+
+The case-bracket curry of `(== (+ …) K)` over a full box enumerates residual
+classes level by level and does not return on a few dozen constraints
+(SupplyChain's 37). The equality of a nonnegative flow is built directly
+instead (`equality.hh`): a knapsack along the shape, one node per (sort,
+position, remaining sum), the residuals above `K` pruned, the domains read
+from the box; `(intersect S F E_1 …)` meets them, tightest first.
+Milliseconds where the curry never finished. Mixed-sign flows are not
+constraints this construction takes yet.
 
 ## 4. Uncovered places
 
