@@ -46,7 +46,7 @@ grep -v '^#' "$HEUR" | while IFS=$'\t' read -r name flags envs; do
     continue
   fi
   [ -n "$sig" ] && seen_sig[$sig]=$name
-  ( ulimit -v "$MEM"; env $envs_ /usr/bin/time -f "%e %U %S %M" -o "$tm" timeout "$BUDGET" "$BIN" -i "$pnml" $QUERY --totalTime $((BUDGET-2)) --printUnknown -q -v $flags > "$out" 2> "$err" ); rc=$?
+  ( ulimit -v "$MEM"; env $envs_ /usr/bin/time -f "%e %U %S %M" -o "$tm" timeout "$BUDGET" "$BIN" -i "$pnml" $QUERY --totalTime $((BUDGET-30)) --printUnknown -q -v $flags > "$out" 2> "$err" ); rc=$?
   read -r wall usr sys mem < <(tail -1 "$tm" 2>/dev/null)
   cpu=$(awk -v u="${usr:-0}" -v s="${sys:-0}" 'BEGIN{printf "%.2f", u+s}')
   status=ok; [ "$rc" = 124 ] && status=timeout

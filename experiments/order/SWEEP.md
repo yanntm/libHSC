@@ -114,7 +114,9 @@ Seventeen, one budget each; all 1681 P/T instances (`models_pt_all.txt`)
 on StateSpace, CTLCardinality and CTLFireability: 1681 × 3 × 17 = 85 731
 runs of at most 300 s. One job per (instance, examination) running the
 seventeen in sequence: 5043 jobs of at most 85 minutes each, one core each
-(the tool is single-threaded), `ulimit -v 15000000` per run. StateSpace
+(the tool is single-threaded), `ulimit -v 15000000` per run, `--totalTime` 30 s under the `timeout`
+(the margin belongs to the job: 21 runs of the first sweep outlived a 2 s
+one; the systemic answer is `include/hsc/sched/algorithm.md`). StateSpace
 is submitted first. A run's `status` is `ok`, `timeout`, `memory`, `crash`,
 or `noreach` — the budget spent inside the reachable set, nothing answered.
 
