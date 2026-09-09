@@ -260,3 +260,27 @@ try next is by the slice's cardinal or node count, and the writers can be
 halved by sign (only a producer into an input place, or a consumer of an
 inhibitor place, enters the slice). The run to completion (1200 s budget)
 follows.
+
+### 2.10 BugTracking: sign-aware writers, smallest slices first (measured)
+
+Two changes to the one-step test (`82bd57d`): only the events that can
+*enter* a slice count — a producer into a place the guard wants high, a
+consumer of a place it wants low (the direction of every write is recorded
+with the event) — and the candidates are visited smallest slice first (by
+the slice's cardinal). BugTracking, abstract net, 150 s budget
+(`tests/logs/unreach/dead_bt_abs7.err`):
+
+| test | one-step kills | dead in all | wrong | tests run | time | peak memory |
+|---|---|---|---|---|---|---|
+| index order (§2.6) | 0 | 24 601 | 0 | < 500 | 300 s | — |
+| cheapest by writers (§2.9) | 169 | 24 770 | 0 | ~450 | 150 s | 2.7 GB |
+| **sign-aware, smallest slices first** | **854** | **25 455** | **0** | 4900 | 150 s | 2.9 GB |
+
+The profile: the first pass over the 2701 candidates takes 100 s and kills
+about 250; the second pass, with those no longer live, kills 600 more in
+seven seconds (a slice's entries came from transitions that are now dead);
+the third pass, cut by the budget at 145 s, had killed nothing further by
+then. About 30 ms a test in the later passes. ITS-Tools' SMT kills 1098 of
+the oracle's 2523 unknowns in 61 s; the iterated one-step test on the
+diagram is at 854 in 110 s, and the run to convergence follows. Every one
+of the 854 is among the oracle's unknowns.
