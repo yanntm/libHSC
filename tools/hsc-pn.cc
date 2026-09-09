@@ -354,14 +354,37 @@ int main(int argc, char** argv) {
     if (total_time > 0 && !shape_only) {
       solver.set_deadline(t_model + std::chrono::milliseconds(total_time * 800));
     }
-    bool r_partial = false;
+    bool r_partial = false, r_diverged = false, pumped = false;
+    unsigned epochs = 1;
     for (const std::string& l : solver.feed(model.str())) {
       if (l == "R partial") r_partial = true;
+      if (l.rfind("R diverged", 0) == 0) r_diverged = true;
       if (l.rfind("(shape", 0) == 0) {
         for (const unsigned char c : l) { sig ^= c; sig *= 1099511628211ull; }
         if (!export_shape.empty()) { std::ofstream f(export_shape); f << l << '\n'; }
       } else if (verbose && (l.empty() || l.front() != '(')) {
         std::cerr << l << '\n';
+      }
+    }
+    // The epochs of the divergence watch: a place ran past the limit — the
+    // closure broke out early — so look for a pumping pair (a proof of
+    // unboundedness) once, then resume the closure under the same deadline
+    // until it converges, runs out, or breaks out at the next doubling.
+    while (r_partial && r_diverged && !shape_only) {
+      r_diverged = false;
+      if (cover) {
+        for (const std::string& l : solver.feed("(pump R)")) {
+          if (verbose) std::cerr << "hsc-pn: " << l << '\n';
+          if (l.rfind("R pump ", 0) == 0 && l.find(" none") == std::string::npos) pumped = true;
+        }
+        if (pumped) break;
+      }
+      r_partial = false;
+      ++epochs;
+      for (const std::string& l : solver.feed("(reach R saturate from R)")) {
+        if (l == "R partial") r_partial = true;
+        if (l.rfind("R diverged", 0) == 0) r_diverged = true;
+        if (verbose) std::cerr << l << '\n';
       }
     }
     solver.set_deadline(std::nullopt);
@@ -408,7 +431,8 @@ int main(int argc, char** argv) {
         };
         walk(walk, units.root, 1);
       }
-      std::cerr << "hsc-pn: stats reach_s=" << reach_s << " partial=" << (r_partial ? 1 : 0) << " reach_states=" << reach_states
+      std::cerr << "hsc-pn: stats reach_s=" << reach_s << " partial=" << (r_partial ? 1 : 0) << " epochs=" << epochs
+                << " reach_states=" << reach_states
                 << " reach_nodes=" << nodes << " reach_arcs=" << arcs
                 << " belly_nodes=" << belly << " belly_level=" << belly_level << " belly_span=" << belly_span
                 << " shape_depth=" << depth << " shape_units=" << nunits << " shape_widest=" << widest
@@ -472,10 +496,11 @@ int main(int argc, char** argv) {
       // wrong, and the properties' selections unsound — unless the set proves
       // a place unbounded (a pumping pair), which answers StateSpace for good
       if (cover && states) {
-        bool pumped = false;
-        for (const std::string& l : solver.feed("(pump R)")) {
-          if (verbose) std::cerr << "hsc-pn: " << l << '\n';
-          if (l.rfind("R pump ", 0) == 0 && l.find(" none") == std::string::npos) pumped = true;
+        if (!pumped) {  // the deadline cut the set without a divergence note: one last look
+          for (const std::string& l : solver.feed("(pump R)")) {
+            if (verbose) std::cerr << "hsc-pn: " << l << '\n';
+            if (l.rfind("R pump ", 0) == 0 && l.find(" none") == std::string::npos) pumped = true;
+          }
         }
         if (pumped) {
           for (const char* v : {"STATES", "TRANSITIONS", "MAX_TOKEN_IN_PLACE", "MAX_TOKEN_PER_MARKING"})

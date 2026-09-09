@@ -142,15 +142,19 @@ once per run; bounds have no witness.
 
 ### `--cover`
 
-On a partial reachable set (the budget ran out inside it) with `--states`,
-`(pump R)` is asked: a pumping pair (manual §8g) proves a place unbounded,
-and the four StateSpace values are answered `+inf` with the technique
-`COVERABILITY`. Nothing is answered otherwise. The divergence signal that
-makes the set partial early comes from the leaf theory: a place whose
-domain passes the divergence limit (65536 values) breaks the closure out
-with a note, so an unbounded net does not spend the whole budget in a
-tight loop. CryptoMiner-PT-D05N000 and FunctionPointer-PT-a008 answer in
-16 s of a 20 s budget; BugTracking (754 places) does not yet.
+The divergence watch. A place whose value runs past the largest initial
+marking is a place beyond anything the model started with: the leaf theory
+notes it, asks the closure to return (a partial set, `R diverged`), and
+doubles the limit so the next report comes at the next doubling. With
+`--cover`, each such epoch asks `(pump R)` — a pumping pair (manual §8g)
+proves a place unbounded — and, found, answers the four StateSpace values
+`+inf` with the technique `COVERABILITY`; not found, the closure resumes
+(`(reach R saturate from R)`) under the same deadline. A set cut by the
+deadline without a note gets one last pump. CryptoMiner-PT-D05N000 answers
+in 0.03 s and FunctionPointer-PT-a008 in 0.12 s at the first doubling;
+BugTracking-PT-q3m016 (754 places, 27 370 transitions, most dead) meets its
+runaway place under the Sloan order only and its pump runs out of time —
+a net for ITS-Tools to reduce first.
 
 ### `--states`
 
