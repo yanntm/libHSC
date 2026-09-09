@@ -1,7 +1,8 @@
 #!/bin/bash
 # hsc-pn against the MCC oracle on the examples/mcc fixtures: every model with
 # property files, on both input paths (PNML + MCC XML, PNET + s-expressions),
-# for ReachabilityCardinality, ReachabilityFireability, UpperBounds, plus the
+# for ReachabilityCardinality, ReachabilityFireability, UpperBounds,
+# CTLCardinality and CTLFireability where the fixtures exist, plus the
 # deadlock and the state count of expected.csv. Each run is capped at 15 s.
 #   tests/pn_samples.sh [hsc-pn binary] [examples/mcc]
 #   PN_TIMEOUT=N caps each run (default 15 s); a timeout is reported, not a failure.
@@ -21,8 +22,9 @@ check() {  # label oracle-file output-file rc
 }
 for pnet in "$SAMPLES"/*.pnet; do
 	m=$(basename "$pnet" .pnet)
-	for exam in ReachabilityCardinality:RC ReachabilityFireability:RF UpperBounds:UB; do
+	for exam in ReachabilityCardinality:RC ReachabilityFireability:RF UpperBounds:UB CTLCardinality:CTLC CTLFireability:CTLF; do
 		e=${exam%%:*}; o=${exam##*:}
+		[ -f "$SAMPLES/$m.$e.xml" ] || continue
 		out="$LOGS/pn_$m-$o-xml.out"
 		timeout $T_ "$HSC_PN" -i "$SAMPLES/$m.pnml" --props "$SAMPLES/$m.$e.xml" -q > "$out" 2> "$out.err"; rc=$?
 		check "$m $o pnml+xml" "$SAMPLES/oracle/$m-$o.out" "$out" $rc
