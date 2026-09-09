@@ -595,6 +595,13 @@ core::code int_set_theory::minus(core::code a, core::code b) {
   return of_sorted(scratch_);
 }
 
+bool int_set_theory::injective(core::code term) const {
+  if (term == 0) return true;  // id, as everywhere
+  const int_term& t = terms_[term];
+  return t.shape == int_shape::primitive &&
+         (t.action == int_action::keep || t.action == int_action::shift);
+}
+
 double int_set_theory::cardinal(core::code c) const {
   return static_cast<double>(elements(c).size());
 }
