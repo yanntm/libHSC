@@ -480,8 +480,8 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
         mark_partial();
         return x;
       }
-      if (elements(x).size() > domain_limit_) {
-        note_divergence();
+      if (!elements(x).empty() && elements(x).back() > domain_limit_) {
+        note_divergence();  // a value beyond the limit: report, the closure resumes later
         return x;
       }
       const core::code y = join(x, apply_local(t.a, x));
@@ -510,12 +510,12 @@ core::code int_set_theory::apply_local(core::code term, core::code value) {
       // wrap — it is the theory's job to represent classes finitely, and when
       // it cannot (an unbounded net), it says so here rather than lie.
       const auto from = elements(kept);
-      // A domain past the divergence limit is the signal of an unbounded
-      // place (`support.hh`): note it, and stop the enclosing closure, which
+      // A value past the divergence limit is the signal of an unbounded
+      // place (`support.hh`): note it and stop the enclosing closure, which
       // returns what it had — a partial set the divergence watch reads.
-      if (from.size() > domain_limit_) {
+      if (!from.empty() && t.arg > 0 && static_cast<long long>(from.back()) + t.arg > domain_limit_) {
         note_divergence();
-        throw interrupted("domain limit: a place runs past " + std::to_string(domain_limit_) + " values");
+        throw interrupted("a place runs past " + std::to_string(domain_limit_));
       }
       std::vector<std::int32_t> out;
       out.reserve(from.size());

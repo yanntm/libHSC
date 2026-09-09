@@ -12,6 +12,7 @@
 #include "hsc/core/code.hh"
 #include <cstdint>
 #include <functional>
+#include <limits>
 
 #include "hsc/util/errors.hh"
 
@@ -42,6 +43,7 @@ class support_algebra {
   struct stop_hooks {
     std::function<bool()> stopping;
     std::function<void()> mark_partial;
+    std::function<void()> request_stop;  ///< a divergence note asks the closures to return
   };
   void set_stop_hooks(stop_hooks hooks) { hooks_ = std::move(hooks); }
   [[nodiscard]] bool stopping() const { return hooks_.stopping && hooks_.stopping(); }
@@ -55,21 +57,26 @@ class support_algebra {
   void mark_partial() const {
     if (hooks_.mark_partial) hooks_.mark_partial();
   }
-  /// \brief Whether a closure of this theory broke out because its domain
-  /// grew past the divergence limit (`set_domain_limit`) — the signal of an
-  /// unbounded place, read between epochs; cleared by `clear_diverged`.
+  /// \brief Whether a value of this theory ran past the divergence limit
+  /// (`set_domain_limit`) — the signal of an unbounded place, read between
+  /// epochs; cleared by `clear_diverged`. The limit doubles at every note,
+  /// so the signal fires once per doubling and the run goes on between.
   [[nodiscard]] bool diverged() const noexcept { return diverged_; }
   void clear_diverged() noexcept { diverged_ = false; }
-  /// The number of values a closure's domain may reach before it breaks out
-  /// (default 65536; `HSC_DOMAIN_LIMIT` in the tools).
-  void set_domain_limit(std::size_t values) noexcept { domain_limit_ = values; }
+  /// The largest value a leaf may reach before the closure breaks out to
+  /// report — the largest initial marking, set by the front end; a value
+  /// above it is a place beyond anything the model started with.
+  void set_domain_limit(long long value) noexcept { domain_limit_ = value; }
+  [[nodiscard]] long long domain_limit() const noexcept { return domain_limit_; }
 
  protected:
   void note_divergence() {
     diverged_ = true;
+    domain_limit_ = domain_limit_ * 2 + 1;  // the next report at the next doubling
     mark_partial();
+    if (hooks_.request_stop) hooks_.request_stop();  // the closures return at their next check
   }
-  std::size_t domain_limit_ = 65536;
+  long long domain_limit_ = std::numeric_limits<long long>::max();  // off until set
 
  private:
   stop_hooks hooks_;
