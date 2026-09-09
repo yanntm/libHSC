@@ -116,6 +116,7 @@ nodes.
 continues forward and the other is evaluated backward; nothing in the
 semantics prefers either. VIS sends the right one forward, and so does this
 conversion (the last conjunct in written order, i.e. the highest node id).
+`HSC_CTL_FWD=left` sends the first one instead — a variation point.
 The path operators offer no such choice: `E[q U f]` always carries the seed
 through `q` and checks `f` at the end.
 

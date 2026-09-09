@@ -4,6 +4,8 @@
 #include "hsc/ctl/forward.hh"
 
 #include <algorithm>
+#include <cstdlib>
+#include <string>
 
 #include "hsc/util/hash.hh"
 
@@ -102,6 +104,13 @@ q_id forward::rule(set_id r, node_id phi) {
         (f_.is_state(k) ? state : rest).push_back(k);
       set_id cur = r;
       if (!state.empty()) cur = mk_set({set_op::filter, cur, f_.conj(state)});
+      // HSC_CTL_FWD=left sends the first conjunct forward instead (a
+      // variation point to measure).
+      static const bool from_left = [] {
+        const char* e = std::getenv("HSC_CTL_FWD");
+        return e != nullptr && std::string(e) == "left";
+      }();
+      if (from_left) std::ranges::reverse(rest);
       node_id fwd = 0;
       bool have_fwd = false;
       for (auto it = rest.rbegin(); it != rest.rend(); ++it) {
