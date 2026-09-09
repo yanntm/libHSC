@@ -38,6 +38,15 @@ code translator::run_reach(bool naive, std::optional<code> system,
   }
   core::diagram_engine& diagrams = mgr_.diagrams();
   code reachable = from ? *from : seed();
+  if (!divergence_limit_set_) {
+    // the divergence watch's trigger: a value beyond the largest initial marking
+    std::vector<std::int32_t> init_values;
+    first_word(top_, seed(), init_values);
+    long long m = 1;
+    for (const std::int32_t v : init_values) m = std::max<long long>(m, v);
+    theory_->set_domain_limit(m);
+    divergence_limit_set_ = true;
+  }
   util::stopwatch sw;
   if (naive) {
     const code all = core::sum_at(mgr_, top_, summands);
@@ -94,6 +103,12 @@ void translator::do_reach(const datum& form) {
   // A budget or a stop ended the closure early: the set is sound (every
   // state in it is reachable) and incomplete; `(reach … from NAME)` continues it.
   if (mgr_.partial()) out_ << name << " partial\n";
+  // …and when a place ran past the divergence limit, say so once: the
+  // watch's cue to look for a pump before resuming
+  if (theory_->diverged()) {
+    theory_->clear_diverged();
+    out_ << name << " diverged " << theory_->domain_limit() << '\n';
+  }
 }
 
 /// `(budget SECONDS)`: every following form runs at most SECONDS seconds; a

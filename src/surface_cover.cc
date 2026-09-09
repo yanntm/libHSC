@@ -24,11 +24,17 @@ namespace hsc::surface {
 void translator::do_pump(const datum& form) {
   if (top_ == core::none) fail(form, "pump before shape");
   const std::string& name = sym(arg(form, 1, "result name"));
+  // the search fires the very events that ran past the limit: the divergence
+  // watch is off while it runs, and left as it was after
+  const long long limit = theory_->domain_limit();
+  theory_->set_domain_limit(std::numeric_limits<long long>::max());
   try {
     pump(form, name);
   } catch (const interrupted&) {
     out_ << name << " pump none (deadline)\n";
   }
+  theory_->set_domain_limit(limit);
+  theory_->clear_diverged();
 }
 
 void translator::pump(const datum& form, const std::string& name) {
@@ -37,9 +43,9 @@ void translator::pump(const datum& form, const std::string& name) {
     out_ << name << " pump none (empty set)\n";
     return;
   }
-  // the largest value of every leaf in the set
+  // the largest value of every leaf in a set (the position carried down)
   std::vector<std::int32_t> mx(order_.size(), std::numeric_limits<std::int32_t>::min());
-  {
+  const auto leaf_maxima = [&](code of, std::vector<std::int32_t>& mx) {
     std::unordered_map<core::shape_code, std::size_t> width;
     const auto span = [&](auto&& self, core::shape_code s) -> std::size_t {
       switch (mgr_.shapes().kind(s)) {
@@ -75,8 +81,30 @@ void translator::pump(const datum& form, const std::string& name) {
         }
       }
     };
-    visit(visit, set, top_, 0);
+    visit(visit, of, top_, 0);
+  };
+  leaf_maxima(set, mx);
+  // The search runs on a small set — the seed's neighbourhood, a few naive
+  // layers — not on the (possibly enormous) set that gave the maxima: a pump
+  // shows up close to the seed, and selections, inversions and layers over
+  // billions of states would eat the budget before the first path.
+  core::diagram_engine& diagrams = mgr_.diagrams();
+  code near = set;
+  if (diagrams.size(set) > 20000) {
+    // the set is large: a ball around the seed instead, a few naive layers,
+    // capped in nodes — a step of every event on a wide net is itself costly
+    const code all = core::sum_at(mgr_, top_, events_);
+    near = seed();
+    for (int layer = 0; layer < 12; ++layer) {
+      if (mgr_.stopping()) break;
+      const code grown = diagrams.join(near, diagrams.apply_local(all, near));
+      if (grown == near || diagrams.size(grown) > 20000) break;
+      near = grown;
+    }
   }
+  // the leaves that ran above their initial value, in the set or in the ball
+  // (the value that fired the divergence watch may not be in the set yet)
+  leaf_maxima(near, mx);
   // The leaves to try: the given one, or every leaf above its initial value,
   // the furthest first. For each, targets close to the initial value first
   // (a path to the leaf's largest value is as long as that value; the loop
@@ -95,19 +123,6 @@ void translator::pump(const datum& form, const std::string& name) {
       return mx[a] - init_values[a] > mx[b] - init_values[b];
     });
     if (leaves.size() > 4) leaves.resize(4);
-  }
-  // The search runs on a small set — the seed's neighbourhood, a few naive
-  // layers — not on the (possibly enormous) set that gave the maxima: a pump
-  // shows up close to the seed, and selections, inversions and layers over
-  // billions of states would eat the budget before the first path.
-  core::diagram_engine& diagrams = mgr_.diagrams();
-  const code all = core::sum_at(mgr_, top_, events_);
-  code near = seed();
-  for (int layer = 0; layer < 24; ++layer) {
-    if (mgr_.stopping()) break;
-    const code grown = diagrams.join(near, diagrams.apply_local(all, near));
-    if (grown == near) break;
-    near = grown;
   }
   std::vector<code> preds;
   try {

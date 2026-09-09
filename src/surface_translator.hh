@@ -602,6 +602,7 @@ class translator final : public name_scope {
   std::vector<std::string> order_;  ///< leaf names in frontier order
   std::optional<std::chrono::steady_clock::time_point> deadline_;  ///< of every form, when set
   std::optional<double> budget_;  ///< `(budget S)`: seconds per form, when set
+  bool divergence_limit_set_ = false;  ///< the theory's limit set from the seed, once
   core::shape_code top_ = core::none;
   std::vector<std::int32_t> defaults_;  ///< every leaf at LO (0 unbounded)
   std::vector<std::int32_t> init_;      ///< the base word: defaults + pairs
