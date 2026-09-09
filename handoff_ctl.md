@@ -51,6 +51,15 @@ Variation points: `HSC_CTL_EXIST=0`, `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`.
 ## Theory — open
 
 * A saturation schedule for `gfp` (none known; breadth-first for now).
+  Measured variants: the round form wins over the frontier form (m6b, 6414
+  against 6323). Untried, from libITS's LTL experience: the two-way trim
+  `X ← X ∩ pred(X) ∩ succ(X)` to fixpoint — a smaller core, chains peeled
+  from both ends — then `EG f = D ∪ lfp(sel_f ∘ pred)·core`, a saturating
+  closure; also the acyclicity test by that core. One-way-catch-them-young's
+  forward step is the identity for `EG` (every `f`-state is accepting);
+  acceptance sets are LTL's business.
+* Witness memory: the BFS layers are kept (as libITS does); checkpoint every
+  k-th layer and recompute between if a model ever hurts.
 * The constrained-closure rewrite (`ctl_directions.md` §4.4) stated as a
   rule in `saturate()`'s vocabulary, with its commutation criterion — now
   with evidence: `lfp(within(R) ∘ Σ pred_e)` is breadth-first wherever the
