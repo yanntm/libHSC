@@ -36,6 +36,7 @@
 #include "hsc/petri/parse/PropertyFile.h"
 #include "hsc/petri/to_surface.hh"
 #include "hsc/util/errors.hh"
+#include "pn_approx.hh"
 #include "pn_solver.hh"
 
 namespace {
@@ -76,8 +77,8 @@ int main(int argc, char** argv) {
   std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock, shape_file, export_shape;
   bool force = false, reverse = false, states = false, max_tokens = false, print_unknown = false, quiet = false,
        verbose = false, witness = false, shape_only = false, cover = false;
-  int dead_time = 0;
-  bool dead_step = false;
+  int dead_time = 0, approx_time = 0;
+  bool dead_step = false, approx_only = false, approx_units = false;
   int invariants_time = 0;
   long long seed = 1;
   int bound = 2, total_time = 0;
@@ -95,6 +96,9 @@ int main(int argc, char** argv) {
   app.add_flag("--shape-only", shape_only, "build and rewrite the shape, print its signature (hsc-pn: shape sig=...), no fixpoint");
   app.add_option("--dead", dead_time, "dead transitions from the invariant set: the P-flows within S seconds, their bounds and equalities as a diagram, every transition tested (hsc/linear); no fixpoint");
   app.add_flag("--dead-step", dead_step, "with --dead, also the one-step test (an image of the invariant set)");
+  app.add_option("--approx", approx_time, "before the fixpoint, build the invariant set S (the P-flows within S seconds, the structural zeros, the NUPN safe tag) and answer the reachability, invariant and deadlock properties it refutes");
+  app.add_flag("--approx-only", approx_only, "with --approx, stop there: no fixpoint, UNKNOWN for the rest");
+  app.add_flag("--approx-units", approx_units, "with --approx or --dead, add the NUPN unit constraints (one token at most per unit) to the invariant set");
   app.add_option("--shape-file", shape_file, "take the shape from this file: a (spine …)/(balanced …) expression over the place names, as --export-shape writes it (overrides --shape)");
   app.add_option("--export-shape", export_shape, "write the shape after the rewrites (FORCE, reverse) to this file, one expression");
   app.add_option("--invariants", invariants_time, "compute the P-flows within S seconds and let them guide the louvain shape");
@@ -329,7 +333,7 @@ int main(int argc, char** argv) {
   model << weight_forms;
   if (force) model << "(reorder-force)\n";
   if (reverse) model << "(reorder-reverse)\n";
-  if (!shape_only && dead_time == 0) model << "(reach R saturate)\n";
+  if (!shape_only && dead_time == 0 && approx_time == 0) model << "(reach R saturate)\n";
   // the rewritten spec comes back through the session, for the shape signature
   if (shape_only || verbose) model << "(print-spec)\n";
   if (!export_hsc.empty()) {
@@ -371,6 +375,43 @@ int main(int argc, char** argv) {
         std::cerr << l << '\n';
       }
     }
+    // The over-approximation first (ledger #19): the properties it refutes
+    // are answered before the fixpoint runs, without a deadline (a partial
+    // set would not be an over-approximation).
+    std::size_t refuted = 0;
+    if (approx_time > 0 && !shape_only && dead_time == 0) {
+      solver.set_deadline(std::nullopt);
+      hsc::petri::unit_tree tags;
+      if (!pnml.empty()) tags = hsc::petri::read_units(pnml);
+      hsc::pn::approx_options ao;
+      ao.flow_seconds = approx_time;
+      ao.cap = effective_bound;
+      ao.units = approx_units;
+      ao.verbose = verbose;
+      const hsc::pn::approx_set A = hsc::pn::build_approx(solver, *net, tags.present() ? &tags : nullptr, ao);
+      hsc::pn::print_approx_stats(std::cerr, A, net->getPlaceCount());
+      const auto ta = std::chrono::steady_clock::now();
+      std::size_t open_before = 0;
+      for (std::size_t i = 0; i < properties.size(); ++i) {
+        if (!g_open[i]) continue;
+        ++open_before;
+        if (solver.refute(properties[i], "S", A.bound, std::cout)) {
+          g_open[i] = 0;
+          ++refuted;
+          if (verbose) std::cerr << "hsc-pn: refuted " << properties[i].name << " on S\n";
+        }
+      }
+      std::cerr << "hsc-pn: approx refuted=" << refuted << " of " << open_before << " tests_s="
+                << std::chrono::duration<double>(std::chrono::steady_clock::now() - ta).count()
+                << " total_s=" << std::chrono::duration<double>(std::chrono::steady_clock::now() - t_model).count() << '\n';
+      if (approx_only) { print_open(std::cout); return 0; }
+      if (total_time > 0) solver.set_deadline(t_model + std::chrono::milliseconds(total_time * 800));
+      for (const std::string& l : solver.feed("(reach R saturate)")) {
+        if (l == "R partial") r_partial = true;
+        if (l.rfind("R diverged", 0) == 0) r_diverged = true;
+        else if (verbose && (l.empty() || l.front() != '(')) std::cerr << l << '\n';
+      }
+    }
     // The epochs of the divergence watch: a place ran past the limit — the
     // closure broke out early — so look for a pumping pair (a proof of
     // unboundedness) once, then resume the closure under the same deadline
@@ -404,88 +445,27 @@ int main(int argc, char** argv) {
     }
     if (dead_time > 0) {
       // Dead transitions from the invariant set (include/hsc/linear/algorithm.md):
-      // the flows bound the places they cover positively and constrain every
-      // marking; the box of those bounds selected by the equalities is an
-      // over-approximation of the reachable set, and a transition never
-      // enabled on it, or enabled only one step past what it rules out, is dead.
-      // A place no flow bounds keeps its cap and the transitions reading it are
-      // untested.
-      const auto t0 = std::chrono::steady_clock::now();
-      const std::vector<hsc::petri::pflow> flows = hsc::petri::pflows(*net, dead_time);
+      // a transition never enabled on it, or enabled only one step past what
+      // it rules out, is dead. The guard atoms on capped places are dropped.
+      hsc::petri::unit_tree tags;
+      if (!pnml.empty()) tags = hsc::petri::read_units(pnml);
+      hsc::pn::approx_options ao;
+      ao.flow_seconds = dead_time;
+      ao.cap = effective_bound;
+      ao.units = approx_units;
+      ao.verbose = verbose;
+      const hsc::pn::approx_set A = hsc::pn::build_approx(solver, *net, tags.present() ? &tags : nullptr, ao);
       const std::vector<std::string>& pnames = net->getPnames();
       const std::size_t np = net->getPlaceCount();
-      std::vector<long long> bound(np, -1);
-      for (const hsc::petri::pflow& f : flows) {
-        bool positive = f.constant >= 0;
-        for (const auto& [p, c] : f.terms) positive = positive && c > 0;
-        if (!positive) continue;
-        for (const auto& [p, c] : f.terms) {
-          const long long b = f.constant / c;
-          if (bound[static_cast<std::size_t>(p)] < 0 || b < bound[static_cast<std::size_t>(p)]) bound[static_cast<std::size_t>(p)] = b;
-        }
-      }
-      // The structural zeros: a place with no token initially and no producer
-      // among the transitions that can fire stays empty, and its consumers
-      // cannot fire — a fixpoint over the net alone. Those places get the
-      // domain {0}: the box rules their consumers out before any flow does.
-      const MatrixCol<int>& pre_m = net->getFlowPT();
-      const MatrixCol<int>& post_m = net->getFlowTP();
-      const std::vector<int>& marks = net->getMarks();
-      std::vector<char> markable(np, 0);
-      for (std::size_t p = 0; p < np; ++p) markable[p] = marks[p] > 0;
-      for (bool changed = true; changed;) {
-        changed = false;
-        for (std::size_t t = 0; t < net->getTransitionCount(); ++t) {
-          const SparseArray<int>& in = pre_m.getColumn(t);
-          bool live = true;
-          for (std::size_t k = 0; k < in.size() && live; ++k) live = markable[in.keyAt(k)];
-          if (!live) continue;
-          const SparseArray<int>& out = post_m.getColumn(t);
-          for (std::size_t k = 0; k < out.size(); ++k)
-            if (!markable[out.keyAt(k)]) { markable[out.keyAt(k)] = 1; changed = true; }
-        }
-      }
-      std::size_t covered = 0, zeros = 0;
-      std::string full = "(full F";
-      for (std::size_t p = 0; p < np; ++p) {
-        long long b = bound[p];
-        if (!markable[p]) { b = 0; ++zeros; bound[p] = 0; }  // never marked: a bound, and the tightest
-        if (b >= 0) ++covered; else b = effective_bound - 1;  // a cap, not a bound
-        full += " (" + pnames[p] + " 0 " + std::to_string(b) + ")";
-      }
-      // the positive flows as equality diagrams (the mixed-sign ones are not
-      // constraints this construction takes yet), the tightest first
-      std::vector<const hsc::petri::pflow*> positive;
-      for (const hsc::petri::pflow& f : flows) {
-        bool pos = f.constant >= 0;
-        for (const auto& [p, c] : f.terms) pos = pos && c > 0;
-        if (pos) positive.push_back(&f);
-      }
-      std::sort(positive.begin(), positive.end(), [](const auto* a, const auto* b) { return a->constant < b->constant; });
-      const auto t1 = std::chrono::steady_clock::now();
-      std::string box_states, set_states;
-      for (const std::string& l : solver.feed(full + ")")) if (l.rfind("F full ", 0) == 0) box_states = l.substr(7);
-      std::string sel = "(intersect S F";
-      for (std::size_t i = 0; i < positive.size(); ++i) {
-        std::string eq = "(equality E" + std::to_string(i) + " F " + std::to_string(positive[i]->constant);
-        for (const auto& [p, c] : positive[i]->terms) eq += " (* " + std::to_string(c) + ' ' + pnames[static_cast<std::size_t>(p)] + ')';
-        for (const std::string& l : solver.feed(eq + ")")) if (verbose) std::cerr << l << '\n';
-        sel += " E" + std::to_string(i);
-      }
-      for (const std::string& l : solver.feed(sel + ")")) if (verbose) std::cerr << l << '\n';
-      for (const std::string& l : solver.feed("(count S) (nodes S)")) { if (l.rfind("S count ", 0) == 0) set_states = l.substr(8); if (verbose) std::cerr << l << '\n'; }
       const auto t2 = std::chrono::steady_clock::now();
-      // the transitions whose guard reads a capped place are untested
-      std::size_t never = 0, step = 0, alive = 0, untested = 0, capped_guard = 0;
+      std::size_t never = 0, step = 0, alive = 0, untested = 0;
       std::vector<std::string> dead_names;
-      // the capped places are told to the test: guard atoms on them are dropped
       std::string dead_form = dead_step ? "(dead D S step ignore" : "(dead D S ignore";
-      for (std::size_t p = 0; p < np; ++p) if (bound[p] < 0) dead_form += ' ' + pnames[p];
+      for (std::size_t p = 0; p < np; ++p) if (!A.exact(p)) dead_form += ' ' + pnames[p];
       for (const std::string& l : solver.feed(dead_form + ")")) {
         if (l.rfind("D dead ", 0) == 0) {
           const std::string rest = l.substr(7);
-          const std::string tname = rest.substr(0, rest.find(' '));
-          dead_names.push_back(tname);
+          dead_names.push_back(rest.substr(0, rest.find(' ')));
           if (rest.find(" never") != std::string::npos) ++never; else ++step;
         } else if (l.rfind("D dead-summary", 0) == 0) {
           std::istringstream in(l.substr(15));
@@ -493,13 +473,13 @@ int main(int argc, char** argv) {
           while (in >> k >> v) { if (k == "alive") alive = v; else if (k == "untested") untested = v; }
         }
       }
-      const auto t3 = std::chrono::steady_clock::now();
-      const auto sec = [](auto a, auto b) { return std::chrono::duration<double>(b - a).count(); };
+      const double tests_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t2).count();
       std::cout << "DEAD_TRANSITIONS " << (never + step) << " of " << net->getTransitionCount() << " (never " << never
-                << ", one step " << step << ", alive " << alive + capped_guard << ", untested " << untested << ")"
-                << " flows " << flows.size() << " positive " << positive.size() << " covered places " << covered << " of " << np << " (never marked " << zeros << ")"
-                << " box " << box_states << " set " << set_states << " states"
-                << " times flows " << sec(t0, t1) << " s, set " << sec(t1, t2) << " s, tests " << sec(t2, t3) << " s" << std::endl;
+                << ", one step " << step << ", alive " << alive << ", untested " << untested << ")"
+                << " flows " << A.flows.size() << " positive " << A.positive.size() << " covered places " << A.covered
+                << " of " << np << " (never marked " << A.zeros << ", unit constraints " << A.unit_constraints << ")"
+                << " box " << A.box_states << " set " << A.set_states << " states"
+                << " times flows " << A.flows_s << " s, set " << A.set_s << " s, tests " << tests_s << " s" << std::endl;
       if (verbose) for (const std::string& n : dead_names) std::cerr << "DEAD " << n << '\n';
       return 0;
     }

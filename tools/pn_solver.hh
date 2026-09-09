@@ -27,6 +27,7 @@ namespace hsc::pn {
 
 constexpr const char* TECHNIQUES = " TECHNIQUES DECISION_DIAGRAMS SATURATION";
 constexpr const char* TRIVIAL = " TECHNIQUES TOPOLOGICAL TRIVIAL";
+constexpr const char* APPROX = " TECHNIQUES DECISION_DIAGRAMS TOPOLOGICAL";  ///< refuted on the invariant set
 
 /// Owns the session and its output buffer; every query is a fresh batch.
 class solver {
@@ -87,6 +88,58 @@ class solver {
                                q + " count ") != "0";
     if (some && witness_ && witness_for != nullptr) witness_path(*witness_for, q);
     return some;
+  }
+
+  /// `(select Q SET ATOM) (count Q)`: is the selection of a named set non-empty?
+  bool nonempty_on(const std::string& set, const std::string& atom) {
+    const std::string q = next_name();
+    return value_of(feed("(select " + q + " " + set + " " + atom + ") (count " + q + ")"), q + " count ") != "0";
+  }
+
+  /// Whether \p e reads a place \p bound only caps (a negative entry).
+  static bool reads_capped(const ::petri::expr::Expression& e, const std::vector<long long>& bound) {
+    if (e.kind == ::petri::expr::Expression::Kind::Atom) {
+      for (const auto& [p, c] : e.atom.terms)
+        if (p < bound.size() && bound[p] < 0) return true;
+      return false;
+    }
+    for (const ::petri::expr::Expression& k : e.children)
+      if (reads_capped(k, bound)) return true;
+    return false;
+  }
+
+  /// Refute \p p on the over-approximation named \p set (`S ⊇ R`, exact on the
+  /// places \p bound gives a bound for): a reachability goal that selects
+  /// nothing of it is FALSE, an invariant whose negation selects nothing is
+  /// TRUE, a deadlock the set has no marking for is FALSE (a dead marking
+  /// stays dead when its capped places are clipped, so caps do not matter
+  /// there). A goal that reads a capped place, or that the set does not rule
+  /// out, stays open: false is returned and nothing is printed.
+  bool refute(const ::petri::expr::Property& p, const std::string& set,
+              const std::vector<long long>& bound, std::ostream& out) {
+    using ::petri::expr::Expression;
+    using ::petri::expr::PropertyKind;
+    const std::vector<std::string>& pnames = net_.getPnames();
+    switch (p.kind) {
+      case PropertyKind::Reachability:
+      case PropertyKind::Invariant: {
+        const bool inv = p.kind == PropertyKind::Invariant;
+        const Expression goal = ::petri::expr::simplify(inv ? Expression::makeNot(p.body) : p.body);
+        if (goal.isConstant()) return false;  // the exact pass answers it trivially
+        if (reads_capped(goal, bound)) return false;
+        if (nonempty_on(set, hsc::petri::query_atom(goal, pnames))) return false;
+        out << "FORMULA " << p.name << ' ' << verdict(inv, false) << APPROX << std::endl;
+        return true;
+      }
+      case PropertyKind::Deadlock: {
+        const std::optional<std::string> atom = hsc::petri::deadlock_atom(net_);
+        if (!atom || nonempty_on(set, *atom)) return false;
+        out << "FORMULA " << p.name << " FALSE" << APPROX << std::endl;
+        return true;
+      }
+      default:
+        return false;
+    }
   }
 
   /// `WITNESS <name> path K` then the run, on stderr: a shortest path from

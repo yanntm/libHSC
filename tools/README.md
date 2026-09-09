@@ -25,6 +25,7 @@ business (`MCC-drivers/hsc/`); this tool answers properties.
 hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc|sexpr]
        [--shape nupn|flat|louvain|rcm|sloan|random | --shape-file FILE] [--seed N] [--force] [--reverse] [--invariants S]
        [--export-shape FILE] [--shape-only] [--bound N]
+       [--approx S [--approx-only] [--approx-units]] [--dead S [--dead-step]]
        [--states | --max-tokens] [--deadlock NAME] [--totalTime S] [--printUnknown] [--witness]
        [--export-hsc FILE] [-q] [-v]
 ```
@@ -155,6 +156,26 @@ in 0.03 s and FunctionPointer-PT-a008 in 0.12 s at the first doubling;
 BugTracking-PT-q3m016 (754 places, 27 370 transitions, most dead) meets its
 runaway place under the Sloan order only and its pump runs out of time —
 a net for ITS-Tools to reduce first.
+
+### `--approx`, `--dead`
+
+The over-approximation first (`include/hsc/linear/`, ideas #19). `--approx S`
+builds the invariant set `S ⊇ R` in the session before the fixpoint: the
+P-flows within S seconds, the positive ones as bounds and equality
+diagrams, the never-marked places bounded by 0, every place bounded by 1
+when the PNML carries a safe NUPN tag, and with `--approx-units` one token
+at most per NUPN unit (`(at-most …)`); the box `F`, the constraints, `S`
+their meet (`tools/pn_approx.hh`). Then every open reachability, invariant
+and deadlock property is tried on `S`: a goal that selects nothing of `S`
+is unreachable — `FALSE` for a reachability, `TRUE` for an invariant,
+`FALSE` for a deadlock — with the technique `TOPOLOGICAL`; a goal that
+reads a place `S` only caps, or that `S` does not rule out, stays open and
+goes to `R`. `--approx-only` stops there (UNKNOWN for the rest). The set
+is built without a deadline: a partial set would not over-approximate.
+`--dead S [--dead-step]` builds the same set and prints the transitions
+dead on it (`DEAD_TRANSITIONS …`, names under `-v`), no fixpoint.
+`hsc-pn: approx …` on stderr is the record: flows, covered places, zeros,
+unit constraints, the sizes of `F` and `S`, the times, the count refuted.
 
 ### `--states`
 

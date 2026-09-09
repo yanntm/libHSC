@@ -14,13 +14,24 @@ every place it covers: `m(p) ≤ ⌊K_f / f_p⌋`. So, from the flows:
 * a **domain** per covered place, `[0, B_p]` with `B_p` the least such
   bound; the uncovered places keep the domain the model declared (a cap,
   not a bound — §4);
+* the **NUPN facts**, when the PNML carries a unit tree tagged safe: every
+  place is bounded by 1 (so every place is covered), and each unit's local
+  places hold one token in all — `Σ_{p ∈ u} m(p) ≤ 1`, an inequality the
+  knapsack builds by keeping the residual sums below the constant instead
+  of pruning them (`(at-most …)`). Cheap facts the flows may not carry
+  (a unit is a mutual exclusion the state equation does not always see);
 * the **full product** `F` of those domains: one arc per leaf value, the
   diagram of every marking in the box;
 * the **invariant set** `S = F ∩ {m : every flow holds}`: each flow one
   crossing atom `(== (+ (* f_p p) …) K_f)`, applied as a selector to `F` —
   the case-bracket machinery of the calculus, nothing new.
 
-`S ⊇ R` (every reachable marking satisfies every flow and lies in the box),
+On the places the facts bound, the projection of `S` contains the
+projection of `R`; a place no fact bounds keeps a cap, and there `S` says
+nothing: a question that reads such a place is not asked of `S` (a dead
+marking is the exception — clipping capped places keeps it dead, so a
+deadlock `S` has no marking for is refuted soundly).
+`S ⊇ R` on the covered places (every reachable marking satisfies every flow and lies in the box),
 and `S` is closed under firing wherever the box is a bound: a reachable
 successor of a marking of `S` is in `S`. The size of `S` is the risk: one
 semiflow is a counter along the spine (nodes about `K × places`), several

@@ -15,10 +15,14 @@ dependency: the selectors build the set, one image tests the step.
 |---|---|
 | `algorithm.md` | the construction, the tests, their soundness, their cost |
 | `full.hh` / `src/linear/full.cc` | the product of the leaf domains as a diagram |
-| `equality.hh` / `src/linear/equality.cc` | the diagram of a nonnegative linear equality over a box, built directly (a knapsack along the shape) |
+| `equality.hh` / `src/linear/equality.cc` | the diagram of a nonnegative linear equality — or inequality `≤ K` — over a box, built directly (a knapsack along the shape) |
 | `dead.hh` / `src/linear/dead.cc` | the two deadness tests over an over-approximating set |
-| `src/surface_linear.cc` (bindings) | `(full NAME [(LEAF LO HI)]*)`, `(equality NAME BOX K (* C LEAF)*)`, `(intersect NAME A B*)`, `(dead NAME SET [step] [ignore LEAF*])` |
+| `src/surface_linear.cc` (bindings) | `(full NAME [(LEAF LO HI)]*)`, `(equality NAME BOX K (* C LEAF)*)`, `(at-most NAME BOX K (* C LEAF)*)`, `(intersect NAME A B*)`, `(dead NAME SET [step] [ignore LEAF*])` |
+| `tools/pn_approx.hh` (client) | the invariant set of a net in a session: flows, structural zeros, the NUPN safe tag and unit constraints, box, equalities, meet |
+| `hsc-pn --approx S [--approx-only] [--approx-units]` (client) | the reachability, invariant and deadlock properties refuted on the set before the fixpoint (`tools/README.md`) |
 | `hsc-pn --dead S [--dead-step]` (client) | flows within S seconds, structural zeros, box, equalities, tests; the dead transitions of the net (names under `-v`) |
+
+Report of the unreachability work: `research_notes/unreach_report.md`.
 
 First result: BugTracking-PT-q3m016, 24 601 of 27 370 transitions dead,
 every one confirmed by the QuasiLiveness oracle, 15 s (`algorithm.md` §3).
