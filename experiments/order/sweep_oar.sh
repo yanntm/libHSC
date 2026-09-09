@@ -4,10 +4,10 @@
 # (SWEEP.md §4–§5). Run on the head node from the deployed folder, which holds
 # hsc-pn, heuristics.tsv, sweep_job.sh and this script; the harness tree
 # (~/MCC26/MCC-drivers) provides INPUTS/<instance>/ and oracle/.
-#   ./sweep_oar.sh [-x "CTLC CTLF"] [-t budget_s] [-w walltime] [-H hosts] -o TAG models.txt
+#   ./sweep_oar.sh [-x "SS CTLC CTLF"] [-t budget_s] [-w walltime] [-H hosts] -o TAG models.txt
 # Never rewrite a script while a submission loop reads it (CLUSTER.md).
 set -u
-EXAMS="CTLC CTLF"; BUDGET=300; WALL=""; HOSTS="tall%"; TAG=""
+EXAMS="SS CTLC CTLF"; BUDGET=300; WALL=""; HOSTS="tall%"; TAG=""
 while getopts "x:t:w:H:o:" opt; do case $opt in
   x) EXAMS=$OPTARG;; t) BUDGET=$OPTARG;; w) WALL=$OPTARG;; H) HOSTS=$OPTARG;; o) TAG=$OPTARG;; esac; done
 shift $((OPTIND-1)); LIST=$(readlink -f "${1:?models.txt}"); [ -n "$TAG" ] || { echo "-o TAG required"; exit 2; }

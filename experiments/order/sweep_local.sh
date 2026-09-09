@@ -2,10 +2,10 @@
 # sweep_local.sh: the sweep on this machine — every (instance, exam) of a list
 # through sweep_job.sh, N side by side (SWEEP.md). Inputs come from the local
 # MCC 2026 copy (tests/logs/mcc2026, as the CTL bench lays it out).
-#   experiments/order/sweep_local.sh [-j N] [-t budget_s] [-x "CTLC CTLF"] [-h heuristics.tsv] -o TAG models.txt
+#   experiments/order/sweep_local.sh [-j N] [-t budget_s] [-x "SS CTLC CTLF"] [-h heuristics.tsv] -o TAG models.txt
 # models.txt: "<instance> <states>" per line (experiments/ctl/models_*.txt).
 set -u
-JOBS=4; BUDGET=300; EXAMS="CTLC CTLF"; HEUR=$(dirname "$0")/heuristics.tsv; TAG=""
+JOBS=4; BUDGET=300; EXAMS="SS CTLC CTLF"; HEUR=$(dirname "$0")/heuristics.tsv; TAG=""
 while getopts "j:t:x:h:o:" opt; do case $opt in
   j) JOBS=$OPTARG;; t) BUDGET=$OPTARG;; x) EXAMS=$OPTARG;; h) HEUR=$OPTARG;; o) TAG=$OPTARG;; esac; done
 shift $((OPTIND-1)); LIST=${1:?models.txt}; [ -n "$TAG" ] || { echo "-o TAG required"; exit 2; }

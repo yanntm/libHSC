@@ -12,6 +12,22 @@ the best average: we are looking for heuristics that **overcome some model
 the others cannot**, then for the structure of those models, then for
 heuristics **dominated** everywhere (to discard). Averages hide both.
 
+The primary target is the **reachable set**: once `R` is built the rest
+follows, and without it the symbolic approach has nothing. So the sweep runs
+the StateSpace examination on every P/T instance — the four values, the
+transition count included, graded against the oracle where it has one — and
+the two CTL examinations beside it; every CTL run builds `R` first and
+records its cost, so the reachability study comes with the CTL one, whose
+formulas carry the contest's own bias. The population is **all 1681 P/T
+instances**, the 809 above 10^9 states and the 449 of unknown size included:
+exponents past ten are where a symbolic engine earns its place against the
+explicit tools, one firing discovering exponentially many states.
+
+A second population, later: the **reduced nets** ITS-Tools hands its engines
+in its own scenarios (structural reductions first) — closer to what libHSC
+sees in production than the raw contest models; the deploy tree's `reducer`
+is the way to collect them.
+
 ## 2. The pages (one per examination, as `MCC-analysis/campaign` does)
 
 1. **Heuristics against each other** — one row per heuristic:
@@ -93,11 +109,13 @@ The full profile (all levels) stays in the log, read by page 7 on demand.
 | `louvain-merge2` | the same | `HSC_INV_MERGE=2` |
 | `force-iters` | `--shape louvain --force` | `HSC_FORCE_ITERS=2000` |
 
-Seventeen, one budget each; the small corpus (294 instances) and the
-10^7–10^9 list (129) on CTLCardinality and CTLFireability: 423 × 2 × 17 =
-14 382 runs of at most 300 s. One job per (instance, examination) running
-the seventeen in sequence: 846 jobs of at most 85 minutes each, one core
-each (the tool is single-threaded), `ulimit -v 15000000` per run.
+Seventeen, one budget each; all 1681 P/T instances (`models_pt_all.txt`)
+on StateSpace, CTLCardinality and CTLFireability: 1681 × 3 × 17 = 85 731
+runs of at most 300 s. One job per (instance, examination) running the
+seventeen in sequence: 5043 jobs of at most 85 minutes each, one core each
+(the tool is single-threaded), `ulimit -v 15000000` per run. StateSpace
+is submitted first. A run's `status` is `ok`, `timeout`, `memory`, `crash`,
+or `noreach` — the budget spent inside the reachable set, nothing answered.
 
 ## 5. The RAM rule
 
