@@ -1,0 +1,114 @@
+# The order sweep — what we will look at, hence what we collect
+
+Design note, written before the first cluster job. The pages come first
+(what a comparison of orders should let us see), the record per run follows
+from them, the job script from the record.
+
+## 1. The question
+
+Many heuristics, one fixed budget each (300 s), one run per (instance,
+examination, heuristic), no competition inside a run. We are not looking for
+the best average: we are looking for heuristics that **overcome some model
+the others cannot**, then for the structure of those models, then for
+heuristics **dominated** everywhere (to discard). Averages hide both.
+
+## 2. The pages (one per examination, as `MCC-analysis/campaign` does)
+
+1. **Heuristics against each other** — one row per heuristic:
+   answered, complete instances, wrong (must be 0), timeouts, memory
+   failures (the 15 GB rule), median / p90 wall, median / p90 peak RSS,
+   **unique wins** (instances where it alone has the most answers),
+   **marginal contribution** (answers the virtual best loses without it),
+   **dominated by** (the heuristics that answer at least as much on every
+   instance — a non-empty cell is a discard candidate). Default sort:
+   marginal contribution, then unique wins. This is the table that picks
+   the portfolio.
+2. **Pairwise matrix** — heuristics × heuristics, cell = instances where the
+   row answers strictly more than the column; a click selects the pair for
+   the views below. Asymmetric cells with a large value on one side only
+   are dominance; large values on both sides are complementarity, the
+   interesting case.
+3. **Instances** — one row per instance, one column per heuristic, the
+   answered count as a heat colour (0 = dark, 16 = light), a metric
+   selector switching the cell to: time to complete (∞ when not),
+   `R` time, `R` nodes, peak RSS, belly (the widest level's nodes). Sort by
+   **spread** (max − min answered across heuristics: where the order
+   matters), by **hardness** (best answered, ascending: what nobody
+   solves), by family. Filters: family regex, "some heuristic complete,
+   another empty", "wrong somewhere". Each cell links to the run's log.
+4. **Scatter A against B** — one point per instance, log axes, the selected
+   metric (time to complete, `R` nodes, RSS); colour by who answered more;
+   the outliers off the diagonal are the instances to read by hand.
+5. **Cactus** — per heuristic, instances completed within t, t on the x
+   axis; and the same with answers instead of instances (from the answer
+   timestamps), which shows a heuristic that answers early but never
+   finishes against one that is slow to start and completes.
+6. **Families** — family × heuristic, the mean rank of the heuristic inside
+   the family (1 = best), as a heatmap. A heuristic that wins one family
+   and loses the rest is a portfolio member, not a default.
+7. **One instance in depth** — for a chosen instance: the profile of `R`
+   under every heuristic (nodes per level, overlaid, x = level rank), the
+   dependency matrix as a spy plot under each order (places × transitions
+   permuted by the order: bandwidth made visible), the flows and the
+   protected events. This is where "why did Sloan win here" gets answered.
+
+## 3. The record per run
+
+One TSV line per (instance, examination, heuristic), logs kept beside it
+(`<tag>/<instance>-<exam>-<heuristic>.{out,err}`). Columns:
+
+| column | source | for |
+|---|---|---|
+| `instance`, `family`, `exam`, `heuristic`, `tag` | the job | keys |
+| `states` | the oracle's StateSpace count | hardness axis |
+| `wall_s`, `cpu_s`, `maxrss_kb`, `rc`, `status` | `/usr/bin/time`, the exit: `ok`, `timeout`, `memory` (killed by the 15 GB `ulimit -v`), `crash` | pages 1, 4 |
+| `answered`, `ok`, `wrong`, `unknown`, `complete` | the FORMULA lines against the oracle | pages 1–3 |
+| `answer_times` | `hsc-pn -v`: `answered <name> at <s>` per verdict, joined `name:s;…` | page 5, per-formula differentials |
+| `reach_s`, `reach_nodes`, `reach_arcs` | the `stats` line of `hsc-pn -v` | pages 3, 4, 7 |
+| `belly_nodes`, `belly_level`, `belly_span` | the widest level of `(profile R)` | page 3, 7 |
+| `shape_depth`, `shape_units`, `shape_widest_unit` | the unit tree | page 7, explaining hierarchy effects |
+| `flows`, `flows_widest`, `flows_maxconst`, `protected` | `-v` lines | page 7 |
+
+The full profile (all levels) stays in the log, read by page 7 on demand.
+
+## 4. The heuristics of the first sweep
+
+| name | hsc-pn flags | environment |
+|---|---|---|
+| `nupn` | `--shape nupn` | |
+| `flat` | `--shape flat` | |
+| `random` | `--shape random --seed 1` | the control |
+| `rcm` | `--shape rcm` | |
+| `sloan` | `--shape sloan` | |
+| `force` | `--shape nupn --force` | |
+| `force-rev` | `--shape nupn --force --reverse` | |
+| `rcm-force` | `--shape rcm --force` | FORCE started from a bandwidth order |
+| `sloan-force` | `--shape sloan --force` | |
+| `louvain` | `--shape louvain` | |
+| `louvain-force` | `--shape louvain --force` | the current best |
+| `louvain-force-rev` | `--shape louvain --force --reverse` | |
+| `louvain-inv` | `--shape louvain --force --invariants 5` | flows as cliques |
+| `louvain-inv5` | the same | `HSC_INV_WEIGHT=5` |
+| `louvain-merge4` | the same | `HSC_INV_MERGE=4` |
+| `louvain-merge2` | the same | `HSC_INV_MERGE=2` |
+| `force-iters` | `--shape louvain --force` | `HSC_FORCE_ITERS=2000` |
+
+Seventeen, one budget each; the small corpus (294 instances) and the
+10^7–10^9 list (129) on CTLCardinality and CTLFireability: 423 × 2 × 17 =
+14 382 runs of at most 300 s. One job per (instance, examination) running
+the seventeen in sequence: 846 jobs of at most 85 minutes each, one core
+each (the tool is single-threaded), `ulimit -v 15000000` per run.
+
+## 5. The RAM rule
+
+No cgroups on the cluster: a run past 15 GB is our failure, so every run
+sets `ulimit -v 15 GB` and a kill by it is recorded as `status=memory`.
+Peak RSS is collected for every run (`/usr/bin/time %M`); its p90 per
+heuristic is a column of page 1 and a discard criterion of its own.
+
+## 6. What decides the next sweep
+
+Discard the dominated. Read the unique wins by hand (page 7). Turn a
+recurring pattern into a rule (a contraction threshold, a FORCE seed, a
+belly-driven reshape), and sweep again on the instances where the spread
+was large — the others do not discriminate.
