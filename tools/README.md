@@ -148,9 +148,14 @@ examination is TRUE iff it is at most 1.
 
 ### Budget and failure
 
-The engine is not interruptible; `--totalTime S` arms `alarm(S)`, and the
-handler writes `UNKNOWN <name>` for every property still open when
-`--printUnknown` is set, then exits 0. A leaf overflow (`overflow_error`, a
+`--totalTime S` is a wall budget from the first line of `main`: a SIGALRM
+armed before the parse, whose handler writes `UNKNOWN <name>` for every
+property still open when `--printUnknown` is set, then exits 0. Inside the
+session the CTL properties run under cooperative deadlines (the manager's
+interrupt hook, polled at the closure loops); the other phases do not poll
+yet. This is a backstop, not a design: the budget object that replaces it —
+one deadline for time and memory, polled everywhere, tasks resumable, in
+PetriSpot's scheduler vocabulary — is `include/hsc/sched/algorithm.md`. A leaf overflow (`overflow_error`, a
 place beyond `--bound`) aborts the session: the properties without a verdict
 are `UNKNOWN`, never a wrong answer; the caller may retry with a larger
 bound. Exit code 0 when the run ends, non-zero for a bad file, an unresolved
