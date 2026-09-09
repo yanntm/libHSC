@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cstdint>
 
+#include <unordered_map>
+
 #include "hsc/order/profile.hh"
 #include "surface_translator.hh"
 
@@ -69,6 +71,59 @@ void translator::do_reach(const datum& form) {
     else fail(d, "reach takes one event term at most");
   }
   results_[name] = run_reach(naive, system, from);
+  // A budget or a stop ended the closure early: the set is sound (every
+  // state in it is reachable) and incomplete; `(reach … from NAME)` continues it.
+  if (mgr_.partial()) out_ << name << " partial\n";
+}
+
+/// `(budget SECONDS)`: every following form runs at most SECONDS seconds; a
+/// closure that runs out returns what it has, marked partial. `(budget)` clears.
+void translator::do_budget(const datum& form) {
+  if (form.items().size() == 1) {
+    budget_.reset();
+    return;
+  }
+  const datum& d = arg(form, 1, "seconds");
+  if (!d.is_atom()) fail(d, "budget takes a number of seconds");
+  try {
+    budget_ = std::stod(d.text());
+  } catch (const std::exception&) {
+    fail(d, "budget takes a number of seconds");
+  }
+  if (*budget_ <= 0) fail(d, "budget takes a positive number of seconds");
+}
+
+/// `(stock NAME [since OTHER])`: take stock of a set — its cardinal and
+/// nodes, per sort of the shape the nodes, arcs, and the local states the
+/// subshape reached (against OTHER's when given: which subshapes found new
+/// states), and the values every leaf reached (`order/profile.hh`).
+void translator::do_stock(const datum& form) {
+  const code c = named(arg(form, 1, "result name"));
+  std::optional<code> since;
+  if (form.items().size() == 4 && form.items()[2].is_atom() && form.items()[2].text() == "since") {
+    since = named(form.items()[3]);
+  } else if (form.items().size() != 2) {
+    fail(form, "stock takes NAME [since OTHER]");
+  }
+  core::diagram_engine& d = mgr_.diagrams();
+  const std::string& name = sym(form.items()[1]);
+  out_ << name << " stock states " << d.cardinal(c) << " nodes " << d.size(c) << '\n';
+  const std::vector<order::level_profile> prof = order::profile(mgr_, top_, c);
+  const std::vector<order::local_states> now = order::subshape_states(mgr_, top_, c);
+  std::unordered_map<core::shape_code, double> before;
+  if (since) for (const order::local_states& l : order::subshape_states(mgr_, top_, *since)) before[l.sort] = l.states;
+  std::unordered_map<core::shape_code, double> local;
+  for (const order::local_states& l : now) local[l.sort] = l.states;
+  for (const order::level_profile& l : prof) {
+    out_ << "  " << order_[l.first];
+    if (l.width > 1) out_ << ".." << order_[l.first + l.width - 1] << " (" << l.width << ')';
+    out_ << " nodes " << l.nodes << " arcs " << l.arcs << " local " << local[l.sort];
+    if (since) out_ << " gained " << (local[l.sort] - before[l.sort]);
+    out_ << '\n';
+  }
+  out_ << "  leaves";
+  for (const order::leaf_domain& ld : order::leaf_domains(mgr_, top_, c)) out_ << ' ' << order_[ld.position] << '=' << ld.values;
+  out_ << '\n';
 }
 
 /// `(apply NAME EVTERM SOURCE)`: the one-step image of a bound result —

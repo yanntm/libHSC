@@ -543,6 +543,8 @@ class translator final : public name_scope {
 
   void do_nodes(const datum& form);
   void do_profile(const datum& form);
+  void do_budget(const datum& form);
+  void do_stock(const datum& form);
 
   void do_print(const datum& form);
 

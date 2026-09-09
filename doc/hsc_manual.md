@@ -240,6 +240,8 @@ certificate; `unfold` always enumerates.
 (leaf-weight NAME K)         ; NAME stands for K places of a fused free component, §8e
 (nodes NAME)                 ; diagram nodes — the representation size
 (profile NAME)               ; nodes and arcs per level of the shape, frontier order
+(stock NAME [since OTHER])   ; take stock: states, nodes, per level nodes/arcs/local states (gained since OTHER), values per leaf
+(budget SECONDS)             ; every following form runs at most SECONDS; a closure that runs out returns a partial set — `NAME partial`
 (max-value NAME)             ; largest value any leaf holds in NAME
 (print NAME)
 (get-witness NAME)           ; one state, printed as a re-runnable (word …)
