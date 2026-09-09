@@ -48,6 +48,21 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 Observation points: `HSC_CTL_TRACE=1` (per-node wall time and `gfp` rounds on stderr).
 Variation points: `HSC_CTL_EXIST=0`, `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`.
 
+6. **Shape from the flows, then from the run** (the shape thread, your
+   direction): `hsc-pn --invariants S` hands the P-flows to Louvain
+   (sign-aware cliques, `HSC_INV_WEIGHT` / `HSC_INV_CROSS`; contraction of
+   heavy-constant flows into flat units, `HSC_INV_MERGE`); `--reverse`
+   mirrors the shape after FORCE; `(profile R)` prints nodes and arcs per
+   level. Running: Louvain + FORCE on m6c, plus flows, plus flows with
+   contraction at 4 (`experiments/ctl/`). Next, in order: read those; the
+   reversed order as a driver configuration if it earns it; then the
+   introspective pipeline — compute `R` under the first shape, read its
+   profile, and where a belly opens between two levels A and B either
+   bracket A..B as a unit or bring A next to B, re-emit the shape and
+   recompute `R` before the CTL budget is spent (not sifting: one static
+   rework informed by one run). Also untried: Sloan's ordering (LTSmin
+   found it good; brings the dependency matrix towards a diagonal).
+
 ## Theory — open
 
 * A saturation schedule for `gfp` (none known; breadth-first for now).
