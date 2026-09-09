@@ -76,6 +76,7 @@ One TSV line per (instance, examination, heuristic), logs kept beside it
 | column | source | for |
 |---|---|---|
 | `instance`, `family`, `exam`, `heuristic`, `tag` | the job | keys |
+| `shape_sig`, and the shape file `<run>.shape` beside the log | `hsc-pn --shape-only --export-shape` | duplicates folded, page 7 |
 | `states` | the oracle's StateSpace count | hardness axis |
 | `wall_s`, `cpu_s`, `maxrss_kb`, `rc`, `status` | `/usr/bin/time`, the exit: `ok`, `timeout`, `memory` (killed by the 15 GB `ulimit -v`), `crash` | pages 1, 4 |
 | `answered`, `ok`, `wrong`, `unknown`, `complete` | the FORMULA lines against the oracle | pages 1–3 |
@@ -130,10 +131,12 @@ Heuristics coincide often (`nupn` is `flat` on a net without units, the
 flow variants agree when no flow is heavy). `hsc-pn --shape-only` prints the
 signature of the rewritten shape without building anything; the job runs the
 first heuristic of a signature and records the others as `dup:<name>`, and
-the pages should read them as one column. A shape exchange format is worth
-having next — the order as a permutation and the hierarchy as a place × unit
-membership matrix in PetriSpot's KERS sparse format — so shapes can be stored,
-compared and handed to other tools.
+the pages should read them as one column. The shape itself is a file:
+`hsc-pn --export-shape FILE` writes the rewritten `(shape (spine …))`
+expression over the place names, `--shape-file FILE` takes one — the
+reified order and hierarchy, human-readable, diffable, tweakable by hand,
+buildable by any tool that writes parentheses. The sweep should export it
+beside every run, so page 7 can show and diff the shapes that won.
 
 ## 7. What decides the next sweep
 

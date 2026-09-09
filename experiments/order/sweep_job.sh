@@ -38,7 +38,8 @@ grep -v '^#' "$HEUR" | while IFS=$'\t' read -r name flags envs; do
   envs_=""; [ "$envs" != "-" ] && envs_="$envs"
   # Two heuristics giving the same shape: run the first, record the second as
   # its duplicate (status dup:<name>) — the signature is cheap, no fixpoint.
-  sig=$( ( ulimit -v "$MEM"; env $envs_ timeout 120 "$BIN" -i "$pnml" $flags --shape-only -q 2>/dev/null | grep -m1 -o 'sig=[0-9a-f]*' | cut -d= -f2 ) )
+  # …and the shape itself, exported beside the run (<base>.shape), for the pages and for a hand tweak.
+  sig=$( ( ulimit -v "$MEM"; env $envs_ timeout 120 "$BIN" -i "$pnml" $flags --shape-only --export-shape "$base.shape" -q 2>/dev/null | grep -m1 -o 'sig=[0-9a-f]*' | cut -d= -f2 ) )
   if [ -n "$sig" ] && [ -n "${seen_sig[$sig]:-}" ]; then
     echo -e "$INST\t$family\t$EX\t$name\t$TAG\t$states\t\t\t\t\tdup:${seen_sig[$sig]}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t$sig" >> "$TSV"
     : > "$out"  # marks the heuristic done for the idempotent restart
