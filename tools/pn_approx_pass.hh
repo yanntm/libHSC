@@ -33,6 +33,7 @@ struct approx_pass_options {
   double back_time = 2.0;   ///< seconds per backward search
   bool dead = false;        ///< the dead-transition report instead of the properties
   bool dead_step = false;   ///< with dead, the one-step test too
+  std::size_t dead_depth = 1;  ///< layers of the backward search from a slice
   int dead_budget = 0;      ///< with dead, seconds for the tests (0: none); the verdicts taken stand
   bool verbose = false;
 };
@@ -127,7 +128,7 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
   if (o.dead) {
     const clock::time_point t2 = clock::now();
     if (o.dead_budget > 0) s.set_deadline(t2 + std::chrono::seconds(o.dead_budget));
-    const std::string form = o.dead_step ? "(dead D S step)" : "(dead D S)";
+    const std::string form = o.dead_step ? "(dead D S step " + std::to_string(o.dead_depth) + ")" : "(dead D S)";
     for (const std::string& l : s.feed(form)) {
       if (l.rfind("D dead ", 0) == 0) {
         const std::string rest = l.substr(7);

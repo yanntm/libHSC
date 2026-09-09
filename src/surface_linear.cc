@@ -9,6 +9,7 @@
 /// without a recorded guard (a family, a no-op) is untested. One line per
 /// event that is dead, then a summary.
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <unordered_map>
 #include <unordered_set>
@@ -132,13 +133,15 @@ void translator::do_dead(const datum& form) {
   const std::string& name = sym(arg(form, 1, "result name"));
   const code set = named(arg(form, 2, "set"));
   bool with_step = false;
+  std::size_t depth = 1;  // layers of the backward search from a slice
   std::unordered_set<std::string> ignored;
   for (std::size_t i = 3, mode = 0; i < form.items().size(); ++i) {
     const datum& d = form.items()[i];
-    if (d.is_atom() && d.text() == "step") with_step = true;
+    if (d.is_atom() && d.text() == "step") { with_step = true; mode = 2; }
     else if (d.is_atom() && d.text() == "ignore") mode = 1;
+    else if (mode == 2 && d.is_atom() && std::isdigit(static_cast<unsigned char>(d.text()[0]))) { depth = std::stoul(d.text()); mode = 0; }
     else if (mode == 1 && d.is_atom()) ignored.insert(d.text());
-    else fail(d, "dead takes NAME SET [step] [ignore LEAF*]");
+    else fail(d, "dead takes NAME SET [step [K]] [ignore LEAF*]");
   }
   const auto reads_ignored = [&](const datum& atom) {
     bool r = false;
@@ -193,11 +196,28 @@ void translator::do_dead(const datum& form) {
   if (with_step) {
     const std::vector<code>& conv = converses_against(form, set);
     out_ << name << " dead-converses " << conv.size() << " in " << since() << " s\n";
+    // The entries of a slice, traced up to `depth` layers back inside the set:
+    // the first layer under the events that can enter the guard, the next
+    // ones under every live event. A layer meeting the initial marking is a
+    // path (the slice is reachable: alive); a layer empty before that closes
+    // the search (nothing of the set leads to the slice: dead, `none`
+    // returned); otherwise the last layer stands for "unknown".
     entries = [&, conv](std::size_t i, code en, const std::vector<char>& live) -> code {
+      core::diagram_engine& d = mgr_.diagrams();
       std::vector<std::size_t> which;
       for (const std::size_t u : events_entering(reads[i])) if (live[u]) which.push_back(u);
-      const code pre = pre_within(en, set, conv, which);
-      const code r = pre == core::none ? core::none : mgr_.diagrams().minus(pre, en);
+      std::vector<std::size_t> all_live;
+      if (depth > 1) for (std::size_t u = 0; u < events_.size(); ++u) if (live[u]) all_live.push_back(u);
+      code seen = en, frontier = en, r = core::none;
+      for (std::size_t k = 0; k < depth; ++k) {
+        const code pre = pre_within(frontier, set, conv, k == 0 ? std::span<const std::size_t>(which) : std::span<const std::size_t>(all_live));
+        const code fresh = pre == core::none ? core::none : d.minus(pre, seen);
+        if (fresh == core::none) { r = core::none; break; }
+        r = fresh;
+        if (d.meet(fresh, seed()) != core::none) break;  // a real path into the slice
+        seen = d.join(seen, fresh);
+        frontier = fresh;
+      }
       if (r == core::none) ++killed;
       if (++tested % 100 == 0)
         out_ << name << " dead-progress tested " << tested << " killed " << killed << " events " << which.size()

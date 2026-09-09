@@ -243,7 +243,7 @@ certificate; `unfold` always enumerates.
 (max-sum NAME [(* C LEAF)]*) ; the maximum of a linear form over the states, one pass (all leaves, coefficient 1, by default)
 (pump NAME [LEAF])           ; an unboundedness witness: a pumping pair on a shortest path to the leaf's largest value, §8g
 (full NAME [(LEAF LO HI)]*)  ; the product of the leaf domains (declared, or given), the box every marking lies in
-(dead NAME SET [step] [ignore LEAF*]) ; the events dead on SET: never enabled (guard atoms on ignored, merely capped leaves dropped); with `step`, also enabled in one step only from markings SET rules out
+(dead NAME SET [step [K]] [ignore LEAF*]) ; the events dead on SET: never enabled (guard atoms on ignored, merely capped leaves dropped); with `step`, also those whose enabling slice nothing of SET leads to, a backward search of K layers (1) from the slice
 (equality NAME BOX K (* C LEAF)*) ; the words of BOX (a product) with Σ C·LEAF = K, built directly (C of any sign)
 (at-most NAME BOX K (* C LEAF)*)  ; the same with Σ C·LEAF ≤ K
 (intersect NAME A B*)        ; the meet of bound results
