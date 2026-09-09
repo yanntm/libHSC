@@ -57,6 +57,10 @@ states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 | m5e (Louvain + FORCE) | 7267 | 0 | 2141 | 429 | 124 / 59 vs m5d |
 | best of m5d and m5e per run | 7765 | 0 | — | 460 | the driver's portfolio, two of its four configurations |
 
+`results/m5e_1e7_1e9.tsv`: the 129 instances between 10^7 and 10^9 states,
+120 s, Louvain + FORCE, 4 side by side with 8 GB each — the correctness
+check on bigger models (summary below when complete).
+
 The evaluation discipline (m5a), the fusion (m5b) and the fair-share
 scheduler (m5c) each buy about forty answers over 588 runs (6101 → 6224,
 +2%); the rounds of m5a cost complete files, which the fair shares give
