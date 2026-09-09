@@ -120,10 +120,13 @@ or `noreach` — the budget spent inside the reachable set, nothing answered.
 
 ## 5. The RAM rule
 
-No cgroups on the cluster: a run past 15 GB is our failure, so every run
-sets `ulimit -v 15 GB` and a kill by it is recorded as `status=memory`.
-Peak RSS is collected for every run (`/usr/bin/time %M`); its p90 per
-heuristic is a column of page 1 and a discard criterion of its own.
+The nodes kill a one-core job at about 6 GB resident (SIGKILL, nothing
+said; observed at 6005 MB on every killed run of the first sweep). We do
+not fight it: what can be done within 6 GB is the question worth answering,
+and a kill is recorded as `status=memory` (rc 137). The job's own
+`ulimit -v 15 GB` stays as a backstop. Peak RSS is collected for every run
+(`/usr/bin/time %M`); its p90 per heuristic is a column of page 1 and a
+discard criterion of its own.
 
 ## 6. Identical shapes
 
