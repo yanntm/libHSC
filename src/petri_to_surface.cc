@@ -81,10 +81,12 @@ void to_surface(std::ostream& out, const SparsePetriNet<int>& net,
     out << "(leaf " << p << " 0 " << bound << ")\n";
   }
 
-  const std::vector<std::string> extra = units.present()
+  const std::vector<std::string> extra = units.present() && opts.shape_form.empty()
                                              ? orphans(net, units)
                                              : std::vector<std::string>{};
-  if (units.present()) {
+  if (!opts.shape_form.empty()) {
+    out << "; shape given verbatim (a shape file).\n(shape " << opts.shape_form << ")\n";
+  } else if (units.present()) {
     if (!extra.empty()) {
       out << "; note: " << extra.size()
           << " place(s) outside every unit, placed under the root.\n";

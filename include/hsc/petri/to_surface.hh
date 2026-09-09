@@ -35,6 +35,10 @@ struct emit_options {
   /// questions must keep them: they are the self-loops of the graph.
   bool skip_no_effect = false;
   examination exam = examination::none;
+  /// A shape given verbatim — the `(spine …)` / `(balanced …)` expression over
+  /// the place names, as `(print-spec)` echoes it — used instead of the unit
+  /// tree when non-empty. The reified order: a file any tool can write.
+  std::string shape_form;
 };
 
 /// \brief Write the `.hsc` model for \p net (with unit tree \p units) to \p out.
