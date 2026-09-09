@@ -97,6 +97,27 @@ std::string query_atom(const Expression& e,
   throw std::logic_error("unknown expression kind");
 }
 
+std::string ctl_text(const ::petri::expr::CtlFormula& f,
+                     const std::vector<std::string>& pnames) {
+  using ::petri::expr::CtlOp;
+  switch (f.op) {
+    case CtlOp::Pred:
+      if (f.pred.kind == Expression::Kind::True) return "true";
+      if (f.pred.kind == Expression::Kind::False) return "false";
+      return query_atom(f.pred, pnames);
+    case CtlOp::Deadlock: return "(deadlock)";
+    case CtlOp::NoDeadlock: return "(not (deadlock))";
+    default: break;
+  }
+  std::string out = "(";
+  out += ::petri::expr::to_string(f.op);
+  for (const auto& k : f.kids) {
+    out += ' ';
+    out += ctl_text(k, pnames);
+  }
+  return out + ')';
+}
+
 std::optional<std::string> guard_atom(const SparsePetriNet<int>& net,
                                       std::size_t t) {
   const SparseArray<int>& pre = net.getFlowPT().getColumn(t);

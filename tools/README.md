@@ -43,6 +43,10 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
    reads the same fixpoint. `translate()` writes its lines to a decoding
    stream: each `count` line that arrives is turned into a protocol line at
    once, so verdicts stream while later queries still run.
+   With a CTL property in the file the model keeps the transitions that move
+   no token (read arcs, self-loops): they are edges of the reachability graph
+   — a deadlock they enable is none, a cycle they close is one — and only
+   the fixpoint can do without them.
 5. **Answers.** The line protocol of `INTEROP.md` section 5 on stdout,
    flushed per line; the loader's log and every diagnostic on stderr.
 
@@ -54,7 +58,7 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
 | `(invariant N B)` / AG | `(select Q R (not B'))` `(count Q)` | FALSE if non-zero, else TRUE |
 | `(deadlock N)` | `(select Q R (not (or G_1 … G_n)))`, `G_t` the guard of `t` | TRUE if non-zero |
 | `(bound N E [K])` | `(select Q_k R (>= E' k))` for k by binary search over `[0, bound)` | `FORMULA N <max>` |
-| `(ctl N F)` | none | `UNKNOWN N` |
+| `(ctl N F)` | `(ctl Q F')`, `F'` the formula in the surface's CTL grammar (manual §8f) | the session's `Q ctl TRUE|FALSE`; `UNKNOWN` leaves the property open |
 
 `B'` is the body printed in the surface's atom syntax: `(and|or|not …)`,
 comparisons `== != <= >= < >`, a linear form as a right-nested binary sum

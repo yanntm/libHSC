@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "hsc/petri/core/SparsePetriNet.h"
+#include "hsc/petri/expr/CtlFormula.h"
 #include "hsc/petri/expr/Expression.h"
 
 namespace hsc::petri {
@@ -46,6 +47,12 @@ std::optional<std::string> guard_atom(const SparsePetriNet<int>& net,
 /// The dead markings: `(not (or G_1 ... G_n))` over every transition's
 /// guard; nullopt when some transition is always enabled (no dead marking).
 std::optional<std::string> deadlock_atom(const SparsePetriNet<int>& net);
+
+/// \p f as a surface CTL formula (manual §8f): predicates as query atoms,
+/// constants as `true` / `false`, the deadlock atom as `(deadlock)`, the
+/// path operators by name.
+std::string ctl_text(const ::petri::expr::CtlFormula& f,
+                     const std::vector<std::string>& pnames);
 
 /// The comparison `form >= k` for a linear form, as an atom.
 std::string at_least(const ::petri::expr::LinearAtom& form, long long k,

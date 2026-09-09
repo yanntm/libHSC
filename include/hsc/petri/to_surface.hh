@@ -31,7 +31,8 @@ struct emit_options {
   /// effect zero: a read-arc-only or self-looping transition). They add
   /// nothing to the reachable set, so a consumer that only needs the fixpoint
   /// pays less; one that counts arcs or dead markings reads their guards from
-  /// the net instead, where they remain.
+  /// the net instead, where they remain. A consumer asking temporal
+  /// questions must keep them: they are the self-loops of the graph.
   bool skip_no_effect = false;
   examination exam = examination::none;
 };

@@ -208,25 +208,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  hsc::petri::emit_options opts;
-  opts.exam = hsc::petri::examination::model_only;
-  // a transition that cannot change the marking adds nothing to the fixpoint;
-  // its guard is still read from the net for deadlock and for arc counting
-  opts.skip_no_effect = true;
-  opts.bound = bound;
-  int effective_bound = bound;
-  for (int m : net->getMarks()) effective_bound = std::max(effective_bound, m + 1);
-
-  std::ostringstream model;
-  hsc::petri::to_surface(model, *net, units, opts);
-  model << weight_forms;
-  if (force) model << "(reorder-force)\n";
-  model << "(reach R saturate)\n";
-  if (!export_hsc.empty()) {
-    std::ofstream f(export_hsc, std::ios::binary);
-    f << model.str();
-  }
-
   // --- the properties ---
   std::vector<petri::expr::Property> properties;
   if (!props.empty()) {
@@ -242,6 +223,31 @@ int main(int argc, char** argv) {
     p.name = deadlock;
     p.kind = petri::expr::PropertyKind::Deadlock;
     properties.push_back(std::move(p));
+  }
+  const bool any_ctl = std::any_of(
+      properties.begin(), properties.end(), [](const petri::expr::Property& p) {
+        return p.kind == petri::expr::PropertyKind::CTL;
+      });
+
+  hsc::petri::emit_options opts;
+  opts.exam = hsc::petri::examination::model_only;
+  // A transition that cannot change the marking adds nothing to the
+  // fixpoint, and its guard is read from the net for deadlock and for arc
+  // counting; but it is an edge of the reachability graph — a self-loop, an
+  // infinite path — which CTL cannot do without.
+  opts.skip_no_effect = !any_ctl;
+  opts.bound = bound;
+  int effective_bound = bound;
+  for (int m : net->getMarks()) effective_bound = std::max(effective_bound, m + 1);
+
+  std::ostringstream model;
+  hsc::petri::to_surface(model, *net, units, opts);
+  model << weight_forms;
+  if (force) model << "(reorder-force)\n";
+  model << "(reach R saturate)\n";
+  if (!export_hsc.empty()) {
+    std::ofstream f(export_hsc, std::ios::binary);
+    f << model.str();
   }
   for (const petri::expr::Property& p : properties) g_unknown.push_back("UNKNOWN " + p.name + "\n");
   g_print_unknown = print_unknown;

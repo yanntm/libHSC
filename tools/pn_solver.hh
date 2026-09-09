@@ -1,7 +1,8 @@
 /// \file pn_solver.hh
 /// \brief Answer Petri net properties through an incremental surface session:
-/// one `select` + `count` per question over the reachable set `R`, the
-/// answer decoded from the session's output and printed as protocol lines
+/// one `select` + `count` per question over the reachable set `R` (one
+/// `ctl` form per CTL property), the answer decoded from the session's
+/// output and printed as protocol lines
 /// (tools/README.md, "hsc-pn: design").
 #pragma once
 
@@ -141,7 +142,17 @@ class solver {
         out << "FORMULA " << p.name << ' ' << maximum(p.body.atom, p.boundHint)
             << TECHNIQUES << std::endl;
         return true;
-      case PropertyKind::CTL:
+      case PropertyKind::CTL: {
+        // `(ctl Q FORMULA)` answers `Q ctl TRUE|FALSE|UNKNOWN`; unknown is
+        // left open (no line), never guessed.
+        const std::string q = next_name();
+        const std::string v = value_of(
+            feed("(ctl " + q + " " + hsc::petri::ctl_text(p.ctl, pnames) + ")"),
+            q + " ctl ");
+        if (v != "TRUE" && v != "FALSE") return false;
+        out << "FORMULA " << p.name << ' ' << v << TECHNIQUES << std::endl;
+        return true;
+      }
       case PropertyKind::Unsupported:
         return false;
     }

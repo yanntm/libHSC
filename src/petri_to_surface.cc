@@ -114,11 +114,13 @@ void to_surface(std::ostream& out, const SparsePetriNet<int>& net,
     for (std::size_t k = 0; k < to.size(); ++k) delta[to.keyAt(k)] += to.valueAt(k);
 
     // "no effect" is every per-place delta zero, which a read arc or a
-    // self-loop produces with a non-empty delta map
+    // self-loop produces with a non-empty delta map. Kept unless asked
+    // otherwise: such a transition is an edge of the reachability graph
+    // (a self-loop) even though it moves no token — an arcless one is a
+    // self-loop on every marking, written `(when) (do)`.
     const bool no_effect =
         std::all_of(delta.begin(), delta.end(),
                     [](const auto& e) { return e.second == 0; });
-    if (in.size() == 0 && no_effect) continue;  // no-op transition
     if (opts.skip_no_effect && no_effect) continue;
 
     out << "(event " << tnames[t] << " (when";
