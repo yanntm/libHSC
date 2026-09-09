@@ -39,10 +39,13 @@ def totals(rows: Dict[Tuple[str, str], Row]) -> str:
     timeouts = sum(1 for r in rows.values() if r["note"].strip() in ("rc=124",))
     walls = sorted(num(r["wall_s"]) for r in rows.values())
     q = lambda p: walls[min(len(walls) - 1, int(p * len(walls)))] if walls else 0.0
+    rsss = sorted(num(r["maxrss_kb"]) / 1e6 for r in rows.values())
+    rq = lambda p: rsss[min(len(rsss) - 1, int(p * len(rsss)))] if rsss else 0.0
     lines = [
         f"runs {n}: answered {ans}, ok {ok}, wrong {wrong}, unknown {unk}; "
         f"complete files {complete}/{n}; over the cap {timeouts}",
         f"wall s: median {q(0.5):.2f}, p90 {q(0.9):.2f}, max {q(1.0):.2f}",
+        f"peak rss GB: median {rq(0.5):.2f}, p90 {rq(0.9):.2f}, max {rq(1.0):.2f}",
     ]
     for (m, e), r in sorted(rows.items()):
         if int(num(r["wrong"])) > 0:
