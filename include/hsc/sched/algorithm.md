@@ -165,6 +165,17 @@ once: `MAX_TOKEN_IN_PLACE`, `MAX_TOKEN_PER_MARKING`, `STATES` and
 `TRANSITIONS` are all `+inf`. DoubleExponent still explodes honestly, being
 bounded; the unbounded nets stop being timeouts.
 
+The trigger is the largest initial marking: a value beyond it is a place
+past anything the model started with; the limit doubles at every report,
+so the test runs once per doubling and the closure resumes between — the
+epochs of `hsc-pn`. Two lessons from BugTracking-PT-q3m016 (754 places,
+27 370 transitions, most of them dead): the shape decides whether the
+divergence is even met (Sloan: 18 M states and a 18 800-value place in 3 s;
+NUPN: 56 states), and a net that size is one for ITS-Tools to reduce before
+we study it (the reduced-net population of the sweep); an epoch tactic
+worth having is to drop from the schedule the transitions whose input
+places have never been marked in the set so far, recomputed each epoch.
+
 Prototyped: `(pump NAME [LEAF])` (`src/surface_cover.cc`), `hsc-pn --cover`;
 the leaf theory breaks a closure out when a domain passes the divergence
 limit (`support_algebra::note_divergence`), and every per-element or

@@ -32,7 +32,7 @@ TSV="$OUT/$TAG/rows/$INST-$EX.tsv"
 # StateSpace: `--states` instead of a property file, the four values graded
 # against the oracle when it has one (an instance without an SS oracle still
 # runs: its values are answered, unknown to the oracle, never wrong).
-if [ "$EX" = SS ]; then QUERY="--states"; [ -f "$pnml" ] || { echo -e "$INST\t$family\t$EX\t-\t$TAG\t$states\t\t\t\t\tno-input" >> "$TSV"; exit 0; }
+if [ "$EX" = SS ]; then QUERY="--states --cover"; [ -f "$pnml" ] || { echo -e "$INST\t$family\t$EX\t-\t$TAG\t$states\t\t\t\t\tno-input" >> "$TSV"; exit 0; }
 else QUERY="--props $xml"; [ -f "$xml" ] && [ -f "$orc" ] && [ -f "$pnml" ] || { echo -e "$INST\t$family\t$EX\t-\t$TAG\t$states\t\t\t\t\tno-input" >> "$TSV"; exit 0; }; fi
 declare -A seen_sig  # shape signature -> the heuristic that ran it first
 grep -v '^#' "$HEUR" | while IFS=$'\t' read -r name flags envs; do
