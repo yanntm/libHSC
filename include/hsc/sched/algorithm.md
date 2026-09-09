@@ -76,13 +76,13 @@ from what it memoised"). So:
   the manager's deadline to the slice's, runs until `steps` iterations or
   `interrupted`, and returns;
 * a **report** is PetriSpot's `SliceReport` with the symbolic reading of its
-  fields — `steps`: iterations run; `claims`: answers produced (a FORMULA,
-  a StateSpace value, a fixpoint closed); `novelty`: nodes created in the
-  slice (the diagram grew: the closure is still discovering); `stalls`:
-  levels whose events all fired to no effect; `heuristicDrop`: the cardinal
-  or the node count stopped growing over the slice; `capped`, `micros`,
-  `finished` verbatim — plus what we add: the memory footprint after the
-  slice and the per-level progress of §3b;
+  fields, all computed on the returned set (§3b), none inside the run —
+  `steps`: rounds run; `claims`: answers produced (a FORMULA, a StateSpace
+  value, a fixpoint closed); `novelty`: states gained since the previous
+  slice (cardinal growth); `stalls`: subshapes that gained nothing;
+  `heuristicDrop`: the whole gained nothing; `capped`, `micros`,
+  `finished` verbatim — plus what we add: the memory footprint and the
+  set's profile;
 * the **task kinds** of `hsc-pn`: the reachable set under a shape; a CTL
   property (the checker's node evaluation, already resumable); the
   StateSpace counts (per transition, a loop of selections); a shape
@@ -95,45 +95,58 @@ A task not running holds its set and its memo. Parking a task (§4) drops
 the caches and keeps the set and the unique table: the cheap part of a
 resume is lost, the work is not.
 
-## 3b. Epochs: the interruption as a rhythm, not only a stop
+## 3b. Stopping a fixpoint correctly, and epochs
 
-ITS-Tools had this in one form: an interrupt on memory pressure
-(`shouldGarbage`) that forced the saturation to walk back up to the root,
-so that the caches could be flushed almost entirely, and the properties
-tested on the set reached so far. The same mechanism, taken as a rhythm,
-is what turns a long budget into insight rather than one long wait. An
-**epoch** ends when the slice ends: the closure unwinds to the root and the
-task returns its set and a report; between epochs the coordinator can
+**What a stop must guarantee.** A forward closure interrupted anywhere holds a
+set that is sound (every state in it is reachable) and incomplete; the
+danger is not the set, it is the memo: a partial value entered in a cache
+would be read later as exact. libDDD solved this with a global flag, single
+thread: once raised, every operation unwinds — heavy loops end at their next
+round, recursions return what they have — **without inserting into any
+cache**, the root returns its set marked *partial*, and the flag is reset
+only once the saturation is back at the root. The caches are then dropped,
+garbage collected, and the next round restarts from that set. Ours is the
+same discipline on the manager: a `stopping` flag raised by the budget (time
+or memory) or by the coordinator; `check()` returns it; every closure loop
+and every composite operation that sees it returns its current value and
+skips the cache insert; the surface form returns `{set, partial}`. Entries
+inserted before the flag rose are exact and may be kept; whether they are
+kept or flushed is the memory budget's call, not correctness's.
 
-* **test what is known on the partial set.** A reached set that is not yet
-  the fixpoint is sound for every positive reachability claim (a state in it
-  is reachable): reachability goals close, bounds rise, `EF` witnesses
-  exist; only the negative claims and the exact counts wait for the
-  fixpoint. Facts close early, and their goals leave the budget;
-* **flush under memory pressure** — the caches go, the unique table and the
-  set stay — and resume, or park the task and let a smaller configuration
-  take over;
-* **read what progressed.** The saturation schedule knows, per level and
-  per event, whether the last round changed anything: which events fired,
-  which levels are stable, how the cardinal and the node count moved since
-  the last epoch. That is the report's `novelty` and `heuristicDrop`
-  refined to the level, and it is the introspection the coordinator
-  reasons on: a shape whose top levels never move is stalled, whatever its
-  cardinal says;
-* **change the schedule.** Saturation has a known blind spot: an event
-  whose top level is the root is very hard to ever fire, because everything
-  below must be saturated first. An epoch can open with one round of the
-  events of high top level before the schedule restarts, or reorder the
-  schedule by what stalled, or hand the set to another shape (the flat
-  order for a counter net once the hierarchical one shows no progress at
-  the top). None of this is possible from inside one uninterrupted
-  fixpoint.
+**Epochs must grow.** Without its caches a saturation makes no progress, so
+an interruption that comes too often kills a computation instead of helping
+it. libDDD's rule: the interval between interruptions grows geometrically.
+Ours the same: the first slice of a fixpoint task is short (the broad
+experiment), each resumed slice is longer than the last, and a flush is
+what a memory deadline does, not what an epoch does by default.
 
-So the interruption serves three masters — the deadline, the memory, and
-the coordinator's curiosity — and the third is the one that matters on the
-hard instances: an hour of budget spent as sixty epochs, each read, is how a
-model's mechanics get understood and its heuristics fitted while the run is
-still going.
+**What an epoch reads: the set, nothing inside the computation.** No
+instrumented counting during saturation: the rewrites adapt the transition
+relation to the shape, what is one event against a set of events is not
+well defined once fused, and counting would cost. The report is computed
+on the set the task returned, by the same routine whatever the shape:
+
+* nodes and arcs per sort of the shape (`order/profile.hh`, already);
+  total nodes; fan-in and fan-out per level;
+* per reachable subshape, its cardinal, and against the previous epoch's
+  set, which subshapes gained states — the subshapes that fired and found
+  new states, which is the progress signal, and correlated with where the
+  saturation stalls;
+* the domain reached per leaf variable: the one metric comparable across
+  shapes, since every shape has the same leaves;
+* the cardinal and the node count of the whole, and the memory footprint.
+
+That is enough for the coordinator's decisions (§4) and for the pages of
+the sweep; time per saturation level, if ever wanted, is a later,
+separate instrument.
+
+**What an epoch may do.** Test the known goals on the partial set (every
+positive reachability claim is sound on it; negative claims and exact
+counts wait for the fixpoint); flush under memory pressure and resume, or
+park; hand the set to another shape when the top has not moved for
+several epochs. Saturation's blind spot stays noted — events whose top
+level is the root fire last, everything below being saturated first — as
+a schedule variant an epoch could try, not as something to measure.
 
 ## 4. Scheduler and coordinator, unchanged
 
@@ -178,18 +191,29 @@ model.
 
 ## 7. Order of work
 
-0. The saturation schedule reports progress per level and per event
-   (which fired, which stalled, cardinal and nodes since the last epoch),
-   and can be asked to unwind at a round boundary — the instrument every
-   later step reads.
+1. **Tasks and slices.** Vendor `walk/Task.h` and `walk/Scheduler.h`
+   (PetriSpot decides where they live, §8); the `stopping` flag on the
+   manager with libDDD's discipline (unwind at round boundaries, no cache
+   insert once raised, `{set, partial}` at the surface, reset at the root);
+   the reachable set as the first task, its slices growing geometrically;
+   a CTL property as the second (already resumable).
+2. **Set metrics between epochs.** `order/profile` extended with fan-in and
+   fan-out per level, cardinal per subshape and its growth against the
+   previous set, the domain reached per leaf; printed by `(profile)` and by
+   the task's report.
+3. **The budget object** (time and memory, `remaining()`, coarse polls in
+   loops over a second), the alarm behind a flag, phases of `hsc-pn` on it,
+   the per-phase accounting line.
+4. **The coordinator for the shape portfolio in one process**, after the
+   sweep says which shapes belong.
 
-1. The budget object in the manager, the amortised `check()` on the hot
-   paths, `set_deadline` in the surface; the alarm behind a flag, armed
-   first thing; margins in the jobs, not in the tool.
-2. The phases of `hsc-pn` on the budget: the invariant calculator given
-   `remaining()`, FORCE and Louvain iterations polling, the StateSpace
-   count loop polling and printing what it has, the emission timed.
-3. Vendor `walk/Task.h` and `walk/Scheduler.h`; the symbolic task kinds;
-   the reachable set as a task; the CTL fair share re-expressed as tasks.
-4. The coordinator for the shape portfolio in one process, once the sweep
-   says which shapes belong in it.
+## 8. What this asks of PetriSpot
+
+`Task`, `Slice`, `SliceReport`, `Scheduler` are already generic in
+`Petri/src/walk/`; the symbolic side needs from them: a memory field in the
+report (or a side channel the coordinator reads), the notion that a task's
+steps are coarse (already there as `capped`), and a home for the types that
+is not "walk" — a `sched/` folder and namespace, vendored here as
+`petri/` is. The coordinator's tables (yield per kind, per (state, tool))
+stay PetriSpot's design; ours adds shapes as kinds and memory as a budget.
+Recorded on PetriSpot's side in `PORTFOLIO.md`.
