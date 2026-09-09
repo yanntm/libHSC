@@ -17,6 +17,9 @@ tasks as continuations kept as data, one budget for time and memory).
    and fan-out per level, cardinal per subshape and growth against a
    previous set, the domain reached per leaf; `(profile)` prints them, the
    task reports them. No instrumentation inside saturation.
+2b. **The divergence watch** (`algorithm.md` §3b): between epochs, leaf
+   domains growing far past the initial tokens → break out, report the
+   variables, trigger a coverability-like confirmation.
 3. **The budget object**: time and memory, `remaining()`, polls only in
    loops that can exceed a second, deadlines exact to a second or two; the
    alarm behind a flag (armed first thing, done); `hsc-pn`'s phases on the

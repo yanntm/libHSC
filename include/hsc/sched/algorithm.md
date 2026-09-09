@@ -140,6 +140,16 @@ That is enough for the coordinator's decisions (§4) and for the pages of
 the sweep; time per saturation level, if ever wanted, is a later,
 separate instrument.
 
+**A divergence watch.** The leaf domains an epoch reads are also a signal
+in themselves: a variable whose domain has grown far past its initial
+tokens, and keeps growing epoch after epoch, is a candidate unbounded
+place — a saturation that will diverge inside its tight loop if nobody
+looks. The epoch should break out, report the variables going wild, and a
+coverability-like check (a ω-marking argument on the offending places, or
+the walker's bound-raising search) can then confirm the divergence and
+answer the bound questions instead of spending the budget. DoubleExponent
+still explodes honestly; the unbounded nets stop being timeouts.
+
 **What an epoch may do.** Test the known goals on the partial set (every
 positive reachability claim is sound on it; negative claims and exact
 counts wait for the fixpoint); flush under memory pressure and resume, or
