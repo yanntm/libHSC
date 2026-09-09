@@ -17,7 +17,7 @@ NH=$(grep -vc '^#' "$HERE/heuristics.tsv")
 [ -n "$WALL" ] || WALL=$(( (NH * BUDGET * 11 / 10 + 59) / 60 )); [[ $WALL == *:* ]] || WALL="0:$WALL:0"
 mkdir -p "$HERE/results/$TAG"; cd "$HERE/results/$TAG"
 n=0
-awk '!/^#/ && NF{print $1}' "$LIST" | while read -r m; do for x in $EXAMS; do
+for m in $(awk '!/^#/ && NF{print $1}' "$LIST"); do for x in $EXAMS; do
   oarsub -l "/nodes=1/core=1,walltime=$WALL" -p "(host like '$HOSTS')" \
     "cd $HERE && SWEEP_BUDGET=$BUDGET SWEEP_BIN=$HERE/hsc-pn SWEEP_INPUTS=$HARNESS/INPUTS SWEEP_ORACLE=$HARNESS/oracle SWEEP_OUT=$HERE/results SWEEP_TAG=$TAG ./sweep_job.sh $m $x ; exit" > /dev/null
   n=$((n+1))
