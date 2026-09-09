@@ -60,10 +60,15 @@ was not (the image of `S` under all events, or under the live ones, did not
 return in 385 s on BugTracking — `S` is the largest object in reach):
 only the **live** events count (a transition proved dead never fires from a
 reachable marking, and the first enabling marking of `t` is reached by a
-live one), and only those **writing a leaf the guard of `t` reads** (a
-firing that changes none of them leaves the guard's value as it was). The
-test **iterates**: every kill shrinks the live set, and the passes repeat
-while a transition falls. The untested transitions (no exact guard) stay
+live one), and only those that can **enter the guard of `t`** — a producer
+into a place the guard wants high, a consumer of a place it wants low (a
+firing that moves none of the guard's places the right way leaves it as it
+was; the direction of every write is recorded with the event). The
+candidates are visited **smallest slice first** (the slice's cardinal), so
+a budget yields verdicts. The test **iterates**: every kill shrinks the
+live set, and the passes repeat while a transition falls — on BugTracking
+the first pass kills 250 in 100 s and the second 600 more in seven, the
+entries of a slice having come from transitions the first pass killed. The untested transitions (no exact guard) stay
 live: they may fire. Stopped, the verdicts taken stand — each rests on
 tests that completed.
 
