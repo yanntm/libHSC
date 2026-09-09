@@ -35,6 +35,12 @@ from, not a dependency.
   the backward operators as their fixpoints over the inverted events, the
   deadlock-terminated path semantics of the contest, the verdict.
 
+The surface binding is `src/surface_ctl.cc` (`(ctl …)`, `(expect-ctl …)`,
+`(invert …)`, `(gfp …)`, `(witness …)` through `hsc/trace/`); the `hsc-pn`
+tool answers the MCC CTL examinations through it (`tools/README.md`).
+Observation and variation points are environment variables, listed in
+`algorithm.md` §6.
+
 Sources: `src/ctl/`. Tests: `tests/test_ctl.cc` (the conversion on hand
 formulas) and the self-checking `examples/models/ctl_ring.hsc`,
 `ctl_counter.hsc` (verdicts hand-checked, through the surface's `(ctl …)`).
