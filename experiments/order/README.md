@@ -51,6 +51,6 @@ when it is the unique best somewhere often enough to pay its quarter.
 | m5e | louvain + force | 7267 | 429 | |
 | m5f | nupn + force | 7067 | 402 | |
 | m5g | louvain | 7047 | 413 | |
-| m6c_lf | louvain + force, m6c build | running | | the baseline of this thread's build |
+| m6c_lf | louvain + force, m6c build | 7306 | 430 | the baseline of this thread's build; 16 up / 1 down vs m5e, 0 wrong |
 | m6c_lfi | + `--invariants 5` | queued | | flows as cliques |
 | m6c_lfi4 | + `HSC_INV_MERGE=4` | queued | | heavy flows contracted |
