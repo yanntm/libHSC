@@ -9,8 +9,10 @@
 /// result is an ordinary `unit_tree`, so the rest of the chain is unchanged and
 /// HSC never learns a decomposition happened — the shape choice, made upstream.
 #pragma once
+#include <cstdint>
 #include <span>
 
+#include "hsc/order/louvain/community.h"
 #include "hsc/petri/invariants.hh"
 
 #include "hsc/petri/core/SparsePetriNet.h"
@@ -26,5 +28,14 @@ namespace hsc::petri {
 /// a transition's), so places an invariant ties together attract each other.
 [[nodiscard]] unit_tree decompose(const SparsePetriNet<int>& net,
                                   std::span<const pflow> invariants = {});
+
+/// The place dependency graph the clustering sees (control→write per
+/// transition, all-to-all as fallback), for the orderings of
+/// `order/bandwidth.hh`.
+[[nodiscard]] std::vector<order::louvain::edge> dependency_edges(const SparsePetriNet<int>& net);
+
+/// A flat unit tree: the places in the order \p listing gives (`listing[rank]`
+/// is a place index).
+[[nodiscard]] unit_tree ordered(const SparsePetriNet<int>& net, std::span<const std::uint32_t> listing);
 
 }  // namespace hsc::petri

@@ -141,4 +141,19 @@ unit_tree decompose(const SparsePetriNet<int>& net, std::span<const pflow> invar
   return t;
 }
 
+std::vector<order::louvain::edge> dependency_edges(const SparsePetriNet<int>& net) {
+  return cooccurrence(net);
+}
+
+unit_tree ordered(const SparsePetriNet<int>& net, std::span<const std::uint32_t> listing) {
+  unit_tree t;
+  unit root;
+  root.id = "root";
+  const std::vector<std::string>& pnames = net.getPnames();
+  for (const std::uint32_t p : listing) root.places.push_back(pnames[p]);
+  t.root = "root";
+  t.units.emplace("root", std::move(root));
+  return t;
+}
+
 }  // namespace hsc::petri
