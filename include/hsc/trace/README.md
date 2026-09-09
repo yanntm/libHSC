@@ -23,5 +23,6 @@ its own syntax.
   names of a shortest path, or none.
 * `witness.hh` — the witness tree of a `ctl` verdict (later).
 
-Sources: `src/trace/`. Tests: the self-checking `examples/models/trace_*.hsc`
-(a printed path replayed by the explicit engine reaches its target).
+Sources: `src/trace/`. Tests: the self-checking `examples/models/trace_ring.hsc`
+(path lengths hand-checked; every step of a printed path is a true
+transition by construction, the inverted events being exact on `R`).

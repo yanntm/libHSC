@@ -40,6 +40,7 @@ target_sources(hsc PRIVATE
   surface_cegar.cc
   surface_certcheck.cc
   surface_ctl.cc
+  surface_trace.cc
   surface_spec.cc
   dve_parser.cc
   dve_to_surface.cc
@@ -56,4 +57,5 @@ target_sources(hsc PRIVATE
   ctl/formula.cc
   ctl/forward.cc
   ctl/checker.cc
+  trace/path.cc
 )

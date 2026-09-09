@@ -42,6 +42,8 @@ if(HSC_BUILD_TESTS)
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/ctl_ring.hsc)
   add_test(NAME surface_ctl_counter
            COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/ctl_counter.hsc)
+  add_test(NAME surface_trace_ring
+           COMMAND hsc_cli ${CMAKE_CURRENT_SOURCE_DIR}/models/trace_ring.hsc)
   # cegar/: the certified-abstraction commands, self-checking (the ring
   # driver writes its proof into the test's working directory).
   add_test(NAME cegar_clients

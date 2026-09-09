@@ -46,6 +46,9 @@ the tree meaning. Neither endpoint knows which passes intercede.
   the `hsc/ctl/` DAG (state subformulas as `(when …)` selectors,
   `(deadlock)` from the declared guards), runs the forward form over the
   default system from the seed; `(expect-ctl …)`, `(gfp …)`.
+* `src/surface_trace.cc` — `(path …)`, `(expect-path …)`: a shortest run
+  between two results through `hsc/trace/`, printed as words and event
+  names.
 * `src/surface_run.cc` — **the runner**, the public `translate()` entry:
   applies the rewrite directives, routes explicit-engine commands
   (`xreach`, `xdomains`) and the query overlay on explicit results,

@@ -251,6 +251,8 @@ certificate; `unfold` always enumerates.
 (expect-ctl NAME TRUE|FALSE|UNKNOWN) ; assert its verdict
 (gfp NAME EVTERM SOURCE)     ; deflationary closure: X ∩ EVTERM(X) to a fixpoint, §8f
 (invert NAME EVTERM POTENTIAL) ; NAME is the converse of EVTERM within a bound result, §8f
+(path NAME FROM TO [through ATOM]) ; a shortest run between two results, §8g
+(expect-path NAME K|none)    ; assert its length
 (certificate FILE)           ; write the last cegar proof as .hsc, §8d
 (certcheck FILE)             ; re-check a proof against the model, §8d
 (simplify-constants)         ; rewrite directive: elide constant leaves, §8c
@@ -465,6 +467,23 @@ is intersected with it.
 
 `examples/models/ctl_ring.hsc` and `ctl_counter.hsc` are the worked,
 self-checking examples.
+
+## 8g. Paths
+
+```lisp
+(path NAME FROM TO [through ATOM])
+(expect-path NAME K|none)
+```
+
+`path` finds a **shortest run** of the default system from a state of FROM to
+a state of TO — two bound results — whose intermediate states satisfy the
+`through` atom when one is given, and prints it as alternating word literals
+and event names: runnable evidence (each word is a valid `(word …)` body,
+each name a declared event). The search is symbolic on both sides (forward
+layers, then a backtrack through the inverted events, `include/hsc/trace/`);
+`NAME path none` when no such run exists, `NAME path 0` with the shared
+state when the sets meet. NAME is bound to the last state, so `get-witness`
+reads it. `examples/models/trace_ring.hsc` is the worked example.
 
 ## 9. Errors, honestly
 

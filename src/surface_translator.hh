@@ -569,6 +569,11 @@ class translator final : public name_scope {
   std::vector<code> invert_events(const datum& at, code reach);
   void do_invert(const datum& form);
   ///@}
+  /// \name Paths (`src/surface_trace.cc`, `hsc/trace/`)
+  ///@{
+  void do_path(const datum& form);
+  void do_expect_path(const datum& form);
+  ///@}
 
   // --- state ---------------------------------------------------------------
 
@@ -595,6 +600,8 @@ class translator final : public name_scope {
   std::unique_ptr<expr_reader> reader_;
 
   std::vector<code> events_;  ///< the default system: every (event …)
+  std::vector<std::string> event_names_;  ///< their names, same order
+  std::unordered_map<std::string, std::size_t> paths_;  ///< `(path …)` lengths by name
   /// Every named term: events, alts, seqs — one namespace.
   std::unordered_map<std::string, code> named_events_;
   std::unordered_map<std::string, code> results_;
