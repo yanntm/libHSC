@@ -68,3 +68,27 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    17424 states, AutonomousCar-PT-02b and BlocksWorld-PT-01 more than 15 s.
    That is the saturation engine and the shape (the MCC driver's portfolio
    of shapes exists for it), not the checker.
+11. **Product composition fused** (`core/algorithm.md` §11, written
+   first): `compose_at` composes two product terms componentwise down the
+   shape, `int_set::term_compose` fuses two local terms into one (guards
+   conjoined, the second read after the first action, actions composed),
+   so a constrained closure keeps product events and saturates. Checked by
+   a differential against the sequence on 150 random models (5426
+   assertions with the inverse suite). No effect on the flat Sieve model
+   (0–1/16 either way: the shape is the problem there), a small one on
+   Angiogenesis.
+12. **Protection variation point** `HSC_CTL_PROTECT=test|never|always`;
+   `never` is sound at the seed (`research_notes/invert.md` §3) and passes
+   the sample suite; on Angiogenesis 6/16 against 5/16 in 60 s. The trace
+   shows the remaining cost is the `gfp` hull of `EG` (an `AF` under a
+   restrict): breadth-first by nature, tens of rounds over 40M-state sets.
+13. **Paths and witness trees** (`include/hsc/trace/`, new package, design
+   first): `(path NAME FROM TO [through ATOM])` finds a shortest run by
+   forward layers and a backtrack through the inverted events applied to
+   one state at a time; `(witness NAME)` explains a `ctl` verdict by
+   reading the answering leaf's set expression back as paths, the backward
+   explanation for what the forward form left to `Sat` (EX, EU, EG with a
+   deadlock or a lasso), and reports universal subformulas as exhaustive.
+   `examples/models/trace_ring.hsc`: five paths and five witnesses,
+   hand-checked lengths. A bug found on the way: the answering-leaf walk
+   asked `nonempty` with a question id instead of its set id.
