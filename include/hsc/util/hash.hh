@@ -57,11 +57,16 @@ inline constexpr std::uint64_t golden64 = 0x9E3779B97F4A7C15ull;
 
 /// \brief Fold \p value into \p seed. The only sanctioned combiner.
 ///
-/// Non-commutative: the accumulated seed is re-avalanched at each step, so
-/// combine(combine(s,a),b) != combine(combine(s,b),a). Costs one multiply
-/// plus one mix64 per element.
+/// Non-commutative: the seed is multiplied before the next element is
+/// folded in, so combine(combine(s,a),b) != combine(combine(s,b),a). One
+/// multiply, one shift, two xors per element: the multiply carries low bits
+/// upward, the shift folds the high half back down, so the low bits the
+/// tables index with (`id_table`: `hash & mask`) depend on every element.
+/// Not an avalanche — hashing is our bread, not cryptography; a full mixer
+/// per element showed up as the top line of profiles on wide nodes.
 constexpr void combine(std::size_t& seed, std::uint64_t value) noexcept {
-  seed = static_cast<std::size_t>(mix64(seed ^ (value * golden64)));
+  std::uint64_t z = (static_cast<std::uint64_t>(seed) ^ value) * golden64;
+  seed = static_cast<std::size_t>(z ^ (z >> 32));
 }
 
 /// A type that hashes itself. The primary way to opt a libHSC type in.
@@ -81,11 +86,12 @@ template <typename T>
   if constexpr (self_hashing<T>) {
     return x.hash();
   } else if constexpr (std::is_enum_v<T>) {
-    return static_cast<std::size_t>(
-        mix64(static_cast<std::uint64_t>(std::to_underlying(x))));
+    // identifiers and tags are dense small integers: the combiner does the
+    // mixing, and a lone value indexes a table perfectly as it is
+    return static_cast<std::size_t>(std::to_underlying(x));
   } else if constexpr (std::is_integral_v<T>) {
-    // signed values convert modularly, which is exactly what a mixer wants
-    return static_cast<std::size_t>(mix64(static_cast<std::uint64_t>(x)));
+    // signed values convert modularly
+    return static_cast<std::size_t>(static_cast<std::uint64_t>(x));
   } else if constexpr (std::is_pointer_v<T>) {
     return static_cast<std::size_t>(
         mix_ptr(reinterpret_cast<std::uintptr_t>(x)));
