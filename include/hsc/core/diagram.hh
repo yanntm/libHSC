@@ -134,6 +134,9 @@ class diagram_engine final : public support_algebra {
   /// hull follows anyway — measured to lose on the MCC corpus. A variation
   /// point for the tools (`HSC_CTL_SCCFAST=1`).
   void set_fast_cycle_witness(bool on) noexcept { fast_cycle_witness_ = on; }
+  /// Whether a result computed now may enter the operation cache: not once
+  /// the manager's stop has made some result partial (`manager.hh`).
+  [[nodiscard]] bool cache_results() const noexcept;
   [[nodiscard]] bool fast_cycle_witness() const noexcept { return fast_cycle_witness_; }
   /// \brief The number of `gfp` rounds run so far (one round = one image
   /// and one meet), an observation counter for callers that time closures.

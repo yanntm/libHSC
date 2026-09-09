@@ -263,6 +263,8 @@ code diagram_engine::has_image(code term, code value) {
   return ops_(binary_op(binary_op::kind::has_image, term, value));
 }
 
+bool diagram_engine::cache_results() const noexcept { return !owner_.partial(); }
+
 code diagram_engine::gfp_at(shape_code sort, code term, code value) {
   if (value == none || term == op_table::id) return value;
   if (owner_.shapes().kind(sort) == shape_kind::pair) {
@@ -271,7 +273,10 @@ code diagram_engine::gfp_at(shape_code sort, code term, code value) {
   support_algebra& algebra = owner_.algebra(sort);
   code x = value;
   for (;;) {
-    owner_.check_interrupt();
+    if (owner_.stopping()) {  // a round boundary: what we have, marked partial
+      owner_.mark_partial();
+      return x;
+    }
     ++gfp_rounds_;
     const code y = algebra.meet(x, algebra.apply_local(term, x));
     if (y == x || y == none) return y;
@@ -417,7 +422,10 @@ code diagram_engine::do_apply(code term, code d) {
       const code h = t.operand(0);
       code x = d;
       for (;;) {
-        owner_.check_interrupt();
+        if (owner_.stopping()) {
+          owner_.mark_partial();
+          return x;
+        }
         const code y = join(x, apply_local(h, x));
         if (y == x) return x;
         x = y;
@@ -434,7 +442,10 @@ code diagram_engine::do_apply(code term, code d) {
       const code h = t.operand(0);
       code x = d;
       for (;;) {
-        owner_.check_interrupt();
+        if (owner_.stopping()) {
+          owner_.mark_partial();
+          return x;
+        }
         ++gfp_rounds_;
         const code y = meet(x, apply_local(h, x));
         if (y == x) return x;
@@ -454,7 +465,10 @@ code diagram_engine::do_apply(code term, code d) {
       code current = d;
       code previous = none;
       do {
-        owner_.check_interrupt();
+        if (owner_.stopping()) {
+          owner_.mark_partial();
+          return current;
+        }
         previous = current;
         current = apply_local(f_part, current);
         current = apply_local(l_part, current);
