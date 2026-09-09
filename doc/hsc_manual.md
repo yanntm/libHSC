@@ -247,6 +247,9 @@ certificate; `unfold` always enumerates.
 (equality NAME BOX K (* C LEAF)*) ; the words of BOX (a product) with Σ C·LEAF = K, built directly (C ≥ 0)
 (at-most NAME BOX K (* C LEAF)*)  ; the same with Σ C·LEAF ≤ K
 (intersect NAME A B*)        ; the meet of bound results
+(minus NAME A B)             ; the states of A not in B
+(pre NAME X SET [writing LEAF*]) ; the predecessors of X inside SET under the default system (converses against SET); only the events writing a listed leaf when given
+(backward NAME X SET [steps K] [writing LEAF*]) ; the states of SET leading to X, by layers: `NAME backward init|closed|open|partial K`
 (stock NAME [since OTHER])   ; take stock: states, nodes, per level nodes/arcs/local states (gained since OTHER), values per leaf
 (budget SECONDS)             ; every following form runs at most SECONDS; a closure that runs out returns a partial set — `NAME partial`
 ; `hsc FILE --stdin` then reads forms from standard input one at a time, answering and flushing each: an engine driven over a pipe

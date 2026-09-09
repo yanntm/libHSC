@@ -46,6 +46,7 @@ target_sources(hsc PRIVATE
   surface_trace.cc
   surface_cover.cc
   surface_linear.cc
+  surface_backward.cc
   surface_spec.cc
   dve_parser.cc
   dve_to_surface.cc

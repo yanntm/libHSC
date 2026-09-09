@@ -54,6 +54,9 @@ void translator::dispatch(const datum& form) {
   else if (kw == "equality") do_equality(form);
   else if (kw == "at-most") do_at_most(form);
   else if (kw == "intersect") do_intersect(form);
+  else if (kw == "pre") do_pre(form);
+  else if (kw == "minus") do_minus(form);
+  else if (kw == "backward") do_backward(form);
   else if (kw == "budget") do_budget(form);
   else if (kw == "print") do_print(form);
   else if (kw == "expect") do_expect(form);

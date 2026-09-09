@@ -324,6 +324,15 @@ void translator::do_event(const datum& form) {
   events_.push_back(ev);
   event_names_.push_back(name);
   event_guard_of_.push_back(event_guards_.size() - 1);
+  // The leaves written, as named in the `do` clauses: `(OP LEAF …)` each.
+  std::vector<std::string> writes;
+  for (const datum& clause : std::span(form.items()).subspan(2)) {
+    if (!clause.is_list() || clause.items().empty() || clause.head() != "do") continue;
+    for (const datum& a : std::span(clause.items()).subspan(1))
+      if (a.is_list() && a.items().size() >= 2 && a.items()[1].is_atom()) writes.push_back(a.items()[1].text());
+  }
+  event_writes_.resize(events_.size());
+  event_writes_.back() = std::move(writes);
 }
 
 void translator::define_event(const datum& at, const std::string& name, code term) {

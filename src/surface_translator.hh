@@ -552,6 +552,12 @@ class translator final : public name_scope {
   void do_at_most(const datum& form);
   void linear_constraint(const datum& form, bool at_most);
   void do_intersect(const datum& form);
+  void do_pre(const datum& form);
+  void do_minus(const datum& form);
+  void do_backward(const datum& form);
+  const std::vector<code>& converses_against(const datum& at, code potential);
+  std::vector<std::size_t> events_writing(const std::unordered_set<std::string>& leaves);
+  code pre_within(code x, code set, std::span<const code> conv, std::span<const std::size_t> which);
   void pump(const datum& form, const std::string& name);
   void do_stock(const datum& form);
 
@@ -629,6 +635,12 @@ class translator final : public name_scope {
   /// written); empty for an always-enabled event. What `(deadlock)` reads.
   std::vector<std::vector<datum>> event_guards_;
   std::vector<std::size_t> event_guard_of_;  ///< per event of events_, its entry in event_guards_ (SIZE_MAX: none)
+  /// Per event of events_, the leaves its `do` clauses write (names); empty
+  /// when unknown (a family). What the backward forms filter events by.
+  std::vector<std::vector<std::string>> event_writes_;
+  /// The raw converses of the default system per potential set (`(pre …)`,
+  /// `(backward …)`), in the events' order.
+  std::unordered_map<code, std::vector<code>> converses_;
   /// False once a family entered the default system: its guards are not
   /// enumerable as atoms, so `(deadlock)` is refused.
   bool guards_complete_ = true;
