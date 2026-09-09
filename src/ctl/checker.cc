@@ -49,6 +49,48 @@ checker::code checker::step(bool backward, code s) {
   return mgr_.diagrams().apply_local(stp, s);
 }
 
+checker::code checker::hull(bool backward, code x0) {
+  core::diagram_engine& diagrams = mgr_.diagrams();
+  const std::span<const code> h = events(backward);
+  const std::span<const code> conv = events(!backward);
+  if (x0 == core::none || h.empty()) return x0;
+  static const bool rounds = [] {
+    const char* e = std::getenv("HSC_CTL_GFP");
+    return e != nullptr && std::string(e) == "rounds";
+  }();
+  if (rounds || conv.size() != h.size()) {
+    return diagrams.apply_local(mgr_.operations().gfp(step_term(backward)), x0);
+  }
+  // The frontier form: one full image, then work proportional to what moved.
+  code x = x0;
+  code d = diagrams.minus(x, step(backward, x));
+  while (d != core::none) {
+    mgr_.check_interrupt();
+    x = diagrams.minus(x, d);
+    if (x == core::none) return x;
+    const code c = diagrams.meet(step(backward, d), x);
+    if (c == core::none) break;
+    code k = core::none;
+    for (std::size_t i = 0; i < h.size() && k != c; ++i) {
+      const code t = diagrams.meet(diagrams.apply_local(conv[i], c), x);
+      if (t == core::none) continue;
+      k = diagrams.join(k, diagrams.meet(diagrams.apply_local(h[i], t), c));
+    }
+    d = diagrams.minus(c, k);
+  }
+  return x;
+}
+
+bool checker::hull_nonempty(bool backward, code x0) {
+  if (x0 == core::none) return false;
+  if (existential_enabled() && mgr_.diagrams().fast_cycle_witness()) {
+    step(backward, x0);  // ensures the step term
+    return mgr_.diagrams().has_image(
+               mgr_.operations().gfp(backward ? pred_step_ : next_step_), x0) != core::none;
+  }
+  return hull(backward, x0) != core::none;
+}
+
 bool checker::existential_enabled() {
   static const bool on = [] {
     const char* e = std::getenv("HSC_CTL_EXIST");
@@ -190,12 +232,7 @@ bool checker::has_cycles() {
     if (m_.next_events.empty()) {
       cycles_ = false;
     } else {
-      step(false, m_.reach);  // builds the step term
-      const code g = mgr_.operations().gfp(next_step_);
-      const code w = existential_enabled()
-                         ? mgr_.diagrams().has_image(g, m_.reach)
-                         : mgr_.diagrams().apply_local(g, m_.reach);
-      cycles_ = w != core::none;
+      cycles_ = hull_nonempty(false, m_.reach);
     }
   }
   return *cycles_;
@@ -266,9 +303,7 @@ std::optional<bool> checker::nonempty(set_id s) {
       if (*reach_q == core::none) return false;
       if (diagrams.meet(m_.dead, *reach_q) != core::none) return true;
       if (m_.next_events.empty() || !has_cycles()) return false;
-      step(false, *reach_q);
-      return diagrams.has_image(mgr_.operations().gfp(next_step_), *reach_q) !=
-             core::none;
+      return hull_nonempty(false, *reach_q);
     }
     case set_op::restrict_: {
       const std::optional<code> v = eval(s);
@@ -325,10 +360,7 @@ std::optional<checker::code> checker::eval(set_id s) {
       if (!reach_q) break;
       code res = diagrams.meet(m_.dead, *reach_q);
       if (*reach_q != core::none && !m_.next_events.empty() && has_cycles()) {
-        step(false, *reach_q);  // ensures next_step_
-        res = diagrams.join(
-            res, diagrams.apply_local(mgr_.operations().gfp(next_step_),
-                                      *reach_q));
+        res = diagrams.join(res, hull(false, *reach_q));
       }
       r = res;
       break;
@@ -364,12 +396,9 @@ std::optional<checker::code> checker::sat_eg(node_id f) {
   std::optional<code> res = constrained_lfp(true, d, f, /*before=*/false);
   if (!res) return std::nullopt;
   if (*sf != core::none && has_cycles()) {
-    step(true, *sf);  // ensures pred_step_
-    const code g = mgr_.operations().gfp(pred_step_);
-    // A witness first: no cycle in Sat f means no hull to pay for.
-    if (!existential_enabled() || diagrams.has_image(g, *sf) != core::none) {
-      *res = diagrams.join(*res, diagrams.apply_local(g, *sf));
-    }
+    // A witness first when the engine has a fast one: no cycle in Sat f
+    // means no hull to pay for.
+    if (hull_nonempty(true, *sf)) *res = diagrams.join(*res, hull(true, *sf));
   }
   return res;
 }
@@ -528,7 +557,7 @@ std::optional<checker::code> checker::eg_hull(node_id f) {
   const std::optional<code> sf = sat(f);
   if (!sf || events(true).empty()) return std::nullopt;
   if (*sf == core::none || !has_cycles()) return core::none;
-  return mgr_.diagrams().apply_local(mgr_.operations().gfp(step_term(true)), *sf);
+  return hull(true, *sf);
 }
 
 verdict checker::check(const forward_form& form) {
