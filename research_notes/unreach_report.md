@@ -118,3 +118,74 @@ one, but that is not a proof). The pass now runs on the **abstract net**
 in a session of its own (`tools/pn_approx_pass.hh`) — where every place is
 exact and every verdict is sound for the original net on the places kept.
 The rerun on the abstract net is next.
+
+### 2.4 The sample sweep: `S` alone against the state equation LP (measured)
+
+86 models (one in five of the local corpus), RC and RF, 60 s cap per run,
+`experiments/unreach/approx_sweep.sh sample`, scored against the contest
+oracles (`tests/logs/unreach/sample/rows.tsv`, `summary.py`). Binary of
+commit c684504 (before the abstraction pass; the zero-step verdicts are
+unaffected by it).
+
+| engine | formulas | answered | wrong | runs at the cap | total time | median |
+|---|---|---|---|---|---|---|
+| `hsc` — `S` from flows, zeros, safe tag | 2752 | 616 | 0 | 39 / 172 | 2708 s | 0.43 s |
+| `hscu` — `S` with the unit constraints | 2752 | 643 | 0 | 40 / 172 | 2790 s | 0.49 s |
+| `lp` — PetriSpot state equation | 2752 | 657 | 0 | 0 / 172 | 177 s | 0.01 s |
+
+| examination | `hsc` | `hscu` | `lp` |
+|---|---|---|---|
+| RC (1376) | 391 | 400 | 504 |
+| RF (1376) | 225 | 243 | 153 |
+
+Pairwise, instances where one answered strictly more than the other:
+`hscu` over `lp` 82, `lp` over `hscu` 58, `hscu` over `hsc` 18, `hsc` over
+`hscu` 2.
+
+Reading. **No wrong verdict** in 1916 answers. The two engines are
+**complementary**: the LP wins on cardinality (the rational relaxation
+carries the whole state equation, `x ≥ 0` included, and every place; `S`
+carries the positive flows, the zeros and the tags, and answers no goal
+over a removed place), `S` wins on fireability (conjunctions `p ≥ 1 ∧ q ≥ 1`
+that the units and integrality refute and the rationals cannot). The unit
+constraints add 27 answers, 18 on fireability. The LP costs nothing; `S`
+costs 0.4 s in the median and **hits the 60 s cap on 39 of 172 runs**: on
+several of them `S` was built in time (AutonomousCar-PT-03b, 3905 nodes;
+BridgeAndVehicles-PT-V20P20N50, 18 713 nodes) and the time went into the
+zero-step selections — cardinality atoms summing places across the shape
+are non-local selectors on `S`; on others (AirplaneLD-PT-2000) nothing was
+built. Mixed-sign flows, dropped today, are 312 of the 7627 flows of the
+sample: not where the cardinality gap comes from.
+
+Fixes that followed: a deadline per zero-step test (`--approx-back-time`,
+default 2 s; a test cut leaves the property open and is counted), the
+count of goals skipped for reading a removed place in the stats line.
+
+### 2.5 The sample sweep with the backward search (measured)
+
+Same 86 models, `hscb` = `hscu` + `--approx-back 50 --approx-back-time 2`
+(binary of c684504; `tests/logs/unreach/sampleb/rows.tsv`):
+
+| engine | answered / 2752 | wrong | RC / 1376 | RF / 1376 | runs at the cap | failed | total time | median |
+|---|---|---|---|---|---|---|---|---|
+| `hscu` | 643 | 0 | 400 | 243 | 40 | 0 | 2790 s | 0.49 s |
+| `lp` | 657 | 0 | 504 | 153 | 0 | 0 | 177 s | 0.01 s |
+| **`hscb`** | **1285** | **0** | **669** | **616** | 42 | 11 | 3693 s | 10.7 s |
+
+Pairwise: `hscb` answered strictly more than `lp` on 103 instances, `lp`
+more than `hscb` on 53; `hscb` over `hscu` on 83.
+
+The backward searches: 622 decided — **592 reachable** (a layer met the
+initial marking, a real path), **30 unreachable** (closed) — 6 open after
+50 layers, 304 cut by their 2 s deadline. So the search inside `S` is,
+first of all, a fast *reachability* engine for the targets the invariants
+leave possible: the layers grow from the goal toward the initial marking
+inside a set the invariants keep small, and most reachable goals are a few
+layers deep. The refutations by closure are rarer (30) and the true
+complement of the LP's strength; the 304 cuts are the room left.
+
+The 11 failures were one bug: a `select` cut by the deadline before its
+backward search raised through the pass (`error: deadline reached`), losing
+the run's remaining formulas; fixed (the test counts as a timeout, the
+property stays open). AutonomousCar-PT-03b RC after the fix: 24 s, 7 of 16
+answered, 6 zero-step tests and 9 searches cut — bounded, no crash.
