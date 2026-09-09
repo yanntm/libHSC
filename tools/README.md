@@ -57,6 +57,8 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
    its signature (`hsc-pn: shape sig=<hex>`, also in the `-v` stats line as
    `shape_sig`), no fixpoint: two heuristics with one signature produced
    the same shape.
+   `HSC_REACH_TRACE=1` times the closure's construction and its application
+   on stderr (an observation point).
    `--force` appends the `(reorder-force)` directive, `--reverse` the
    `(reorder-reverse)` one after it (the mirror image of the shape: which
    end of an order sits at the top matters to the engine). `--invariants S`
@@ -137,6 +139,18 @@ as transition names.
 
 The inverted events the backtrack needs are built on the first request,
 once per run; bounds have no witness.
+
+### `--cover`
+
+On a partial reachable set (the budget ran out inside it) with `--states`,
+`(pump R)` is asked: a pumping pair (manual §8g) proves a place unbounded,
+and the four StateSpace values are answered `+inf` with the technique
+`COVERABILITY`. Nothing is answered otherwise. The divergence signal that
+makes the set partial early comes from the leaf theory: a place whose
+domain passes the divergence limit (65536 values) breaks the closure out
+with a note, so an unbounded net does not spend the whole budget in a
+tight loop. CryptoMiner-PT-D05N000 and FunctionPointer-PT-a008 answer in
+16 s of a 20 s budget; BugTracking (754 places) does not yet.
 
 ### `--states`
 

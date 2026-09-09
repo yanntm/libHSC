@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
                "s-expression forms (INTEROP.md). Answers: FORMULA lines on stdout."};
   std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock, shape_file, export_shape;
   bool force = false, reverse = false, states = false, max_tokens = false, print_unknown = false, quiet = false,
-       verbose = false, witness = false, shape_only = false;
+       verbose = false, witness = false, shape_only = false, cover = false;
   int invariants_time = 0;
   long long seed = 1;
   int bound = 2, total_time = 0;
@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
   app.add_option("--totalTime", total_time, "seconds; then UNKNOWN for what is open and exit 0");
   app.add_flag("--printUnknown", print_unknown, "print UNKNOWN <name> for every unanswered property");
   app.add_flag("--witness", witness, "after each CTL verdict, its witness tree on stderr");
+  app.add_flag("--cover", cover, "on a partial reachable set, look for a pumping pair ((pump R), an unboundedness witness) and answer the StateSpace values +inf when found");
   app.add_option("--export-hsc", export_hsc, "write the emitted .hsc model to this file");
   app.add_flag("-q,--quiet", quiet, "no import log on stderr");
   app.add_flag("-v,--verbose", verbose, "forward the session's own report lines to stderr");
@@ -468,7 +469,20 @@ int main(int argc, char** argv) {
     print_open(std::cout);
     if (r_partial) {
       // nothing is answered from a partial set: the StateSpace values would be
-      // wrong, and the properties' selections unsound
+      // wrong, and the properties' selections unsound — unless the set proves
+      // a place unbounded (a pumping pair), which answers StateSpace for good
+      if (cover && states) {
+        bool pumped = false;
+        for (const std::string& l : solver.feed("(pump R)")) {
+          if (verbose) std::cerr << "hsc-pn: " << l << '\n';
+          if (l.rfind("R pump ", 0) == 0 && l.find(" none") == std::string::npos) pumped = true;
+        }
+        if (pumped) {
+          for (const char* v : {"STATES", "TRANSITIONS", "MAX_TOKEN_IN_PLACE", "MAX_TOKEN_PER_MARKING"})
+            std::cout << "STATE_SPACE " << v << " +inf TECHNIQUES DECISION_DIAGRAMS SATURATION COVERABILITY" << std::endl;
+          return 0;
+        }
+      }
       if (verbose) std::cerr << "hsc-pn: the reachable set is partial, no answers\n";
       print_open(std::cout);
       return 0;
