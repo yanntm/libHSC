@@ -22,6 +22,13 @@ Ledger: `research_notes/ideas.md` #1, #2, #3, #17, #18.
 5. **Learning invariants from `S ∖ R`** (ledger #17) and hard reachability
    questions from the gap (#18) once `S` and `R` both exist for a corpus.
 
+6. **`S` as the first pass of every question** (ledger #19): `hsc-pn --approx`
+   builds `S` before `R` and answers the reachability and invariant
+   properties it refutes (a selector each); then the CTL checker's `EF`
+   leaves; keep the best `S` of a run as a named result the driver reads.
+7. **Behind the ITS-Tools reducer** (`BK_TOOL=hscxred` in the harness):
+   the reduced nets are the population where `S` and `R` both change.
+
 ## Known
 
 `(equality …)` must take its domains from the box (a bug found on
