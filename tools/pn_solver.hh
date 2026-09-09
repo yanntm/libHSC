@@ -49,6 +49,8 @@ class solver {
   /// that did not account for what they dropped, in which case the arcs are
   /// simply not reported rather than reported low.
   void set_arcs_countable(bool countable) { arcs_countable_ = countable; }
+  /// Forward the witness tree of every CTL verdict to stderr (`--witness`).
+  void set_witness(bool on) { witness_ = on; }
 
   /// What constant places removed by the producer held (PNET's `PDROP`).
   /// Those tokens sit in every marking, so they add to the per-marking total,
@@ -160,12 +162,42 @@ class solver {
             q + " ctl ");
         if (v != "TRUE" && v != "FALSE") return false;
         out << "FORMULA " << p.name << ' ' << v << TECHNIQUES << std::endl;
+        if (witness_) {
+          for (const std::string& l : feed("(witness " + q + ")")) {
+            if (l.rfind(q + " witness", 0) == 0) {
+              std::cerr << "WITNESS " << p.name << l.substr(q.size() + 8) << '\n';
+            } else {
+              std::cerr << without_zero_places(l) << '\n';
+            }
+          }
+        }
         return true;
       }
       case PropertyKind::Unsupported:
         return false;
     }
     return false;
+  }
+
+  /// A word line `((p 0) (q 2) …)` without its `(name 0)` pairs; other
+  /// lines unchanged.
+  static std::string without_zero_places(const std::string& line) {
+    const std::size_t open = line.find("((");
+    if (open == std::string::npos) return line;
+    std::string out = line.substr(0, open + 1);
+    std::size_t i = open + 1;
+    while (i < line.size() && line[i] == '(') {
+      const std::size_t close = line.find(')', i);
+      if (close == std::string::npos) return line;
+      const std::string pair = line.substr(i, close - i + 1);
+      if (pair.size() < 3 || pair.compare(pair.size() - 3, 3, " 0)") != 0) {
+        if (out.back() != '(') out += ' ';
+        out += pair;
+      }
+      i = close + 1;
+      while (i < line.size() && line[i] == ' ') ++i;
+    }
+    return out + line.substr(i);
   }
 
   /// `STATE_SPACE MAX_TOKEN_IN_PLACE`: the largest marking of any place,
@@ -230,6 +262,7 @@ class solver {
   const SparsePetriNet<int>& net_;
   int bound_;
   bool verbose_;
+  bool witness_ = false;  ///< forward CTL witness trees to stderr
   std::vector<long long> mult_;  ///< empty means every multiplicity is 1
   bool arcs_countable_ = true;
   std::vector<long long> dropped_;  ///< markings of removed constant places
