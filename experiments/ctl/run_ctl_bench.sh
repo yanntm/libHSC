@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # run_ctl_bench.sh: hsc-pn on the CTLCardinality / CTLFireability examinations of
 # a list of MCC 2026 P/T instances, against the contest oracle, locally.
-#   experiments/ctl/run_ctl_bench.sh [-t cap_s] [-j jobs] [-b hsc-pn] [-m mem_kb] [-e "extra flags"] -o results.tsv models.txt
+#   experiments/ctl/run_ctl_bench.sh [-t cap_s] [-j jobs] [-b hsc-pn] [-m mem_kb] [-e "extra flags"] [-x "VAR=value ..."] -o results.tsv models.txt
+# -x exports environment variables for every run (the variation points, e.g.
+# "HSC_CTL_PROTECT=never").
 # models.txt: "<instance> <states>" per line. Inputs come from
 # ~/git/pnmcc-models-2026/website (INPUTS/<instance>.tgz, oracle.tar.gz), extracted
 # once under tests/logs/mcc2026/. One process per (instance, examination), each
@@ -11,9 +13,10 @@
 # where `protected` is the number of inverted events hsc-pn intersected with R
 # (from its -v report; empty when the run never inverted), `note` the exit status.
 set -u
-CAP=60; JOBS=8; BIN=build/tools/hsc-pn; MEM=6000000; EXTRA=""; OUT=""
-while getopts "t:j:b:m:e:o:" opt; do case $opt in
-  t) CAP=$OPTARG;; j) JOBS=$OPTARG;; b) BIN=$OPTARG;; m) MEM=$OPTARG;; e) EXTRA=$OPTARG;; o) OUT=$OPTARG;; esac; done
+CAP=60; JOBS=8; BIN=build/tools/hsc-pn; MEM=6000000; EXTRA=""; OUT=""; ENVS=""
+while getopts "t:j:b:m:e:x:o:" opt; do case $opt in
+  t) CAP=$OPTARG;; j) JOBS=$OPTARG;; b) BIN=$OPTARG;; m) MEM=$OPTARG;; e) EXTRA=$OPTARG;; x) ENVS=$OPTARG;; o) OUT=$OPTARG;; esac; done
+for kv in $ENVS; do export "$kv"; done
 shift $((OPTIND-1))
 LIST=${1:?models.txt}
 [ -n "$OUT" ] || { echo "-o results.tsv required"; exit 2; }

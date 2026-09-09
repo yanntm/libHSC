@@ -30,4 +30,13 @@ Machine: the development workstation (20 cores, 64 GB), 8 runs side by side,
 |---|---|---|
 | `results/m4_le1e7.tsv` | libHSC 2e11ecc (M4: forward form, gfp, inverse; no existential evaluation) | baseline |
 
-Summaries are appended below as the runs complete.
+### m4 baseline
+
+588 runs (294 instances × CTLC, CTLF): **6101 answered, 0 wrong**, 3259
+open; 357 files complete; median wall 10 s, 90th percentile at the cap.
+Of the 231 incomplete runs, 124 answered nothing — largely bound by the
+reachable set itself on the default shape (BART-PT-002: 7 s for 17424
+states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
+60 s, while `--shape louvain --force` answers 16/16 in 21 s).
+
+Further rows are appended as the runs complete.
