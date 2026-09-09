@@ -59,7 +59,13 @@ states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 
 `results/m5e_1e7_1e9.tsv`: the 129 instances between 10^7 and 10^9 states,
 120 s, Louvain + FORCE, 4 side by side with 8 GB each — the correctness
-check on bigger models (summary below when complete).
+check on bigger models. 258 runs (one instance has no fireability file):
+2105 answered, 0 wrong, 2023 open, 100 complete files, 72 runs with no
+answer at all; peak memory 3.3 GB, every run uses its whole budget (the
+fair shares spend what is left on the open formulas). Half the answers of
+the small corpus per run, at twice the budget — the cost of a decade of
+states is a factor of four here, and the open engine question (the `gfp`
+hull of `EG`) is what the zero-answer runs mostly wait on.
 
 The evaluation discipline (m5a), the fusion (m5b) and the fair-share
 scheduler (m5c) each buy about forty answers over 588 runs (6101 → 6224,

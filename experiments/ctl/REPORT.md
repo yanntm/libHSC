@@ -8,8 +8,9 @@ stay in `handoff_ctl.md`; the numbers in `README.md` here.
 
 * The CTL checker is complete for the MCC examinations and **never wrong**
   on the corpus tried: 0 wrong verdicts on every benchmark run of the 294
-  P/T instances below 10^7 states (about 6100 answered per run), and 96/96
-  on the three sample nets against the 2026 oracle.
+  P/T instances below 10^7 states (about 6100 answered per run), 0 wrong
+  on the 129 instances of 10^7–10^9 states (2105 answered at 120 s), and
+  96/96 on the three sample nets against the 2026 oracle.
 * Built this session, each documented first: the existential image
   (`has_image`), the on-the-fly search inside constrained closures, an
   interrupt hook with deadlines and a fair-share scheduler, product
@@ -155,6 +156,12 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    per run is 7765 and 460 complete files. The engine work of the night is
    worth about a quarter of what the shape is worth; both compound, and
    the driver's portfolio already runs four shapes.
+20. **The bigger models** (`m5e_1e7_1e9`, 129 instances of 10^7–10^9
+   states, 120 s each, 4 side by side under an 8 GB cap): 258 runs, 2105
+   answered, **0 wrong**, 100 complete files, 72 runs without an answer,
+   peak memory 3.3 GB — nothing crashed, nothing hit the cap. The
+   correctness check on the larger corpus passes; the yield halves per run
+   against the small corpus.
 
 ## Where things stand for you
 
