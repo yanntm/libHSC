@@ -63,7 +63,12 @@ answered 163 (the number of places) for 841, the maximum search being
 capped at Σ coefficient × (declared bound − 1) while the leaves had gone
 to 256. Fixed (`pn_solver.hh`: the upper end grows until `form ≥ hi+1` is
 unreachable); the same cap bounded every UpperBounds answer. The sweep's
-first return is a correctness fix.
+first return is a correctness fix. Its second: 1091 runs built `R` and never
+got `MAX_TOKEN_PER_MARKING` — the binary search probed selections of a sum
+over every place, the worst atom for the crossing engine. Replaced by
+`(max-sum R …)`, one memoised pass over the diagram (AirplaneLD-PT-0200:
+all four values in 7 s where the run had two in 270 s; DoubleExponent-PT-003
+in 1.9 s); UpperBounds forms go through the same pass, exactly.
 
 ## Protocol
 
