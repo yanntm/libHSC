@@ -1,10 +1,12 @@
 /// \file equality.hh
 /// \brief The diagram of `Σ c_p · x_p = K` over the leaf domains, built
 /// directly (`algorithm.md` §1): a knapsack along the shape, one node per
-/// (sort, position, remaining sum), the residuals above K pruned — which is
-/// why the coefficients must be nonnegative. Linear in places × K, where the
-/// case-bracket curry of the same atom over a full box enumerates residual
-/// classes and never returns on a few dozen constraints.
+/// (sort, position, partial sum), the partial sums the rest of the word
+/// cannot complete to K pruned — the complement's range of contributions,
+/// from the domains, says which; coefficients of either sign. Linear in
+/// places × the span of feasible sums, where the case-bracket curry of the
+/// same atom over a full box enumerates residual classes and never returns
+/// on a few dozen constraints.
 #pragma once
 #include <cstddef>
 #include <cstdint>
@@ -29,9 +31,8 @@ struct leaf_access {
 };
 
 /// \brief The words of the shape rooted at \p top whose leaves lie in their
-/// domains and satisfy `Σ coeff[p] · x_p = k` — or `≤ k` with \p at_most, the
-/// residual sums below k kept instead of pruned; `coeff` per frontier
-/// position, every coefficient ≥ 0. `none` when no word does.
+/// domains and satisfy `Σ coeff[p] · x_p = k` — or `≤ k` with \p at_most;
+/// `coeff` per frontier position, any sign. `none` when no word does.
 [[nodiscard]] core::code equality(core::manager& mgr, core::shape_code top,
                                   std::span<const long long> coeff, long long k,
                                   const leaf_access& leaves, bool at_most = false);

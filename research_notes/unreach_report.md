@@ -189,3 +189,15 @@ backward search raised through the pass (`error: deadline reached`), losing
 the run's remaining formulas; fixed (the test counts as a timeout, the
 property stays open). AutonomousCar-PT-03b RC after the fix: 24 s, 7 of 16
 answered, 6 zero-step tests and 9 searches cut — bounded, no crash.
+
+### 2.6 BugTracking on the abstract net: the shape strikes (measured)
+
+The rerun of §2.3 through the abstraction pass (94 uncovered places
+removed) did not return in 400 s: `S` has 1.9e14 markings there (against
+8.9e129 with the capped places, whose domains were most of the count) but
+**39 587 nodes against 8249** — the Sloan order was recomputed on the
+abstract net and came out far worse than the original net's order, whose
+dependency structure the removed places carry. Not a soundness matter, a
+shape one, and the same lesson as everywhere in this project: the set's
+cost is the order's. Fix: the pass now orders the abstract net by the
+original net's Sloan order projected onto the kept places.

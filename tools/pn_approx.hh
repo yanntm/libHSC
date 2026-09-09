@@ -13,6 +13,7 @@
 #pragma once
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -129,11 +130,12 @@ inline void build_approx(solver& s, const SparsePetriNet<int>& net, const hsc::p
   }
   struct constraint { long long k; std::string form; std::string name; };
   std::vector<constraint> cs;
-  for (std::size_t n = 0; n < a.positive.size(); ++n) {
-    const hsc::petri::pflow& f = a.flows[a.positive[n]];
+  for (std::size_t n = 0; n < a.flows.size(); ++n) {  // every flow, the mixed-sign ones included
+    const hsc::petri::pflow& f = a.flows[n];
+    if (f.terms.empty()) continue;
     std::string eq = " F " + std::to_string(f.constant);
     for (const auto& [p, c] : f.terms) eq += " (* " + std::to_string(c) + ' ' + pnames[static_cast<std::size_t>(p)] + ')';
-    cs.push_back({f.constant, "(equality E" + std::to_string(n) + eq + ")", "E" + std::to_string(n)});
+    cs.push_back({std::llabs(f.constant), "(equality E" + std::to_string(n) + eq + ")", "E" + std::to_string(n)});
   }
   if (o.units && a.tagged && units != nullptr) {
     std::unordered_map<std::string, std::size_t> index;

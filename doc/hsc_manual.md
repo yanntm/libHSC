@@ -244,7 +244,7 @@ certificate; `unfold` always enumerates.
 (pump NAME [LEAF])           ; an unboundedness witness: a pumping pair on a shortest path to the leaf's largest value, §8g
 (full NAME [(LEAF LO HI)]*)  ; the product of the leaf domains (declared, or given), the box every marking lies in
 (dead NAME SET [step] [ignore LEAF*]) ; the events dead on SET: never enabled (guard atoms on ignored, merely capped leaves dropped); with `step`, also enabled in one step only from markings SET rules out
-(equality NAME BOX K (* C LEAF)*) ; the words of BOX (a product) with Σ C·LEAF = K, built directly (C ≥ 0)
+(equality NAME BOX K (* C LEAF)*) ; the words of BOX (a product) with Σ C·LEAF = K, built directly (C of any sign)
 (at-most NAME BOX K (* C LEAF)*)  ; the same with Σ C·LEAF ≤ K
 (intersect NAME A B*)        ; the meet of bound results
 (minus NAME A B)             ; the states of A not in B

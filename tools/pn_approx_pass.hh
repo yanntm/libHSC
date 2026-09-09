@@ -69,13 +69,35 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
   afacts.bound.clear();
   for (const std::size_t p : abs.kept) afacts.bound.push_back(facts.bound[p]);
   afacts.covered = abs.kept.size();
-  for (hsc::petri::pflow& f : afacts.flows)
-    for (auto& [p, c] : f.terms) p = static_cast<int>(abs.to_abstract[static_cast<std::size_t>(p)]);
+  // a flow through a removed place is no constraint of the abstract net
+  afacts.flows.clear();
+  afacts.positive.clear();
+  for (const hsc::petri::pflow& f : facts.flows) {
+    bool kept_flow = true;
+    for (const auto& [p, c] : f.terms) kept_flow = kept_flow && keep[static_cast<std::size_t>(p)];
+    if (!kept_flow) continue;
+    hsc::petri::pflow g = f;
+    bool positive = g.constant >= 0;
+    for (auto& [p, c] : g.terms) {
+      p = static_cast<int>(abs.to_abstract[static_cast<std::size_t>(p)]);
+      positive = positive && c > 0;
+    }
+    if (positive) afacts.positive.push_back(afacts.flows.size());
+    afacts.flows.push_back(std::move(g));
+  }
   const SparsePetriNet<int>& anet = abs.net;
-  // the model of the abstract net: Sloan order, domains as wide as the box
-  const int n = static_cast<int>(anet.getPlaceCount());
-  const std::vector<hsc::order::louvain::edge> edges = hsc::petri::dependency_edges(anet);
-  const hsc::petri::unit_tree units = hsc::petri::ordered(anet, hsc::order::sloan(n, edges));
+  // the model of the abstract net: the Sloan order of the *original* net
+  // projected onto the kept places (the removed places carry dependency
+  // structure the order needs — BugTracking's set has 8249 nodes under the
+  // projected order, 39 587 under an order computed on the abstract net),
+  // domains as wide as the box
+  const std::vector<hsc::order::louvain::edge> edges = hsc::petri::dependency_edges(net);
+  const std::vector<std::uint32_t> full_order = hsc::order::sloan(static_cast<int>(net.getPlaceCount()), edges);
+  std::vector<std::uint32_t> listing;
+  listing.reserve(abs.kept.size());
+  for (const std::uint32_t p : full_order)
+    if (keep[p]) listing.push_back(static_cast<std::uint32_t>(abs.to_abstract[p]));
+  const hsc::petri::unit_tree units = hsc::petri::ordered(anet, listing);
   hsc::petri::emit_options eo;
   eo.exam = hsc::petri::examination::model_only;
   eo.skip_no_effect = !o.dead;

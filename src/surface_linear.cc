@@ -64,9 +64,7 @@ void translator::linear_constraint(const datum& form, bool at_most) {
     if (!t.is_list() || t.items().size() != 3 || t.items()[0].text() != "*") fail(t, "equality takes terms (* C LEAF)");
     const std::optional<std::uint32_t> pos = position(sym(t.items()[2]));
     if (!pos) fail(t.items()[2], "equality: unknown leaf");
-    const long long c = std::stoll(t.items()[1].text());
-    if (c < 0) fail(t, "equality: coefficients must be nonnegative");
-    coeff[*pos] += c;
+    coeff[*pos] += std::stoll(t.items()[1].text());
   }
   // the domains: the box's leaf primes, read down its (single) path of products
   std::vector<std::vector<std::int32_t>> domains(order_.size());
