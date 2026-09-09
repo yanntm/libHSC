@@ -274,6 +274,7 @@ the slice's cardinal). BugTracking, abstract net, 150 s budget
 |---|---|---|---|---|---|---|
 | index order (§2.6) | 0 | 24 601 | 0 | < 500 | 300 s | — |
 | cheapest by writers (§2.9) | 169 | 24 770 | 0 | ~450 | 150 s | 2.7 GB |
+| the same, 1200 s budget | 169 | 24 770 | 0 | < 2701 (first pass unfinished) | 1200 s | — |
 | **sign-aware, smallest slices first** | **854** | **25 455** | **0** | 4900 | 150 s | 2.9 GB |
 
 The profile: the first pass over the 2701 candidates takes 100 s and kills
