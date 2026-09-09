@@ -120,32 +120,17 @@ class solver {
                     q + " count ");
   }
 
-  /// The largest k with `form >= k` reachable, by binary search over the
-  /// range the leaf domain allows; \p hint (>= 0) is tried first.
+  /// The maximum of \p form over the reachable states: `(max-sum R terms)`,
+  /// one pass over the diagram, exact. The hint (an UpperBounds hint) is not
+  /// needed and only checked against the result in verbose mode.
   long long maximum(const ::petri::expr::LinearAtom& form, long long hint) {
     const std::vector<std::string>& pnames = net_.getPnames();
-    long long lo = 0, hi = 0;
-    for (const auto& [place, coeff] : form.terms) {
-      (void)place;
-      if (coeff > 0) hi += coeff * (bound_ - 1);
-      else lo += coeff * (bound_ - 1);
-    }
-    if (hint >= 0 && hint <= hi &&
-        nonempty(hsc::petri::at_least(form, hint, pnames))) {
-      lo = hint;  // the hint is reached; it may still be exceeded
-    }
-    // The declared bound is a lower estimate of what the leaves hold (a leaf's
-    // domain is raised as the fixpoint needs): grow the upper end until
-    // `form >= hi+1` is unreachable, then bisect. Without this the search
-    // was capped at the estimate — DoubleExponent-PT-003 answered 163 for 841.
-    while (nonempty(hsc::petri::at_least(form, hi + 1, pnames))) hi = 2 * hi + 1;
-    // invariant: form >= lo is reachable (R is non-empty), form >= hi+1 is not
-    while (lo < hi) {
-      const long long mid = lo + (hi - lo + 1) / 2;
-      if (nonempty(hsc::petri::at_least(form, mid, pnames))) lo = mid;
-      else hi = mid - 1;
-    }
-    return lo;
+    std::string q = "(max-sum R";
+    for (const auto& [place, coeff] : form.terms) q += " (* " + std::to_string(coeff) + ' ' + pnames[place] + ')';
+    const std::string v = value_of(feed(q + ")"), "R max-sum ");
+    const long long m = v == "none" ? 0 : std::stoll(v);
+    if (verbose_ && hint >= 0 && hint != m) std::cerr << "bound hint " << hint << " against the maximum " << m << '\n';
+    return m;
   }
 
   /// Answer one property with a FORMULA line; false when it is left open.
@@ -244,11 +229,10 @@ class solver {
     out << "STATE_SPACE STATES " << exact_count(std::nullopt) << TECHNIQUES
         << std::endl;
     max_tokens(out);
-    ::petri::expr::LinearAtom all;
-    for (std::size_t p = 0; p < net_.getPlaceCount(); ++p) all.addTerm(p, 1);
     long long constant = 0;
     for (const long long held : dropped_) constant += held;
-    out << "STATE_SPACE MAX_TOKEN_PER_MARKING " << maximum(all, -1) + constant
+    const std::string v = value_of(feed("(max-sum R)"), "R max-sum ");
+    out << "STATE_SPACE MAX_TOKEN_PER_MARKING " << (v == "none" ? 0 : std::stoll(v)) + constant
         << TECHNIQUES << std::endl;
     if (!arcs_countable_) {
       std::cerr << "TRANSITIONS not reported: this net carries no evidence "

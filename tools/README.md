@@ -94,7 +94,7 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
 | `(reach N B)` / EF | `(select Q R B')` `(count Q)` | TRUE if the count is non-zero, else FALSE |
 | `(invariant N B)` / AG | `(select Q R (not B'))` `(count Q)` | FALSE if non-zero, else TRUE |
 | `(deadlock N)` | `(select Q R (not (or G_1 … G_n)))`, `G_t` the guard of `t` | TRUE if non-zero |
-| `(bound N E [K])` | `(select Q_k R (>= E' k))` for k by binary search over `[0, bound)` | `FORMULA N <max>` |
+| `(bound N E [K])` | `(max-sum R (* c p)…)`: the maximum of the form over `R` in one pass over the diagram | `FORMULA N <max>` |
 | `(ctl N F)` | `(ctl Q F')`, `F'` the formula in the surface's CTL grammar (manual §8f) | the session's `Q ctl TRUE|FALSE`; `UNKNOWN` leaves the property open |
 
 `B'` is the body printed in the surface's atom syntax: `(and|or|not …)`,
@@ -108,11 +108,12 @@ the same way. `fireable` is already desugared into pre-arc comparisons by
 the parsers. Place references are the leaf names of the emitted model, which
 are the net's place names on both paths.
 
-Bounds: the surface has no per-expression maximum, and the leaf domain
-`[0, bound)` is known, so the maximum of `E` over `R` is found by binary
-search on `k` with one `select` per probe: at most `log2(bound · Σ|c|)`
-probes, each a symbolic operation on the fixpoint. A hint `K` is checked
-first: `E >= K` non-empty answers `K` in one probe.
+Bounds: `(max-sum R terms)` is one memoised bottom-up pass over the
+diagram (the best arc is the head's best weighted value plus the tail's
+best), linear in the nodes, exact — where a binary search on selections of
+a sum over every place used to stall (1091 runs of the first sweep built
+`R` and never got `MAX_TOKEN_PER_MARKING`). The UpperBounds hint is only
+compared to the result under `-v`.
 
 ### `--witness`
 
@@ -141,7 +142,7 @@ once per run; bounds have no witness.
 
 The four values of the MCC StateSpace examination, each its own line:
 `STATES` from `(count R exact)`, `MAX_TOKEN_IN_PLACE` from `(max-value R)`,
-`MAX_TOKEN_PER_MARKING` by the binary search above on the sum of all places,
+`MAX_TOKEN_PER_MARKING` from `(max-sum R)` (every place, coefficient 1),
 `TRANSITIONS` as Σ_t `m(t)` · `(count (select R G_t) exact)`: the enabled
 pairs, weighted by the `TMULT` block of the PNET when it carries one (how
 many transitions of the producer's original net each transition stands for,
