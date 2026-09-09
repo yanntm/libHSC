@@ -1,0 +1,18 @@
+# name	flags	environment (space separated VAR=value, or -)
+nupn	--shape nupn	-
+flat	--shape flat	-
+random	--shape random --seed 1	-
+rcm	--shape rcm	-
+sloan	--shape sloan	-
+force	--shape nupn --force	-
+force-rev	--shape nupn --force --reverse	-
+rcm-force	--shape rcm --force	-
+sloan-force	--shape sloan --force	-
+louvain	--shape louvain	-
+louvain-force	--shape louvain --force	-
+louvain-force-rev	--shape louvain --force --reverse	-
+louvain-inv	--shape louvain --force --invariants 5	-
+louvain-inv5	--shape louvain --force --invariants 5	HSC_INV_WEIGHT=5
+louvain-merge4	--shape louvain --force --invariants 5	HSC_INV_MERGE=4
+louvain-merge2	--shape louvain --force --invariants 5	HSC_INV_MERGE=2
+force-iters	--shape louvain --force	HSC_FORCE_ITERS=2000

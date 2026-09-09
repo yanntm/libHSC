@@ -34,6 +34,20 @@ benchmark as the yardstick and reachability as the cheap first signal.
   two distant levels are correlated; bracket what lies between them, or
   bring them together.
 
+## Scripts
+
+* `heuristics.tsv` — the heuristics of the sweep: name, hsc-pn flags,
+  environment (`SWEEP.md` §4).
+* `sweep_job.sh` — one instance, one examination, every heuristic in sequence
+  at a fixed budget under the 15 GB rule; one TSV line per run with the
+  record of `SWEEP.md` §3, logs beside.
+* `sweep_local.sh` — the sweep on this machine, N jobs side by side, over a
+  model list; results under `results/<tag>.tsv`.
+* `sweep_oar.sh` — the same as one OAR job per (instance, examination), run
+  from the deployed folder on the head node (`PetriSpot/docs/CLUSTER.md`).
+* `../ctl/summarize.py` reads the CTL bench TSVs; the sweep pages
+  (`SWEEP.md` §2) are the next tool to write.
+
 ## Protocol
 
 A heuristic enters as a flag or an environment variable, never as a new
