@@ -121,6 +121,33 @@ class solver {
   /// stays dead when its capped places are clipped, so caps do not matter
   /// there). A goal that reads a capped place, or that the set does not rule
   /// out, stays open: false is returned and nothing is printed.
+  /// Whether the goal of \p p reads a place \p bound marks removed or capped.
+  static bool reads_removed(const ::petri::expr::Property& p, const std::vector<long long>& bound) {
+    using ::petri::expr::PropertyKind;
+    if (p.kind != PropertyKind::Reachability && p.kind != PropertyKind::Invariant) return false;
+    return reads_capped(p.body, bound);
+  }
+
+  /// The tests that ran out of their time (`refute` with a deadline).
+  [[nodiscard]] std::size_t timeouts() const { return timeouts_; }
+
+  /// `refute` under a deadline of \p seconds (0: none): a test that runs
+  /// out leaves the property open and counts as a timeout.
+  bool refute(const ::petri::expr::Property& p, const std::string& set,
+              const std::vector<long long>& bound, std::ostream& out, double seconds) {
+    if (seconds <= 0) return refute(p, set, bound, out);
+    set_deadline(std::chrono::steady_clock::now() +
+                 std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(seconds)));
+    bool r = false;
+    try {
+      r = refute(p, set, bound, out);
+    } catch (const std::exception&) {  // the selection was cut: no `count` line came back
+      ++timeouts_;
+    }
+    set_deadline(std::nullopt);
+    return r;
+  }
+
   bool refute(const ::petri::expr::Property& p, const std::string& set,
               const std::vector<long long>& bound, std::ostream& out) {
     using ::petri::expr::Expression;
@@ -178,10 +205,16 @@ class solver {
     std::string places;
     places_of(goal, pnames, places);
     const std::string x = next_name(), b = next_name();
-    const std::string v = value_of(
-        feed("(select " + x + " " + set + " " + hsc::petri::query_atom(goal, pnames) + ") (backward " + b + " " + x +
-             " " + set + " steps " + std::to_string(steps) + " writing" + places + ")"),
-        b + " backward ");
+    std::string v;
+    try {
+      v = value_of(
+          feed("(select " + x + " " + set + " " + hsc::petri::query_atom(goal, pnames) + ") (backward " + b + " " + x +
+               " " + set + " steps " + std::to_string(steps) + " writing" + places + ")"),
+          b + " backward ");
+    } catch (const std::exception&) {  // the selection itself was cut by the deadline
+      ++timeouts_;
+      v = "partial 0";
+    }
     if (how != nullptr) *how = v;
     const std::string kind = v.substr(0, v.find(' '));
     if (kind == "init") {
@@ -388,6 +421,7 @@ class solver {
   bool witness_ = false;    ///< forward witnesses to stderr
   bool seed_named_ = false; ///< `(word hsc-pn-I …)` fed, for the paths
   const std::vector<std::string>* prop_names_ = nullptr;  ///< see set_property_names
+  std::size_t timeouts_ = 0;  ///< see timeouts()
   std::vector<long long> mult_;  ///< empty means every multiplicity is 1
   bool arcs_countable_ = true;
   std::vector<long long> dropped_;  ///< markings of removed constant places

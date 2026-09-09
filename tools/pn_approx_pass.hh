@@ -37,7 +37,7 @@ struct approx_pass_options {
 };
 
 struct approx_pass_report {
-  std::size_t removed = 0, refuted = 0, open_before = 0;
+  std::size_t removed = 0, refuted = 0, open_before = 0, skipped_removed = 0, test_timeouts = 0;
   std::size_t back_decided = 0, back_init = 0, back_closed = 0, back_open = 0, back_partial = 0;
   double tests_s = 0, back_s = 0;
   std::vector<std::string> dead_names;  ///< with dead: the names of the dead transitions
@@ -134,8 +134,9 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
   for (std::size_t i = 0; i < properties.size(); ++i) {
     if (!open[i]) continue;
     ++rep.open_before;
-    if (rep.removed != 0 && properties[i].kind == ::petri::expr::PropertyKind::Deadlock) continue;
-    if (s.refute(properties[i], "S", orig_bound, out)) {
+    if (rep.removed != 0 && properties[i].kind == ::petri::expr::PropertyKind::Deadlock) { ++rep.skipped_removed; continue; }
+    if (solver::reads_removed(properties[i], orig_bound)) { ++rep.skipped_removed; continue; }
+    if (s.refute(properties[i], "S", orig_bound, out, o.back_time)) {
       open[i] = 0;
       ++rep.refuted;
       if (o.verbose) std::cerr << "hsc-pn: refuted " << properties[i].name << " on S\n";
@@ -162,7 +163,8 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
     }
   }
   rep.back_s = sec(tb, clock::now());
-  std::cerr << "hsc-pn: approx refuted=" << rep.refuted << " of " << rep.open_before << " tests_s=" << rep.tests_s
+  std::cerr << "hsc-pn: approx refuted=" << rep.refuted << " of " << rep.open_before << " skipped_removed=" << rep.skipped_removed
+            << " test_timeouts=" << s.timeouts() << " tests_s=" << rep.tests_s
             << " back_decided=" << rep.back_decided << " back_init=" << rep.back_init << " back_closed=" << rep.back_closed
             << " back_open=" << rep.back_open << " back_partial=" << rep.back_partial << " back_s=" << rep.back_s
             << " pass_s=" << sec(t0, clock::now()) << '\n';
