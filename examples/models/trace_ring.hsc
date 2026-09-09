@@ -32,3 +32,21 @@
 ; the source and target meet: a zero-length path
 (path P5 R D3)
 (expect-path P5 0)
+; witness trees of ctl verdicts: EF (d == 3) is a 9-step path; AG (a <= 3)
+; holds by exhaustion (no path); EF (EG (a > 0)) a path then a lasso
+(ctl W1 (EF (== d 3)))
+(witness W1)
+(expect-path W1 9)
+(ctl W2 (AG (<= a 3)))
+(witness W2)
+(expect-path W2 0)
+(ctl W3 (EF (AG (> a 0))))
+(witness W3)
+; a witness, not the shortest overall: the end state is chosen first, then
+; its predecessor, then a shortest run from the initial state to it
+(ctl W4 (EF (and (== d 1) (EX (== d 2)))))
+(witness W4)
+(expect-path W4 8)
+; EG through a lasso: three tokens circulating with a > 0 kept
+(ctl W5 (EG (> a 0)))
+(witness W5)

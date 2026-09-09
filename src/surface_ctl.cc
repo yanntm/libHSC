@@ -23,6 +23,7 @@
 #include "hsc/ctl/checker.hh"
 #include "hsc/ctl/formula.hh"
 #include "hsc/ctl/forward.hh"
+#include "hsc/trace/witness.hh"
 #include "surface_translator.hh"
 
 namespace hsc::surface {
@@ -36,6 +37,8 @@ struct translator::ctl_state {
   std::vector<datum> atoms;  ///< atom index → its query atom
   std::unordered_map<std::string, std::uint32_t> atom_index;  ///< by text
   std::unordered_map<std::string, ctl::verdict> verdicts;
+  std::unordered_map<std::string, ctl::forward_form> converted;  ///< by property, for `witness`
+  std::optional<std::vector<code>> raw_preds;  ///< the unprotected converses, for the paths
   std::optional<code> reach;  ///< `R`, computed on first use
   std::optional<code> dead;   ///< the reachable deadlocks, once `reach` is
   /// The inverted events against `R`, exact ones raw and the others
@@ -204,6 +207,7 @@ void translator::do_ctl(const datum& form) {
   }
   st.pred_line = form.line();
   const ctl::forward_form ff = st.fw.convert(phi);
+  st.converted[name] = ff;
   try {
     const ctl::verdict v = st.checker->check(ff);
     st.verdicts[name] = v;
@@ -303,6 +307,72 @@ void translator::do_gfp(const datum& form) {
   const code src = named(arg(form, 3, "source result"));
   results_[name] =
       mgr_.diagrams().apply_local(mgr_.operations().gfp(ev), src);
+}
+
+/// `(witness NAME)`: the witness tree of a `ctl` verdict — the forward form's
+/// set expressions read back as paths (`hsc/trace/witness.hh`), printed as
+/// indented word literals, event names and notes. A `TRUE` verdict shows a
+/// witness, a `FALSE` one the counterexample; a property that holds by
+/// exhaustion has no path and says so.
+void translator::do_witness(const datum& form) {
+  const std::string& name = sym(arg(form, 1, "property name"));
+  ctl_state& st = ctl();
+  const auto it = st.converted.find(name);
+  if (it == st.converted.end() || !st.checker) fail(form, "no ctl property named '" + name + "'");
+  if (!st.raw_preds) {
+    st.raw_preds = std::vector<code>{};
+    try {
+      core::inverter inv(mgr_);
+      for (const code ev : events_) st.raw_preds->push_back(inv(top_, ev, *st.reach));
+    } catch (const unsupported_error&) {
+      st.raw_preds->clear();
+    }
+  }
+  trace::graph g;
+  g.sort = top_;
+  g.events = st.model->next_events;
+  g.preds = *st.raw_preds;
+  if (idle_event_ && g.preds.size() + 1 == g.events.size()) {
+    st.raw_preds->push_back(core::op_table::id);
+    g.preds = *st.raw_preds;
+  }
+  g.within = *st.reach;
+  g.one_state = [this](code set) -> code {
+    std::vector<std::int32_t> values;
+    if (!first_word(top_, set, values)) return core::none;
+    std::size_t next = 0;
+    return build_point(top_, next, values);
+  };
+  std::vector<trace::witness_line> lines;
+  try {
+    lines = trace::witness(mgr_, *st.checker, g, it->second,
+                           [&st](std::uint32_t a) { return datum_text(st.atoms[a]); });
+  } catch (const interrupted&) {
+    out_ << name << " witness TIMEOUT\n";
+    return;
+  }
+  std::size_t steps = 0;
+  out_ << name << " witness\n";
+  for (const trace::witness_line& l : lines) {
+    out_ << std::string(2 * (l.depth + 1), ' ');
+    switch (l.what) {
+      case trace::witness_line::kind::state: {
+        std::vector<std::int32_t> values;
+        first_word(top_, l.state, values);
+        print_word(values);
+        break;
+      }
+      case trace::witness_line::kind::event:
+        out_ << (l.event < event_names_.size() ? event_names_[l.event] : "(idle)");
+        ++steps;
+        break;
+      case trace::witness_line::kind::note:
+        out_ << "; " << l.text;
+        break;
+    }
+    out_ << '\n';
+  }
+  paths_[name] = steps;
 }
 
 }  // namespace hsc::surface

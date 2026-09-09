@@ -50,7 +50,7 @@ code source_by_splitting(core::manager& mgr, const graph& g, code event,
 }  // namespace
 
 std::optional<path_result> path(core::manager& mgr, const graph& g, code from,
-                                code to, code constraint) {
+                                code to, code constraint, code through) {
   core::diagram_engine& diagrams = mgr.diagrams();
   core::op_table& ops = mgr.operations();
   if (from == core::none || to == core::none) return std::nullopt;
@@ -70,7 +70,10 @@ std::optional<path_result> path(core::manager& mgr, const graph& g, code from,
   while (reached == core::none) {
     mgr.check_interrupt();
     if (step == core::none) return std::nullopt;
-    code img = diagrams.apply_local(step, layers.back());
+    const code base = through == core::none ? layers.back()
+                                            : diagrams.meet(layers.back(), through);
+    if (base == core::none) return std::nullopt;
+    code img = diagrams.apply_local(step, base);
     if (g.within != core::none) img = diagrams.meet(img, g.within);
     const code fresh = diagrams.minus(img, seen);
     if (fresh == core::none) return std::nullopt;
@@ -91,15 +94,17 @@ std::optional<path_result> path(core::manager& mgr, const graph& g, code from,
     bool found = false;
     for (std::size_t j = 0; j < g.events.size() && !found; ++j) {
       code src = core::none;
+      const code prev = through == core::none ? prev_layer : diagrams.meet(prev_layer, through);
+      if (prev == core::none) break;
       if (j < g.preds.size()) {
-        src = diagrams.meet(diagrams.apply_local(g.preds[j], cur), prev_layer);
+        src = diagrams.meet(diagrams.apply_local(g.preds[j], cur), prev);
         // the constraint held on the source, a predecessor state
         if (src != core::none && constraint != core::op_table::id)
           src = diagrams.apply_local(constraint, src);
         if (src != core::none) src = g.one_state(src);
       } else {
-        const code lim = constraint == core::op_table::id ? prev_layer
-                                                          : diagrams.apply_local(constraint, prev_layer);
+        const code lim = constraint == core::op_table::id ? prev
+                                                          : diagrams.apply_local(constraint, prev);
         if (lim != core::none &&
             diagrams.meet(diagrams.apply_local(g.events[j], lim), cur) != core::none) {
           src = source_by_splitting(mgr, g, g.events[j], lim, cur);

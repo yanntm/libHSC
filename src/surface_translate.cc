@@ -40,6 +40,7 @@ void translator::dispatch(const datum& form) {
   else if (kw == "invert") do_invert(form);
   else if (kw == "path") do_path(form);
   else if (kw == "expect-path") do_expect_path(form);
+  else if (kw == "witness") do_witness(form);
   else if (kw == "bill") do_bill(form);
   else fail(form, "unknown form '" + kw + "'");
 }

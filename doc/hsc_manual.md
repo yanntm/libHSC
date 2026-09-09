@@ -253,6 +253,7 @@ certificate; `unfold` always enumerates.
 (invert NAME EVTERM POTENTIAL) ; NAME is the converse of EVTERM within a bound result, §8f
 (path NAME FROM TO [through ATOM]) ; a shortest run between two results, §8g
 (expect-path NAME K|none)    ; assert its length
+(witness NAME)               ; the witness tree of a ctl verdict, §8g
 (certificate FILE)           ; write the last cegar proof as .hsc, §8d
 (certcheck FILE)             ; re-check a proof against the model, §8d
 (simplify-constants)         ; rewrite directive: elide constant leaves, §8c
@@ -483,7 +484,18 @@ each name a declared event). The search is symbolic on both sides (forward
 layers, then a backtrack through the inverted events, `include/hsc/trace/`);
 `NAME path none` when no such run exists, `NAME path 0` with the shared
 state when the sets meet. NAME is bound to the last state, so `get-witness`
-reads it. `examples/models/trace_ring.hsc` is the worked example.
+reads it.
+
+`(witness NAME)` explains a `ctl` verdict: a `TRUE` one by a witness, a
+`FALSE` one by a counterexample — the forward form's set expressions read
+back as paths (`;` notes say which subformula a segment is for), a lasso for
+`EG` (a path to a cycle, then the cycle), and `; holds on all paths
+(exhaustive)` for a universal subformula, which has no path. A property
+that holds by exhaustion says so and shows nothing. The segments are
+shortest for their own endpoints; the whole is *a* witness, not the
+shortest. The total of its event lines is bound like a path length, so
+`(expect-path NAME K)` checks it. `examples/models/trace_ring.hsc` is the
+worked example for both forms.
 
 ## 9. Errors, honestly
 

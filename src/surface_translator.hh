@@ -573,6 +573,10 @@ class translator final : public name_scope {
   ///@{
   void do_path(const datum& form);
   void do_expect_path(const datum& form);
+  /// `(witness NAME)`: the witness tree of a ctl verdict (in `surface_ctl.cc`,
+  /// beside the checker's state); the total of its event lines is bound like
+  /// a path length, so `(expect-path NAME K)` checks it.
+  void do_witness(const datum& form);
   ///@}
 
   // --- state ---------------------------------------------------------------

@@ -31,7 +31,8 @@ By package:
   formula DAG, the forward conversion, the evaluator over an abstract model
   (see `include/hsc/ctl/`).
 * trace — `trace/path.cc`: shortest paths between sets over diagrams
-  (layers forward, backtrack through inverted events; `include/hsc/trace/`).
+  (layers forward, backtrack through inverted events); `trace/witness.cc`:
+  the witness tree of a CTL verdict (`include/hsc/trace/`).
 * petri — `petri_nupn.cc`, `petri_to_surface.cc`, `petri_decompose.cc`,
   and the vendored `louvain/`: PNML/NUPN import and unit-tree decomposition.
 * dve — `dve_parser.cc` (T2M), `dve_to_surface.cc` (M2M + M2T): the BEEM

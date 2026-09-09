@@ -481,6 +481,46 @@ verdict checker::ask(q_id qi) {
   return verdict::unknown;
 }
 
+checker::code checker::step_term(bool backward) {
+  const std::span<const code> evs = events(backward);
+  if (evs.empty()) return core::none;
+  code& stp = backward ? pred_step_ : next_step_;
+  bool& built = backward ? pred_built_ : next_built_;
+  if (!built) {
+    stp = core::sum_at(mgr_, m_.sort, evs);
+    built = true;
+  }
+  return stp;
+}
+
+std::optional<q_id> checker::answering_leaf(const forward_form& form) {
+  std::vector<q_id> stack{form.root};
+  while (!stack.empty()) {
+    const q_id q = stack.back();
+    stack.pop_back();
+    const question qq = fw_.q(q);
+    switch (qq.kind) {
+      case q_op::never: break;
+      case q_op::nonempty: {
+        const std::optional<bool> b = nonempty(qq.set);
+        if (b && *b) return q;
+        break;
+      }
+      case q_op::any:
+        for (auto it = qq.kids.rbegin(); it != qq.kids.rend(); ++it) stack.push_back(*it);
+        break;
+    }
+  }
+  return std::nullopt;
+}
+
+std::optional<checker::code> checker::eg_hull(node_id f) {
+  const std::optional<code> sf = sat(f);
+  if (!sf || events(true).empty()) return std::nullopt;
+  if (*sf == core::none || !has_cycles()) return core::none;
+  return mgr_.diagrams().apply_local(mgr_.operations().gfp(step_term(true)), *sf);
+}
+
 verdict checker::check(const forward_form& form) {
   const verdict v = ask(form.root);
   if (!form.negated || v == verdict::unknown) return v;

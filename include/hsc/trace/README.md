@@ -21,7 +21,9 @@ its own syntax.
   events, the witness tree per set-expression kind.
 * `path.hh` — `path(mgr, model, from, to, constraint)`: the states and event
   names of a shortest path, or none.
-* `witness.hh` — the witness tree of a `ctl` verdict (later).
+* `witness.hh` — the witness tree of a `ctl` verdict: the answering leaf's
+  set expression read back outside in, the backward explanation for what
+  the forward form left to `Sat`, lassos for `EG`.
 
 Sources: `src/trace/`. Tests: the self-checking `examples/models/trace_ring.hsc`
 (path lengths hand-checked; every step of a printed path is a true

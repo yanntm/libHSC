@@ -62,6 +62,18 @@ class checker {
 
   /// Whether `R` has a cycle: `gfp(next)·R ≠ ∅` by its witness, once.
   bool has_cycles();
+  /// \name For the witness tree (`hsc/trace/witness.hh`)
+  ///@{
+  [[nodiscard]] const model& the_model() const noexcept { return m_; }
+  [[nodiscard]] forward& form() noexcept { return fw_; }
+  [[nodiscard]] formulas& forms() noexcept { return f_; }
+  /// The one-step term of a direction (`none` when there are no events).
+  core::code step_term(bool backward);
+  /// The first `nonempty?` leaf of \p form's tree that answers yes, if any.
+  std::optional<q_id> answering_leaf(const forward_form& form);
+  /// `gfp(pred)·Sat f`, the states of `Sat f` with an infinite `f`-path.
+  std::optional<core::code> eg_hull(node_id f);
+  ///@}
   /// Is the set of \p s nonempty? Existential at the outermost operator
   /// (`algorithm.md` §6) when enabled, else by `eval`; `nullopt` when refused.
   std::optional<bool> nonempty(set_id s);
@@ -71,6 +83,9 @@ class checker {
   /// constrained by a temporal formula is searched breadth-first, stopping
   /// at the first hit.
   static bool otf_enabled();
+  /// `HSC_CTL_TRACE=1`: one line on stderr per set expression and Sat node
+  /// evaluated, with its wall time — the observation point of the checker.
+  static bool trace_enabled();
 
  private:
   using code = core::code;

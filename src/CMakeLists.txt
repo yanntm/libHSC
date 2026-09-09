@@ -58,4 +58,5 @@ target_sources(hsc PRIVATE
   ctl/forward.cc
   ctl/checker.cc
   trace/path.cc
+  trace/witness.cc
 )

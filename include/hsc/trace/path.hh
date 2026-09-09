@@ -45,6 +45,9 @@ struct graph {
 /// sets meet.
 std::optional<path_result> path(core::manager& mgr, const graph& g,
                                 core::code from, core::code to,
-                                core::code constraint);
+                                core::code constraint,
+                                core::code through = core::none);
+/// \p through, when not `none`, is a *set* the intermediate states must lie
+/// in (a constraint given as data — a `Sat` — rather than as a selector).
 
 }  // namespace hsc::trace
