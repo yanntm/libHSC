@@ -495,9 +495,11 @@ code diagram_engine::do_apply(code term, code d) {
           for (const code g : parts.subspan(2)) {
             current = join(current, apply_local(g, current));
           }
-        } catch (const interrupted&) {  // from a poll inside the round: the last complete round stands
+        } catch (const interrupted&) {
+          // from a poll inside the round: `current` holds the progress the
+          // round had made (every step of a forward closure is sound)
           owner_.mark_partial();
-          return previous;
+          return current;
         }
       } while (current != previous);
       return current;
@@ -523,6 +525,7 @@ code diagram_engine::do_apply(code term, code d) {
     // disjoint and only the regroup by sub is owed. The sieve never runs.
     accumulator acc(head, n.arity);
     for (const arc& x : n.arcs()) {
+      owner_.poll();
       acc.add(tail.apply_local(t.operand(1), x.sub), x.prime);
     }
     return finish(sort, acc);
@@ -533,6 +536,7 @@ code diagram_engine::do_apply(code term, code d) {
     // so again only the regroup by sub is owed.
     accumulator acc(head, n.arity);
     for (const arc& x : n.arcs()) {
+      owner_.poll();
       const code prime = head.apply_local(t.operand(0), x.prime);
       if (prime == none) continue;
       acc.add(tail.apply_local(t.operand(1), x.sub), prime);
@@ -544,6 +548,7 @@ code diagram_engine::do_apply(code term, code d) {
   std::vector<arc> bag;
   bag.reserve(n.arity);
   for (const arc& x : n.arcs()) {
+    owner_.poll();
     const code prime = head.apply_local(t.operand(0), x.prime);
     if (prime == none) continue;
     const code sub = tail.apply_local(t.operand(1), x.sub);
