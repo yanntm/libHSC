@@ -34,7 +34,7 @@ def load(path: str, exam: Optional[str]) -> List[Row]:
     with open(path, newline="") as f:
         rows = list(csv.DictReader(f, delimiter="\t"))
     rows = [r for r in rows if r.get("heuristic") and r["heuristic"] != "-" and r.get("instance")
-            and r.get("exam") in ("SS", "CTLC", "CTLF", "RC", "RF", "RD") and r.get("status")]  # torn lines dropped
+            and r.get("exam") in ("SS", "CTLC", "CTLF", "RC", "RF", "RD") and r.get("status") and r.get("shape_sig") is not None]  # torn lines dropped
     if exam:
         rows = [r for r in rows if r["exam"] == exam]
     return rows

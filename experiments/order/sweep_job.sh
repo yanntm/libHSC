@@ -28,7 +28,7 @@ states=$(grep -h "STATE_SPACE STATES" "$ORACLE/$INST-SS.out" 2>/dev/null | awk '
 # appending to one TSV over NFS tear lines. sweep_merge.sh builds <tag>.tsv.
 mkdir -p "$OUT/$TAG/rows"
 TSV="$OUT/$TAG/rows/$INST-$EX.tsv"
-[ -f "$OUT/$TAG/columns" ] || echo -e "instance\tfamily\texam\theuristic\ttag\tstates\twall_s\tcpu_s\tmaxrss_kb\trc\tstatus\tanswered\tok\twrong\tunknown\tcomplete\tanswer_times\treach_s\treach_nodes\treach_arcs\tbelly_nodes\tbelly_level\tbelly_span\tshape_depth\tshape_units\tshape_widest\tflows\tflows_widest\tflows_maxconst\tprotected\tshape_sig" > "$OUT/$TAG/columns"
+[ -f "$OUT/$TAG/columns" ] || echo -e "instance\tfamily\texam\theuristic\ttag\tstates\twall_s\tcpu_s\tmaxrss_kb\trc\tstatus\tanswered\tok\twrong\tunknown\tcomplete\tanswer_times\treach_s\treach_nodes\treach_arcs\tbelly_nodes\tbelly_level\tbelly_span\tshape_depth\tshape_units\tshape_widest\tflows\tflows_widest\tflows_maxconst\tprotected\tshape_sig\treach_states\tpartial" > "$OUT/$TAG/columns"
 # StateSpace: `--states` instead of a property file, the four values graded
 # against the oracle when it has one (an instance without an SS oracle still
 # runs: its values are answered, unknown to the oracle, never wrong).
@@ -45,7 +45,7 @@ grep -v '^#' "$HEUR" | while IFS=$'\t' read -r name flags envs; do
   # …and the shape itself, exported beside the run (<base>.shape), for the pages and for a hand tweak.
   sig=$( ( ulimit -v "$MEM"; env $envs_ timeout 120 "$BIN" -i "$pnml" $flags --shape-only --export-shape "$base.shape" -q 2>/dev/null | grep -m1 -o 'sig=[0-9a-f]*' | cut -d= -f2 ) )
   if [ -n "$sig" ] && [ -n "${seen_sig[$sig]:-}" ]; then
-    echo -e "$INST\t$family\t$EX\t$name\t$TAG\t$states\t\t\t\t\tdup:${seen_sig[$sig]}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t$sig" >> "$TSV"
+    echo -e "$INST\t$family\t$EX\t$name\t$TAG\t$states\t\t\t\t\tdup:${seen_sig[$sig]}\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t$sig\t\t" >> "$TSV"
     : > "$out"  # marks the heuristic done for the idempotent restart
     continue
   fi
@@ -84,5 +84,5 @@ grep -v '^#' "$HEUR" | while IFS=$'\t' read -r name flags envs; do
   g() { echo "$stats" | grep -o "$1=[0-9.e+-]*" | cut -d= -f2; }
   flows=$(grep -m1 '^invariants: ' "$err" | awk '{print $2}'); fw=$(grep -m1 '^invariants: ' "$err" | grep -o 'widest support [0-9]*' | awk '{print $3}'); fc=$(grep -m1 '^invariants: ' "$err" | grep -o 'largest constant [0-9-]*' | awk '{print $3}')
   prot=$(grep -o '[0-9]* of [0-9]* inverted events protected' "$err" | head -1 | awk '{print $1"/"$3}')
-  echo -e "$INST\t$family\t$EX\t$name\t$TAG\t$states\t${wall:-}\t$cpu\t${mem:-}\t$rc\t$status\t$ans\t$ok\t$wrong\t$unk\t$complete\t$times\t$(g reach_s)\t$(g reach_nodes)\t$(g reach_arcs)\t$(g belly_nodes)\t$(g belly_level)\t$(g belly_span)\t$(g shape_depth)\t$(g shape_units)\t$(g shape_widest)\t${flows:-}\t${fw:-}\t${fc:-}\t${prot:-}\t${sig:-}" >> "$TSV"
+  echo -e "$INST\t$family\t$EX\t$name\t$TAG\t$states\t${wall:-}\t$cpu\t${mem:-}\t$rc\t$status\t$ans\t$ok\t$wrong\t$unk\t$complete\t$times\t$(g reach_s)\t$(g reach_nodes)\t$(g reach_arcs)\t$(g belly_nodes)\t$(g belly_level)\t$(g belly_span)\t$(g shape_depth)\t$(g shape_units)\t$(g shape_widest)\t${flows:-}\t${fw:-}\t${fc:-}\t${prot:-}\t${sig:-}\t$(g reach_states)\t$(g partial)" >> "$TSV"
 done

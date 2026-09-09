@@ -81,7 +81,7 @@ One TSV line per (instance, examination, heuristic), logs kept beside it
 | `wall_s`, `cpu_s`, `maxrss_kb`, `rc`, `status` | `/usr/bin/time`, the exit: `ok`, `timeout`, `memory` (killed by the 15 GB `ulimit -v`), `crash` | pages 1, 4 |
 | `answered`, `ok`, `wrong`, `unknown`, `complete` | the FORMULA lines against the oracle | pages 1–3 |
 | `answer_times` | `hsc-pn -v`: `answered <name> at <s>` per verdict, joined `name:s;…` | page 5, per-formula differentials |
-| `reach_s`, `reach_nodes`, `reach_arcs` | the `stats` line of `hsc-pn -v` | pages 3, 4, 7 |
+| `reach_s`, `reach_nodes`, `reach_arcs`, `reach_states`, `partial` | the `stats` line of `hsc-pn -v`; the states and nodes reached even when the budget cut the set (partial = 1) | pages 3, 4, 7: a `noreach` run still says how far it got |
 | `belly_nodes`, `belly_level`, `belly_span` | the widest level of `(profile R)` | page 3, 7 |
 | `shape_depth`, `shape_units`, `shape_widest_unit` | the unit tree | page 7, explaining hierarchy effects |
 | `flows`, `flows_widest`, `flows_maxconst`, `protected` | `-v` lines | page 7 |
