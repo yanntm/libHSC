@@ -73,6 +73,13 @@ class support_algebra {
   virtual code term_lfp(code t) = 0;
   ///@}
 
+  /// \brief The existential image: a nonempty subset of `term(value)`, or
+  /// `none` exactly when that image is empty (`algorithm.md` §10). The
+  /// default computes the image in full, which is always correct; a theory
+  /// may stop at the first element that passes.
+  virtual code has_image_local(code term, code value) {
+    return apply_local(term, value);
+  }
   /// \brief The converse of a local term, restricted to \p domain.
   ///
   /// Every term denotes an additive map, hence a relation; this is the

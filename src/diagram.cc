@@ -185,6 +185,8 @@ code binary_op::operator()(diagram_engine& engine) const {
       return engine.do_minus(a, b);
     case kind::apply:
       return engine.do_apply(a, b);
+    case kind::has_image:
+      return engine.do_has_image(a, b);
   }
   return none;
 }
@@ -212,6 +214,124 @@ code diagram_engine::apply_local(code term, code value) {
   if (term == op_table::id) return value;  // id is free
   if (value == none) return none;
   return ops_(binary_op(binary_op::kind::apply, term, value));
+}
+
+code diagram_engine::has_image(code term, code value) {
+  if (term == op_table::id) return value;
+  if (value == none) return none;
+  return ops_(binary_op(binary_op::kind::has_image, term, value));
+}
+
+code diagram_engine::gfp_at(shape_code sort, code term, code value) {
+  if (value == none || term == op_table::id) return value;
+  if (owner_.shapes().kind(sort) == shape_kind::pair) {
+    return apply_local(owner_.operations().gfp(term), value);
+  }
+  support_algebra& algebra = owner_.algebra(sort);
+  code x = value;
+  for (;;) {
+    const code y = algebra.meet(x, algebra.apply_local(term, x));
+    if (y == x || y == none) return y;
+    x = y;
+  }
+}
+
+code diagram_engine::gfp_witness_at(shape_code sort, code term, code value) {
+  if (owner_.shapes().kind(sort) == shape_kind::pair) {
+    return has_image(owner_.operations().gfp(term), value);
+  }
+  return gfp_at(sort, term, value);  // a leaf: small, in full
+}
+
+/// \brief The existential image of one term against one diagram
+/// (`algorithm.md` §10): a nonempty subset of the image, or `none` iff the
+/// image is empty. The full image is the fallback wherever a witness is not
+/// cheaper.
+code diagram_engine::do_has_image(code term, code d) {
+  op_table& ops = owner_.operations();
+  const op_term& t = ops[term];
+  switch (t.kind) {
+    case op_kind::sum:
+      for (const code s : t.operands()) {
+        const code w = has_image(s, d);
+        if (w != none) return w;
+      }
+      return none;
+    case op_kind::compose: {
+      const code wb = has_image(t.operand(1), d);
+      if (wb == none) return none;
+      const code wa = has_image(t.operand(0), wb);
+      if (wa != none) return wa;
+      return has_image(t.operand(0), apply_local(t.operand(1), d));
+    }
+    case op_kind::lfp:
+    case op_kind::saturate:
+      return d;  // a closure contains its seed
+    case op_kind::within:
+      return meet(d, t.operand(0));
+    case op_kind::expr:
+      return do_apply(term, d);  // the case engine, in full
+    case op_kind::gfp: {
+      // A cycle of a part of the events inside a part of the set is a cycle
+      // of the whole: try below the cut and on the head before the full hull.
+      const node& n = nodes_[d];
+      const shape_code sort = n.sort;
+      const shape_code hs = owner_.shapes().head(sort);
+      const shape_code ts = owner_.shapes().tail(sort);
+      std::vector<code> flat;
+      {
+        std::vector<code> stack{t.operand(0)};
+        while (!stack.empty()) {
+          const code e = stack.back();
+          stack.pop_back();
+          if (e != op_table::id && ops[e].kind == op_kind::sum) {
+            for (const code c : ops[e].operands()) stack.push_back(c);
+          } else {
+            flat.push_back(e);
+          }
+        }
+      }
+      std::vector<code> below, edge;
+      for (const code e : flat) {
+        if (e == op_table::id || ops[e].kind != op_kind::node) continue;
+        if (ops[e].operand(0) == op_table::id) below.push_back(ops[e].operand(1));
+        else if (ops[e].operand(1) == op_table::id) edge.push_back(ops[e].operand(0));
+      }
+      const code f_tail = below.empty() ? op_table::id : sum_at(owner_, ts, below);
+      const code l_head = edge.empty() ? op_table::id : sum_at(owner_, hs, edge);
+      for (const arc& x : n.arcs()) {
+        if (f_tail != op_table::id) {
+          const code w = gfp_witness_at(ts, f_tail, x.sub);
+          if (w != none) return rectangle(sort, x.prime, w);
+        }
+        if (l_head != op_table::id) {
+          const code w = gfp_witness_at(hs, l_head, x.prime);
+          if (w != none) return rectangle(sort, w, x.sub);
+        }
+      }
+      return do_apply(term, d);  // the full hull
+    }
+    case op_kind::node: {
+      const node& n = nodes_[d];
+      assert(n.arity != 0 && "operation term reaches past its sort");
+      const shape_code sort = n.sort;
+      support_algebra& head = head_algebra(sort);
+      support_algebra& tail = tail_algebra(sort);
+      for (const arc& x : n.arcs()) {
+        const code wh = t.operand(0) == op_table::id
+                            ? x.prime
+                            : head.has_image_local(t.operand(0), x.prime);
+        if (wh == none) continue;
+        const code wt = t.operand(1) == op_table::id
+                            ? x.sub
+                            : tail.has_image_local(t.operand(1), x.sub);
+        if (wt == none) continue;
+        return rectangle(sort, wh, wt);
+      }
+      return none;
+    }
+  }
+  return none;
 }
 
 /// \brief Evaluate one operation term against one diagram.

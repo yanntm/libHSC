@@ -70,7 +70,7 @@ struct node {
 /// `mem::cache` wants. Join and meet normalise their operands, so `a op b`
 /// and `b op a` are one entry.
 struct binary_op {
-  enum class kind : std::uint8_t { join, meet, minus, apply };
+  enum class kind : std::uint8_t { join, meet, minus, apply, has_image };
 
   kind op;
   code a;
@@ -121,6 +121,13 @@ class diagram_engine final : public support_algebra {
   /// therefore `core::saturate` in `operation.hh`, not this.
   code term_sum(code a, code b) override;
   code term_lfp(code t) override;
+  /// \brief The existential image of an operation term (`algorithm.md`
+  /// §10): a nonempty witness subset of `term(value)`, or `none` iff the
+  /// image is empty. Memoised like `apply`.
+  code has_image(code term, code value);
+  code has_image_local(code term, code value) override {
+    return has_image(term, value);
+  }
   /// Inversion at a composite sort is structural on the operation term
   /// (`inverter`); the domain's sort is the sort inverted at.
   code invert_local(code term, code domain) override;
@@ -173,6 +180,12 @@ class diagram_engine final : public support_algebra {
   code do_meet(code a, code b);
   code do_minus(code a, code b);
   code do_apply(code term, code value);
+  code do_has_image(code term, code value);
+  /// The greatest fixpoint of `X ↦ X ∩ term(X)` below \p value at \p sort:
+  /// the plain iteration in the sort's algebra (a leaf has no gfp term).
+  code gfp_at(shape_code sort, code term, code value);
+  /// The witness form of `gfp_at`: a nonempty subset of the hull or `none`.
+  code gfp_witness_at(shape_code sort, code term, code value);
 
   void collect_nodes(code c, std::unordered_set<code>& seen) const;
 
