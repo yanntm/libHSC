@@ -40,7 +40,8 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
    committed, not pushed; the product's `hsc-pn` comes from the libHSC CI
    branch `HSC-Linux`, so a libHSC push is what updates it).
 5. Witness trees are in (`include/hsc/trace/`, `(path …)`, `(witness …)`,
-   `hsc-pn --witness`); left open there: a shortest-overall end state for
+   `hsc-pn --witness` for CTL and for reachability, invariant, deadlock);
+   left open there: a shortest-overall end state for
    shapes other than `filter(fwdu(…))`, and a replay check of a printed
    witness on the explicit engine.
 

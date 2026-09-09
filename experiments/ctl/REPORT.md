@@ -263,8 +263,17 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    NUPN run (`m6b_1e7_1e9`, in progress) ran with the frontier default.
 30. **The combiner** (`util/hash.hh`, at your request): one multiply, one
    shift, two xors per element, lone integers hash as themselves. R on the
-   8-counter net 1.60 → 1.39 s, Angiogenesis-05 0.34 → 0.31 s, TokenRing
-   unchanged; 130/130 ctest.
+   8-counter net 1.60 → 1.39 s and 11.73 G → 9.51 G instructions,
+   Angiogenesis-05 0.34 → 0.31 s, TokenRing unchanged; 130/130 ctest.
+   Hashing has left the top of the profile; the sieve inside `do_join`
+   (7.2%) and the accumulator's regroup (6.6%) lead it now.
+31. **Reachability witnesses** (`--witness`, `tools/README.md`): the same
+   flag now covers reachability, invariant and deadlock verdicts — a
+   shortest run from the initial marking to the selected set, found by
+   the same layered search the CTL witness uses (`trace/path`). On
+   SupplyChain-PT-00005: 2 of 16 cardinality and 10 of 16 fireability
+   verdicts rest on a non-empty selection and get a path; the others have
+   none to show.
 
 ## Where things stand for you
 
