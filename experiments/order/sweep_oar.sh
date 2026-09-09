@@ -10,7 +10,7 @@ set -u
 EXAMS="CTLC CTLF"; BUDGET=300; WALL=""; HOSTS="tall%"; TAG=""
 while getopts "x:t:w:H:o:" opt; do case $opt in
   x) EXAMS=$OPTARG;; t) BUDGET=$OPTARG;; w) WALL=$OPTARG;; H) HOSTS=$OPTARG;; o) TAG=$OPTARG;; esac; done
-shift $((OPTIND-1)); LIST=${1:?models.txt}; [ -n "$TAG" ] || { echo "-o TAG required"; exit 2; }
+shift $((OPTIND-1)); LIST=$(readlink -f "${1:?models.txt}"); [ -n "$TAG" ] || { echo "-o TAG required"; exit 2; }
 HERE=$(cd "$(dirname "$0")" && pwd); HARNESS=${HARNESS:-$HOME/MCC26/MCC-drivers}
 NH=$(grep -vc '^#' "$HERE/heuristics.tsv")
 # walltime: the heuristics in sequence at the budget, plus a tenth for the setup
