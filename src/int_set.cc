@@ -572,30 +572,27 @@ core::code int_set_theory::join(core::code a, core::code b) {
   if (a == b) return a;
   const auto x = elements(a);
   const auto y = elements(b);
-  std::vector<std::int32_t> out;
-  out.reserve(x.size() + y.size());
-  std::ranges::set_union(x, y, std::back_inserter(out));
-  return of_sorted(out);
+  scratch_.clear();
+  std::ranges::set_union(x, y, std::back_inserter(scratch_));
+  return of_sorted(scratch_);
 }
 
 core::code int_set_theory::meet(core::code a, core::code b) {
   if (a == b) return a;
   const auto x = elements(a);
   const auto y = elements(b);
-  std::vector<std::int32_t> out;
-  out.reserve(std::min(x.size(), y.size()));
-  std::ranges::set_intersection(x, y, std::back_inserter(out));
-  return of_sorted(out);
+  scratch_.clear();
+  std::ranges::set_intersection(x, y, std::back_inserter(scratch_));
+  return of_sorted(scratch_);
 }
 
 core::code int_set_theory::minus(core::code a, core::code b) {
   if (a == b) return core::none;
   const auto x = elements(a);
   const auto y = elements(b);
-  std::vector<std::int32_t> out;
-  out.reserve(x.size());
-  std::ranges::set_difference(x, y, std::back_inserter(out));
-  return of_sorted(out);
+  scratch_.clear();
+  std::ranges::set_difference(x, y, std::back_inserter(scratch_));
+  return of_sorted(scratch_);
 }
 
 double int_set_theory::cardinal(core::code c) const {
