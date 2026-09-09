@@ -239,6 +239,7 @@ certificate; `unfold` always enumerates.
 (count NAME [exact])         ; state count: a double (an order of magnitude), or the exact integer
 (leaf-weight NAME K)         ; NAME stands for K places of a fused free component, §8e
 (nodes NAME)                 ; diagram nodes — the representation size
+(profile NAME)               ; nodes and arcs per level of the shape, frontier order
 (max-value NAME)             ; largest value any leaf holds in NAME
 (print NAME)
 (get-witness NAME)           ; one state, printed as a re-runnable (word …)
@@ -259,6 +260,7 @@ certificate; `unfold` always enumerates.
 (simplify-constants)         ; rewrite directive: elide constant leaves, §8c
 (hotbit [MIN [MAX]])         ; directive: one-hot encode enumerated leaves, §8c
 (reorder-force)              ; directive: FORCE order from event supports, §8c
+(reorder-reverse)            ; directive: the shape mirrored at every level, §8c
 (flatten)                    ; directive: the flat spine of the frontier, §8c
 (simplify-arrays)            ; directive: dissolve statically-accessed arrays, §8c
 (decompose-louvain)          ; directive: hierarchical shape by clustering, §8c

@@ -71,8 +71,8 @@ int main(int argc, char** argv) {
                "Net: -i model.pnml or --net model.pnet. Properties: MCC XML or\n"
                "s-expression forms (INTEROP.md). Answers: FORMULA lines on stdout."};
   std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock;
-  bool force = false, states = false, max_tokens = false, print_unknown = false, quiet = false, verbose = false,
-       witness = false;
+  bool force = false, reverse = false, states = false, max_tokens = false, print_unknown = false, quiet = false,
+       verbose = false, witness = false;
   int invariants_time = 0;
   int bound = 2, total_time = 0;
   auto* in_opt = app.add_option("-i,--pnml", pnml, "PNML P/T net (with its NUPN unit tree when present)")
@@ -84,6 +84,7 @@ int main(int argc, char** argv) {
   app.add_option("--propsSyntax", syntax, "auto|mcc|sexpr (default: by extension)");
   app.add_option("--shape", shape, "nupn|flat|louvain: the hierarchy (nupn falls back to flat)");
   app.add_flag("--force", force, "FORCE reordering after the shape");
+  app.add_flag("--reverse", reverse, "mirror the shape at every level (after FORCE when both)");
   app.add_option("--invariants", invariants_time, "compute the P-flows within S seconds and let them guide the louvain shape");
   app.add_option("--bound", bound, "leaf domain [0, N), raised to the max initial marking + 1");
   app.add_flag("--states", states, "the four StateSpace values");
@@ -269,6 +270,7 @@ int main(int argc, char** argv) {
   hsc::petri::to_surface(model, *net, units, opts);
   model << weight_forms;
   if (force) model << "(reorder-force)\n";
+  if (reverse) model << "(reorder-reverse)\n";
   model << "(reach R saturate)\n";
   if (!export_hsc.empty()) {
     std::ofstream f(export_hsc, std::ios::binary);
