@@ -134,6 +134,7 @@ class diagram_engine final : public support_algebra {
   /// hull follows anyway — measured to lose on the MCC corpus. A variation
   /// point for the tools (`HSC_CTL_SCCFAST=1`).
   void set_fast_cycle_witness(bool on) noexcept { fast_cycle_witness_ = on; }
+  [[nodiscard]] bool fast_cycle_witness() const noexcept { return fast_cycle_witness_; }
   /// \brief The number of `gfp` rounds run so far (one round = one image
   /// and one meet), an observation counter for callers that time closures.
   [[nodiscard]] std::size_t gfp_rounds() const noexcept { return gfp_rounds_; }
