@@ -52,10 +52,13 @@ anywhere. The two over-approximations are complementary (LP: cardinality,
    set sizes; a longer budget for the last open properties of a run; the
    first layer's `writing` restriction extended to later layers by the
    leaves the frontier's atoms read.
-6. **The dead-transition rerun on BugTracking** through the abstraction
-   pass under the projected order (running as this is written): the 170
-   one-step kills of the capped run, now sound; against ITS-Tools' 1098
-   SMT kills (61 s). Then k layers per slice.
+6. **BugTracking's remaining 1915 alive transitions**: the one-step test
+   converges at 854 sound kills (250 s, report §2.10) against ITS-Tools'
+   1098 by SMT in 61 s. Next: the second step per slice (the entries traced
+   one layer back inside `S`, `(backward … steps 2)` on the slice with the
+   sign-aware first layer), the cost of the first pass (100 s of the 250:
+   the widest slices), and ITS-Tools' list of its 1098 to see whether ours
+   sit inside it.
 7. **`--approx` before `R` in production** (the pass, then the fixpoint on
    the concrete net): the harness measurement (`BK_TOOL=hsc`), and the
    ITS-Tools `-rebuildPNML` early return on StateSpace (Application.java,

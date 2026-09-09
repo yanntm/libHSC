@@ -282,5 +282,10 @@ seven seconds (a slice's entries came from transitions that are now dead);
 the third pass, cut by the budget at 145 s, had killed nothing further by
 then. About 30 ms a test in the later passes. ITS-Tools' SMT kills 1098 of
 the oracle's 2523 unknowns in 61 s; the iterated one-step test on the
-diagram is at 854 in 110 s, and the run to convergence follows. Every one
-of the 854 is among the oracle's unknowns.
+diagram **converges at 854** (three passes, the third killing nothing, 241 s
+of tests, 250 s in all, 2.9 GB; `dead_bt_abs8.err`). Every one of the 854
+is among the oracle's unknowns; 1915 transitions stay alive for want of a
+proof. Whether the 854 sit inside ITS-Tools' 1098 or beside them needs its
+list; the next lever on our side is the second step — the entries of a
+slice traced one layer further back inside `S`, a `k`-induction the SMT
+route does not take.
