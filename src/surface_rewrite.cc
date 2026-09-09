@@ -362,6 +362,7 @@ std::vector<pass_def> pass_registry() {
            }},
           {"hotbit", hotbit},
           {"reorder-force", reorder_force},
+          {"reorder-reverse", reorder_reverse},
           {"flatten", flatten},
           {"simplify-arrays", simplify_arrays},
           {"declare-domains",

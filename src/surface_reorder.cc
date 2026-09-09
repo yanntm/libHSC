@@ -3,7 +3,10 @@
 /// shape tree, hierarchy undisturbed: at each node the events project
 /// onto the children they touch and FORCE orders the children; the
 /// tops bias lives inside FORCE's own cost (`order/force.cc`), per
-/// constraint, per level. `(flatten)` — the spine of the current
+/// constraint, per level. `(reorder-reverse)` — the mirror image at
+/// every level: the engine is sensitive to which events sit at the top,
+/// and an order's reverse puts the other end there. `(flatten)` — the
+/// spine of the current
 /// frontier order, hierarchy deliberately erased. Reordering is a
 /// rewriting, and semantically neutral: any shape over the same leaves
 /// denotes the same states.
@@ -133,6 +136,24 @@ rewrite_result reorder_force(std::vector<datum> forms, const datum&) {
   trace << "FORCE reordered " << moved << " shape node"
         << (moved == 1 ? "" : "s") << ", hierarchy kept";
   return {std::move(forms), true, trace.str()};
+}
+
+/// Reverse the children at every node: the mirror image of the shape.
+void mirror(snode& n) {
+  std::reverse(n.kids.begin(), n.kids.end());
+  for (snode& k : n.kids) mirror(k);
+}
+
+rewrite_result reorder_reverse(std::vector<datum> forms, const datum&) {
+  const spec s = spec::read(forms);
+  if (s.order().empty()) return {std::move(forms), false, "no shape"};
+  for (datum& f : forms) {
+    if (!f.is_list() || f.items().empty() || f.head() != "shape") continue;
+    snode root = parse_sort(f.items()[1], s);
+    mirror(root);
+    f = datum::list({f.items()[0], unparse(root)}, f.line());
+  }
+  return {std::move(forms), true, "the shape is mirrored at every level"};
 }
 
 rewrite_result flatten(std::vector<datum> forms, const datum&) {

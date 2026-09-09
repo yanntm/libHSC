@@ -64,6 +64,11 @@ rewrite(std::vector<datum> forms, std::span<const pass> passes);
 /// (one clique per event); the shape becomes the resulting flat spine.
 [[nodiscard]] rewrite_result reorder_force(std::vector<datum> forms,
                                            const datum& directive);
+/// \brief `(reorder-reverse)`: the mirror image of the shape at every
+/// level — same hierarchy, every node's children in reverse. A variation
+/// point on top of FORCE: which end of an order sits at the top matters.
+[[nodiscard]] rewrite_result reorder_reverse(std::vector<datum> forms,
+                                             const datum& directive);
 
 /// \brief `(flatten)`: the shape becomes the flat spine of the current
 /// frontier order — hierarchy deliberately erased.
