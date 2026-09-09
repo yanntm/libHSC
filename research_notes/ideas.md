@@ -1,0 +1,29 @@
+# The ledger of ideas
+
+Thrown out during the sweeps and the budget design (2026-09-09), kept here to
+be culled: each one with why it might pay, what it costs or risks, and the
+first experiment that would tell. Status: `open` (not tried), `promising`
+(a first result), `culled` (measured to lose, with the number), `done`
+(landed; where). A weak idea leaves with its reason, not silently.
+
+| # | idea | why | cost / risk | first experiment | status |
+|---|---|---|---|---|---|
+| 1 | **The invariant set as a node.** Build `S_inv = {m : every P-invariant holds}` with the selectors (one crossing atom per invariant over the full domain); test dead transitions by one step on it: `t` dead iff init ⊭ en(t) and `en(t) ∩ S_inv` meets no successor of `S_inv ∖ en(t)`. | one image serves every transition; sound (over-approximation of R) | `S_inv` may dwarf `R` when invariants are weak; the intersection of many invariants explodes on a bad shape | BugTracking (27 370 transitions, most dead): size of `S_inv` under Sloan, time of one image, transitions killed | open |
+| 2 | **ω-values in the leaf theory** for unbounded places: a ceiling `K` meaning "≥ K", saturating arithmetic. | makes #1 and the divergence watch work on unbounded nets; coverability's abstraction inside our leaves | a second semantics in `int_set`; exactness lost above `K` (sound for deadness and for `+inf` claims, not for counts) | FunctionPointer with `K` = the divergence limit: does saturation converge, what does it answer | open |
+| 3 | **One-step induction on PetriSpot's LP** for dead transitions: per transition, per producer `u` into `pre(t)`, per disabling place `p`: `m ≥ pre(u) ∧ m(p) ≤ w−1 ∧ m(q) ≥ w(q,t) − C[q,u]` over the state equation; all infeasible ⇒ dead. | the machinery exists (`lp/StateEquation`, `Simplex`, the refiner loop); sound in the rational relaxation | Σ producers × pre programs of |T| columns; basis reuse decides seconds against minutes | BugTracking: transitions killed and time, against ITS-Tools' SMT | open |
+| 4 | **Skip consumers of never-marked places per epoch.** A place at 0 in every state so far ⇒ its consumers have an empty image on the set ⇒ out of the schedule this epoch, back when the place gets a token. | exact, free; removes wasted rounds on nets like BugTracking | none (it is scheduling, not a verdict) | the stock's leaf domains drive the next epoch's event list in `hsc-pn` | open |
+| 5 | **The pumping pair** as the unboundedness witness; the divergence watch triggered at the largest initial marking, doubling. | proves `+inf` cheaply; 76 unbounded instances in the corpus | the pump's paths on wide nets (BugTracking) exceed the budget | done: `(pump …)`, `hsc-pn --cover`; CryptoMiner 0.03 s, FunctionPointer 0.12 s | done (`sched/algorithm.md` §3b) |
+| 6 | **A Parikh guide for the pump**: `x ≥ 0`, `C·x ≥ 0`, `(C·x)_p > 0` from the state equation, handed to a walker to realise from a reachable state. | catches pumps whose loop is long or far from the seed | needs the LP and the walker in the loop | the unbounded nets the pump misses (BugTracking) | open |
+| 7 | **Reduced nets as a population**: ITS-Tools' structural reductions first, then our heuristics. | closer to production; BugTracking-like nets shrink drastically | the reducer in the deploy tree; a second sweep | the 76 unbounded and the 449 unknown-size instances, reduced | open |
+| 8 | **Fuse sets reached under different shapes** (`(use-shape …)` rewrites, join) and continue from the best. | each shape reaches states the others do not (the sweep's unique wins) | a reshape of a large set is itself a big operation | two shapes on Angiogenesis, 30 s each, fuse, continue | open |
+| 9 | **Post-mortem reshape**: read the profile of `R`, bracket a belly or bring its ends together, re-emit, recompute. | one static rework informed by one run, cheaper than dynamic reordering | the rule to write; a second `R` | the sample instances' profiles by hand first | open (`handoff_order.md`) |
+| 10 | **Frontier gfp** ("new states only" for the hull). | a worklist made symbolic | measured: 6414 → 6323 answered over 588 runs | — | culled (`ctl/algorithm.md` §3) |
+| 11 | **Two-way trim** `X ← X ∩ pred(X) ∩ succ(X)` then a saturating lfp for `EG`. | a smaller core, chains peeled from both ends | two images per round | Angiogenesis-05 CTLF under a trace | open (`handoff_ctl.md`) |
+| 12 | **Sloan weight variants, FORCE seeded by Sloan/RCM.** | LTSmin's finding; the sweep runs `rcm-force`, `sloan-force` | none | the sweep's rows | promising (Sloan alone: 3 unique wins on 393 pairs) |
+| 13 | **Explicit walkers seeded from symbolic states**, distance to a target's states as the guide; symbolic backward search seeded from a walker's marking. | the two engines' facts flowing through one pool | one process, the scheduler vendored | a reachability goal one engine closes and the other cannot | open (`sched/algorithm.md` §5) |
+| 14 | **Louvain guided by flows** (sign-aware cliques, heavy-flow contraction). | places an invariant ties attract each other | measured: complementary, never a default | — | promising (TokenRing 2 → 16, RwMutex 16 → 0; `experiments/order/README.md`) |
+| 15 | **Memory as a budget**: a memory deadline polled like time; parking drops caches, keeps the set. | the nodes cap at 6 GB; the losers of a portfolio should park, not die | the manager's footprint, cheaply | the in-process shape portfolio | open (`handoff_budget.md`) |
+
+Culling rule: an idea whose first experiment loses on the corpus goes to
+`culled` with its number; one that never gets its experiment within a few
+sessions is dropped from the table into git history.
