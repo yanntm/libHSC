@@ -24,6 +24,7 @@
 #include <map>
 #include <memory>
 #include <numeric>
+#include <chrono>
 #include <optional>
 #include <ostream>
 #include <span>
@@ -154,9 +155,8 @@ class translator final : public name_scope {
   /// One form given meaning — the runner routes here whatever is not an
   /// explicit-engine command.
   void form(const datum& f) { dispatch(f); }
-  /// The interrupt hook of the calculus (`core::manager::set_interrupt`): a
-  /// long computation stops with `hsc::interrupted` when it answers true.
-  void set_interrupt(std::function<bool()> hook) { mgr_.set_interrupt(std::move(hook)); }
+  /// The deadline every following form runs under (`core::manager::set_deadline`).
+  void set_deadline(std::optional<std::chrono::steady_clock::time_point> at) { deadline_ = at; }
   [[nodiscard]] int failures() const { return failures_; }
   [[nodiscard]] bool has_result(const std::string& name) const {
     return results_.contains(name);
@@ -595,6 +595,8 @@ class translator final : public name_scope {
   std::map<std::string, long long> weights_;
   std::unordered_map<std::string, leaf_decl> leaves_;
   std::vector<std::string> order_;  ///< leaf names in frontier order
+  std::optional<std::chrono::steady_clock::time_point> deadline_;  ///< of every form, when set
+  std::optional<double> budget_;  ///< `(budget S)`: seconds per form, when set
   core::shape_code top_ = core::none;
   std::vector<std::int32_t> defaults_;  ///< every leaf at LO (0 unbounded)
   std::vector<std::int32_t> init_;      ///< the base word: defaults + pairs

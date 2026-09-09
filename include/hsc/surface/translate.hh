@@ -12,7 +12,9 @@
 
 #include <iosfwd>
 #include <map>
+#include <chrono>
 #include <functional>
+#include <optional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -81,7 +83,9 @@ class session {
   /// once per iteration round of the calculus and a computation it stops
   /// reports as interrupted (a `ctl` form answers `TIMEOUT`, its memoised
   /// partial results kept for a later batch). Empty clears it.
-  void set_interrupt(std::function<bool()> hook);
+  /// The deadline of every following form (`core::manager::set_deadline`);
+  /// `nullopt` clears it.
+  void set_deadline(std::optional<std::chrono::steady_clock::time_point> at);
 
  private:
   struct impl;

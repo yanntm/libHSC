@@ -4,11 +4,24 @@
 
 #include <cstdint>
 
+#include <algorithm>
+#include <chrono>
+
 #include "surface_translator.hh"
 
 namespace hsc::surface {
 
 void translator::dispatch(const datum& form) {
+  // Every form starts clean: no stop pending, nothing partial; its deadline is
+  // the session's, or `(budget S)` seconds from now, whichever comes first.
+  mgr_.reset_stop();
+  std::optional<std::chrono::steady_clock::time_point> at = deadline_;
+  if (budget_) {
+    const auto b = std::chrono::steady_clock::now() +
+                   std::chrono::duration_cast<std::chrono::steady_clock::duration>(std::chrono::duration<double>(*budget_));
+    at = at ? std::min(*at, b) : b;
+  }
+  mgr_.set_deadline(at);
   if (!form.is_list() || form.items().empty()) {
     fail(form, "a top-level form must be a non-empty list");
   }

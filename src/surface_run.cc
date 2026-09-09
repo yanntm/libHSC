@@ -33,7 +33,7 @@ class runner {
  public:
   explicit runner(std::ostream& out) : out_(out), t_(out) {}
 
-  void set_interrupt(std::function<bool()> hook) { t_.set_interrupt(std::move(hook)); }
+  void set_deadline(std::optional<std::chrono::steady_clock::time_point> at) { t_.set_deadline(at); }
 
   int run(const std::vector<datum>& forms) {
     // rewrite directives: forms whose head names a pass of the chain
@@ -440,8 +440,8 @@ int session::feed(const std::vector<datum>& forms) {
   return impl_->r.run(forms);
 }
 
-void session::set_interrupt(std::function<bool()> hook) {
-  impl_->r.set_interrupt(std::move(hook));
+void session::set_deadline(std::optional<std::chrono::steady_clock::time_point> at) {
+  impl_->r.set_deadline(at);
 }
 
 namespace {

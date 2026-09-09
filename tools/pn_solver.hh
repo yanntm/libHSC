@@ -63,8 +63,7 @@ class solver {
   /// at that instant answers `TIMEOUT` and is left open; `nullopt` removes
   /// it. Reachability questions are single applications and run to their end.
   void set_deadline(std::optional<std::chrono::steady_clock::time_point> at) {
-    if (!at) session_.set_interrupt(nullptr);
-    else session_.set_interrupt([d = *at] { return std::chrono::steady_clock::now() > d; });
+    session_.set_deadline(at);
   }
 
   /// Feed a batch of forms given as text; returns the lines it produced.
