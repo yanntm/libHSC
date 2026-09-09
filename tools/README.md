@@ -22,7 +22,7 @@ business (`MCC-drivers/hsc/`); this tool answers properties.
 
 ```
 hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc|sexpr]
-       [--shape nupn|flat|louvain] [--force] [--reverse] [--invariants S] [--bound N]
+       [--shape nupn|flat|louvain|rcm|sloan|random] [--seed N] [--force] [--reverse] [--invariants S] [--bound N]
        [--states | --max-tokens] [--deadlock NAME] [--totalTime S] [--printUnknown] [--witness]
        [--export-hsc FILE] [-q] [-v]
 ```
@@ -32,7 +32,10 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
 1. **Load.** `-i`: the vendored PNML loader plus the NUPN unit tree when the
    file has one. `--net`: `PNETIO::read`, places `p<i>`, transitions `t<i>`.
 2. **Shape.** `nupn` (default with `-i`, falls back to `flat` without a unit
-   tree), `flat` (one spine), `louvain` (the clustering of `decompose.hh`);
+   tree), `flat` (one spine), `louvain` (the clustering of `decompose.hh`),
+   `rcm` / `sloan` (flat, in a bandwidth-reducing order of the place
+   dependency graph, `order/bandwidth.hh`), `random` (flat, a seeded
+   shuffle — the control);
    `--force` appends the `(reorder-force)` directive, `--reverse` the
    `(reorder-reverse)` one after it (the mirror image of the shape: which
    end of an order sits at the top matters to the engine). `--invariants S`

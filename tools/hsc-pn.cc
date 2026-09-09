@@ -26,6 +26,7 @@
 #include "hsc/petri/core/Log.h"
 #include "hsc/petri/decompose.hh"
 #include "hsc/petri/invariants.hh"
+#include "hsc/order/bandwidth.hh"
 #include "hsc/petri/expr/Property.h"
 #include "hsc/petri/io/PNETIO.h"
 #include "hsc/petri/nupn.hh"
@@ -74,6 +75,7 @@ int main(int argc, char** argv) {
   bool force = false, reverse = false, states = false, max_tokens = false, print_unknown = false, quiet = false,
        verbose = false, witness = false;
   int invariants_time = 0;
+  long long seed = 1;
   int bound = 2, total_time = 0;
   auto* in_opt = app.add_option("-i,--pnml", pnml, "PNML P/T net (with its NUPN unit tree when present)")
                      ->check(CLI::ExistingFile);
@@ -82,7 +84,8 @@ int main(int argc, char** argv) {
   app.add_option("--props", props, "property file: MCC XML (.xml) or s-expressions")
       ->check(CLI::ExistingFile);
   app.add_option("--propsSyntax", syntax, "auto|mcc|sexpr (default: by extension)");
-  app.add_option("--shape", shape, "nupn|flat|louvain: the hierarchy (nupn falls back to flat)");
+  app.add_option("--shape", shape, "nupn|flat|louvain|rcm|sloan|random: the hierarchy or order (nupn falls back to flat)");
+  app.add_option("--seed", seed, "the seed of --shape random (default 1)");
   app.add_flag("--force", force, "FORCE reordering after the shape");
   app.add_flag("--reverse", reverse, "mirror the shape at every level (after FORCE when both)");
   app.add_option("--invariants", invariants_time, "compute the P-flows within S seconds and let them guide the louvain shape");
@@ -149,6 +152,14 @@ int main(int argc, char** argv) {
       }
     }
     units = hsc::petri::decompose(*net, flows);
+  } else if (shape == "rcm" || shape == "sloan" || shape == "random") {
+    const int n = static_cast<int>(net->getPlaceCount());
+    const std::vector<hsc::order::louvain::edge> edges = hsc::petri::dependency_edges(*net);
+    const std::vector<std::uint32_t> listing =
+        shape == "rcm"   ? hsc::order::rcm(n, edges)
+        : shape == "sloan" ? hsc::order::sloan(n, edges)
+                           : hsc::order::random_order(n, static_cast<std::uint64_t>(seed));
+    units = hsc::petri::ordered(*net, listing);
   } else if (shape != "flat") {
     std::cerr << "unknown shape '" << shape << "'\n";
     return 2;
