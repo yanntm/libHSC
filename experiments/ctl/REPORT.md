@@ -44,3 +44,27 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    the same reduced net and formulas (`HscRunner.runCtl`,
    `ParallelWalk.startHscCtl`, the flag set in `Application`). Built
    offline with Maven; tested on a local product. Committed, not pushed.
+
+   Result on Raft-PT-02 CTLCardinality, local product with this build's
+   `hsc-pn` copied into the `fr.lip6.hsc.binaries` plugin: the checker
+   runs per property beside `its-ctl` ("hsc-pn: 1/1 properties solved in
+   36 ms", "libHSC CTL check beside the decision diagrams solved 1
+   properties"); `its-ctl` prints first on this small net, so the
+   attribution goes to it. The product also carries the CTL-capable
+   `hsc-pn` only if the libHSC CI branch `HSC-Linux` is rebuilt (the
+   plugin downloads it at build time): a libHSC push is what publishes it.
+8. **Angiogenesis-PT-05 CTLCardinality after 3–5**: 5 formulas in 60 s
+   (02, 09, 11, 03, 08) against 1 before; the inversion still costs about
+   9 s before any backward operator can answer.
+9. **A tiny model that answers nothing**: SieveSingleMsgMbox-PT-d1m04
+   (3262 states, 749 transitions, more than a thousand places, flat shape)
+   answered 1/16 in 60 s. `HSC_CTL_TRACE=1` (the new observation point)
+   shows a backward `EF` costing 1.6 s and every backward `Sat` node about
+   1.5 s: with 749 inverted events and a flat spine over a thousand leaves,
+   each backward closure is expensive on a set of 3262 states. Under
+   investigation (next).
+10. **Runs that answered nothing** in the baseline (124 of 589) are
+   largely bound by the reachable set itself: BART-PT-002 takes 7 s for
+   17424 states, AutonomousCar-PT-02b and BlocksWorld-PT-01 more than 15 s.
+   That is the saturation engine and the shape (the MCC driver's portfolio
+   of shapes exists for it), not the checker.
