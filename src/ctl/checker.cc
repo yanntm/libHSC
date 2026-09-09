@@ -128,6 +128,7 @@ checker::code checker::closure(bool backward, code sel, bool before) {
                               : core::compose_at(mgr_, m_.sort, sel, t));
   }
   const code c = core::saturate(mgr_, m_.sort, filtered);
+  if (mgr_.partial()) throw interrupted("stopped: a partial set is no answer");
   closure_memo_.emplace(key, c);
   return c;
 }
@@ -389,6 +390,7 @@ std::optional<checker::code> checker::eval(set_id s) {
       break;
     }
   }
+  if (mgr_.partial()) throw interrupted("stopped: a partial set is no answer");
   set_memo_.emplace(s, r);
   return r;
 }
@@ -507,6 +509,7 @@ std::optional<checker::code> checker::sat(node_id f) {
         break;
     }
   }
+  if (mgr_.partial()) throw interrupted("stopped: a partial set is no answer");
   sat_memo_.emplace(f, r);
   return r;
 }
