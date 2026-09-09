@@ -94,6 +94,14 @@ normal form.
       drop any cell whose sub is 0                           # smash again
       sort by prime ; intern
 
+The sieve — the inner loop over the cells — is what an application pays
+for at every node whose head is touched. It is skipped when the primes are
+known to be pairwise disjoint already: when the head term is `id`, and when
+the head's algebra answers `injective(term)` — a guard, a shift, anything
+that is an injective partial function on elements keeps disjoint primes
+disjoint. Only the regroup by sub (F) remains. The answer is advisory and
+`false` is always safe; a theory that never answers just pays the sieve.
+
 Two things to see in it.
 
 **The overlap takes the union of the sections.** A bag of rectangles denotes
