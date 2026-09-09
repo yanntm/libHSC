@@ -231,6 +231,7 @@ code diagram_engine::gfp_at(shape_code sort, code term, code value) {
   code x = value;
   for (;;) {
     owner_.check_interrupt();
+    ++gfp_rounds_;
     const code y = algebra.meet(x, algebra.apply_local(term, x));
     if (y == x || y == none) return y;
     x = y;
@@ -393,6 +394,7 @@ code diagram_engine::do_apply(code term, code d) {
       code x = d;
       for (;;) {
         owner_.check_interrupt();
+        ++gfp_rounds_;
         const code y = meet(x, apply_local(h, x));
         if (y == x) return x;
         x = y;
