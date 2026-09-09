@@ -165,6 +165,13 @@ once: `MAX_TOKEN_IN_PLACE`, `MAX_TOKEN_PER_MARKING`, `STATES` and
 `TRANSITIONS` are all `+inf`. DoubleExponent still explodes honestly, being
 bounded; the unbounded nets stop being timeouts.
 
+Prototyped: `(pump NAME [LEAF])` (`src/surface_cover.cc`), `hsc-pn --cover`;
+the leaf theory breaks a closure out when a domain passes the divergence
+limit (`support_algebra::note_divergence`), and every per-element or
+per-arc loop that can run for seconds polls. CryptoMiner and FunctionPointer
+answer `+inf` in 16 s of a 20 s budget; the 754-place BugTracking does not
+within 5 s of pump budget — its seed neighbourhood is already expensive.
+
 **What an epoch may do.** Test the known goals on the partial set (every
 positive reachability claim is sound on it; negative claims and exact
 counts wait for the fixpoint); flush under memory pressure and resume, or

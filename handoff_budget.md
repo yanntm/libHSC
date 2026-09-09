@@ -17,12 +17,12 @@ tasks as continuations kept as data, one budget for time and memory).
    and fan-out per level, cardinal per subshape and growth against a
    previous set, the domain reached per leaf; `(profile)` prints them, the
    task reports them. No instrumentation inside saturation.
-2b. **The divergence watch** (`algorithm.md` §3b): between epochs, leaf
-   domains growing far past the initial tokens → break out, report the
-   variables, confirm by a pumping pair on a shortest path to the largest
-   value seen (`trace/path` on the partial set, scan for `m_j ≥ m_i` with
-   `p` strictly up), else a Parikh guide for the walker; a confirmed pump
-   answers the four StateSpace values `+inf`.
+2b. **The divergence watch** — prototyped (`(pump …)`, `hsc-pn --cover`,
+   the domain-limit break-out in the leaf theory): 2 of 3 unbounded nets
+   answered `+inf`. Next: the sweep's StateSpace runs with `--cover` (76
+   instances of the corpus are unbounded, all `noreach` today); a Parikh
+   guide as the fallback; the epoch-level signal (leaf domains growing
+   across stocks) for the pumps that need a longer loop.
 3. **The budget object**: time and memory, `remaining()`, polls only in
    loops that can exceed a second, deadlines exact to a second or two; the
    alarm behind a flag (armed first thing, done); `hsc-pn`'s phases on the
