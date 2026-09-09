@@ -67,4 +67,4 @@ when it is the unique best somewhere often enough to pay its quarter.
 | m5g | louvain | 7047 | 413 | |
 | m6c_lf | louvain + force, m6c build | 7306 | 430 | the baseline of this thread's build; 16 up / 1 down vs m5e, 0 wrong |
 | m6c_lfi | + `--invariants 5` | 7397 | 438 | flows as cliques: 32 up / 23 down vs m6c_lf; TokenRing-PT-010 2 → 16 and 4 → 16, SatelliteMemory-PT-X00100Y0003 0 → 16; RwMutex-PT-r0010w2000 loses 10–11 |
-| m6c_lfi4 | + `HSC_INV_MERGE=4` | queued | | heavy flows contracted |
+| m6c_lfi4 | + `HSC_INV_MERGE=4` | 7074 | 416 | heavy flows contracted: 16 up / 45 down vs m6c_lfi; every TwoPhaseLocking instance 0 → 16, every RwMutex 16 → 0 — complementary, not a default. Best of m6c_lf, lfi, lfi4: 7599 |
