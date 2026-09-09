@@ -1,0 +1,14 @@
+TwoPhaseLocking-PT-nC00100vN 10119981
+TokenRing-PT-010 58905
+Angiogenesis-PT-05 42734935
+SupplyChain-PT-00005 14258
+Anderson-PT-05 689901
+IBM703-PT-none 8370
+SieveSingleMsgMbox-PT-d1m04 3262
+TCPcondis-PT-05 2985834
+TriangularGrid-PT-1500 705712
+SwimmingPool-PT-02 3408031
+BART-PT-002 17424
+Raft-PT-03 33819621
+SafeBus-PT-06 6816756
+UtilityControlRoom-PT-Z2T3N04 208341
