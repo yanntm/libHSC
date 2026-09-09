@@ -6,13 +6,14 @@ tasks as continuations kept as data, one budget for time and memory).
 
 ## Engineering — next
 
-1. **Tasks and slices** (`algorithm.md` §3, §3b, §7.1): the `stopping` flag
-   on the manager — raised by budget or coordinator, read by every closure
-   loop at its round boundary, no cache insert once raised, `{set, partial}`
-   returned at the surface, reset at the root; vendor `walk/Task.h` and
-   `walk/Scheduler.h` once PetriSpot has given them their `sched/` home
-   (§8); the reachable set as a task with geometrically growing slices; a
-   CTL property as a task.
+1. **Tasks and slices** (`algorithm.md` §3, §3b, §7.1). Done: the stop
+   state on the manager, partial results kept out of the caches, the
+   surface orders `(budget S)` / `NAME partial` / `(reach … from)` /
+   `(stock … since …)` (`examples/models/budget_hanoi.hsc` exercises the
+   loop), PetriSpot's `sched/` vendored. Next: `hsc --stdin` (orders
+   streamed, one answer flushed per form); the reachable set as a `Task`
+   (`run(slice)` = budget, reach from, stock; slices growing geometrically;
+   the report from the stock); a CTL property as a task.
 2. **Set metrics between epochs** (§3b): extend `order/profile` with fan-in
    and fan-out per level, cardinal per subshape and growth against a
    previous set, the domain reached per leaf; `(profile)` prints them, the

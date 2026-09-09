@@ -25,8 +25,9 @@ same objects fit with a few distinctions, spelled out in `algorithm.md`.
 
 | piece | where | status |
 |---|---|---|
-| the budget: one deadline, `remaining()`, an amortised `check()` | `core/manager` (replaces the bool interrupt hook) | to build |
-| polling points: closure loops (there), canonisation and cache misses (to add), the tool's phases (to add) | `core/`, `tools/` | to build |
+| the stop state: a deadline or a request, `stopping()` polled per round, results marked partial and kept out of the caches, reset at the root | `core/manager`, `core/diagram`, `mem/cache` | built |
+| the surface orders: `(budget S)`, `NAME partial`, `(reach … from NAME)`, `(stock NAME [since OTHER])` | `src/surface_query.cc`, manual §4 | built |
+| polling: the closure loops at their round boundaries (a call per round, never per node); the tool's phases | `core/diagram`, `tools/` | loops done, phases to do |
 | `Slice`, `SliceReport`, `Task`, `Scheduler` | vendored from PetriSpot `Petri/src/sched/` (`Task.h`, `Scheduler.h`, namespace `petri::sched`) by `vendor.sh`, the include path the only edit | vendored |
 | symbolic tasks: reachable set, a CTL property, a shape heuristic, a count | `sched/tasks.hh` | to build |
 | the coordinator policy for a symbolic portfolio (shares, parking, memory) | `sched/coordinator.hh` | after the sweep |

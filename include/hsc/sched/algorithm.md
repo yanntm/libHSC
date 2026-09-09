@@ -191,12 +191,15 @@ model.
 
 ## 7. Order of work
 
-1. **Tasks and slices.** Vendor `walk/Task.h` and `walk/Scheduler.h`
-   (PetriSpot decides where they live, §8); the `stopping` flag on the
-   manager with libDDD's discipline (unwind at round boundaries, no cache
-   insert once raised, `{set, partial}` at the surface, reset at the root);
-   the reachable set as the first task, its slices growing geometrically;
-   a CTL property as the second (already resumable).
+1. **Tasks and slices.** Done: PetriSpot's `sched/Task.h` and
+   `Scheduler.h` vendored; the manager's stop state (a deadline or a
+   request, `stopping()` at round boundaries, results marked partial and
+   refused by the caches, reset at the root); the surface orders
+   `(budget S)`, `NAME partial`, `(reach … from NAME)`, `(stock NAME [since
+   OTHER])` — the epoch loop as a script anyone can drive, a stream of
+   orders included. Next: the reachable set as a `Task` whose `run(slice)`
+   is that loop with geometrically growing slices; a CTL property as the
+   second task.
 2. **Set metrics between epochs.** `order/profile` extended with fan-in and
    fan-out per level, cardinal per subshape and its growth against the
    previous set, the domain reached per leaf; printed by `(profile)` and by
