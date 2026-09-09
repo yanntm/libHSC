@@ -25,12 +25,19 @@ portfolio is.
 ## 2. The budget
 
 One object per manager: a steady-clock deadline (or none), `remaining()`,
-and `check()`. `check()` is amortised: a counter, and the clock is read
-every few thousand calls, so it can sit on hot paths — the canonicalizer,
-the cache miss, the leaf operations — and bound the overshoot to
-milliseconds instead of one closure iteration. When the deadline is past,
-`check()` throws `interrupted`; the exception unwinds to the task boundary
-(§3), never further than the surface form being run. The surface's
+and `check()`. Granularity is deliberately coarse: our outside budgets are
+hundreds to thousands of seconds, never hundreds of milliseconds, so a
+deadline honoured within one or two seconds is exact enough, and polling
+must not become a line in the profile. The rule is therefore: **a loop that
+can run for more than a second polls, nothing finer does.** That is the
+closure schedules at every level (a round of the saturation loop, a gfp
+round, an image of a step term), the count loops, the heuristics'
+iterations; not the canonicalizer, not the leaf operations, not the cache.
+Where a single iteration can itself exceed a second (one image over a very
+large set), the poll sits one level down, at the node visit of the top
+sort, amortised by a counter so the clock is read rarely. When the deadline
+is past, `check()` throws `interrupted`; the exception unwinds to the task
+boundary (§3), never further than the surface form being run. The surface's
 `set_interrupt` becomes `set_deadline`; the alarm stays in the tool behind a
 flag as a backstop, armed at the first line of `main`, with a margin that
 the job, not the tool, decides.
@@ -71,10 +78,11 @@ from what it memoised"). So:
 * a **report** is PetriSpot's `SliceReport` with the symbolic reading of its
   fields — `steps`: iterations run; `claims`: answers produced (a FORMULA,
   a StateSpace value, a fixpoint closed); `novelty`: nodes created in the
-  slice (the diagram grew: the closure is still discovering); `stalls`: 0;
-  `heuristicDrop`: the frontier or the cardinal stopped growing;
-  `capped`, `micros`, `finished` verbatim — plus the memory footprint after
-  the slice, the one field we add;
+  slice (the diagram grew: the closure is still discovering); `stalls`:
+  levels whose events all fired to no effect; `heuristicDrop`: the cardinal
+  or the node count stopped growing over the slice; `capped`, `micros`,
+  `finished` verbatim — plus what we add: the memory footprint after the
+  slice and the per-level progress of §3b;
 * the **task kinds** of `hsc-pn`: the reachable set under a shape; a CTL
   property (the checker's node evaluation, already resumable); the
   StateSpace counts (per transition, a loop of selections); a shape
@@ -86,6 +94,46 @@ from what it memoised"). So:
 A task not running holds its set and its memo. Parking a task (§4) drops
 the caches and keeps the set and the unique table: the cheap part of a
 resume is lost, the work is not.
+
+## 3b. Epochs: the interruption as a rhythm, not only a stop
+
+ITS-Tools had this in one form: an interrupt on memory pressure
+(`shouldGarbage`) that forced the saturation to walk back up to the root,
+so that the caches could be flushed almost entirely, and the properties
+tested on the set reached so far. The same mechanism, taken as a rhythm,
+is what turns a long budget into insight rather than one long wait. An
+**epoch** ends when the slice ends: the closure unwinds to the root and the
+task returns its set and a report; between epochs the coordinator can
+
+* **test what is known on the partial set.** A reached set that is not yet
+  the fixpoint is sound for every positive reachability claim (a state in it
+  is reachable): reachability goals close, bounds rise, `EF` witnesses
+  exist; only the negative claims and the exact counts wait for the
+  fixpoint. Facts close early, and their goals leave the budget;
+* **flush under memory pressure** — the caches go, the unique table and the
+  set stay — and resume, or park the task and let a smaller configuration
+  take over;
+* **read what progressed.** The saturation schedule knows, per level and
+  per event, whether the last round changed anything: which events fired,
+  which levels are stable, how the cardinal and the node count moved since
+  the last epoch. That is the report's `novelty` and `heuristicDrop`
+  refined to the level, and it is the introspection the coordinator
+  reasons on: a shape whose top levels never move is stalled, whatever its
+  cardinal says;
+* **change the schedule.** Saturation has a known blind spot: an event
+  whose top level is the root is very hard to ever fire, because everything
+  below must be saturated first. An epoch can open with one round of the
+  events of high top level before the schedule restarts, or reorder the
+  schedule by what stalled, or hand the set to another shape (the flat
+  order for a counter net once the hierarchical one shows no progress at
+  the top). None of this is possible from inside one uninterrupted
+  fixpoint.
+
+So the interruption serves three masters — the deadline, the memory, and
+the coordinator's curiosity — and the third is the one that matters on the
+hard instances: an hour of budget spent as sixty epochs, each read, is how a
+model's mechanics get understood and its heuristics fitted while the run is
+still going.
 
 ## 4. Scheduler and coordinator, unchanged
 
@@ -129,6 +177,11 @@ input the coordinator will learn from: yield per kind per second, on this
 model.
 
 ## 7. Order of work
+
+0. The saturation schedule reports progress per level and per event
+   (which fired, which stalled, cardinal and nodes since the last epoch),
+   and can be asked to unwind at a round boundary — the instrument every
+   later step reads.
 
 1. The budget object in the manager, the amortised `check()` on the hot
    paths, `set_deadline` in the surface; the alarm behind a flag, armed
