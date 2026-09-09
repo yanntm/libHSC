@@ -163,8 +163,29 @@ void translator::do_dead(const datum& form) {
     }
     guards[i] = read_evterm(datum::list(std::move(when), form.line()));
   }
-  const linear::dead_report r = linear::dead_transitions(mgr_, top_, set, seed(), events_, guards, exact,
-                                                         with_step, /*sharpen=*/256);
+  // the one-step test backward: the converses against the set, restricted per
+  // slice to the live events writing a leaf the guard reads
+  std::vector<std::unordered_set<std::string>> reads(events_.size());
+  for (std::size_t i = 0; i < events_.size(); ++i) {
+    const std::size_t g = i < event_guard_of_.size() ? event_guard_of_[i] : SIZE_MAX;
+    if (g == SIZE_MAX || g >= event_guards_.size()) continue;
+    const auto walk = [&](auto&& self, const datum& x) -> void {
+      if (x.is_atom()) { if (position(x.text())) reads[i].insert(x.text()); return; }
+      for (const datum& y : x.items()) self(self, y);
+    };
+    for (const datum& a : event_guards_[g]) walk(walk, a);
+  }
+  linear::entry_fn entries;
+  if (with_step) {
+    const std::vector<code>& conv = converses_against(form, set);
+    entries = [&, conv](std::size_t i, code en, const std::vector<char>& live) -> code {
+      std::vector<std::size_t> which;
+      for (const std::size_t u : events_writing(reads[i])) if (live[u]) which.push_back(u);
+      const code pre = pre_within(en, set, conv, which);
+      return pre == core::none ? core::none : mgr_.diagrams().minus(pre, en);
+    };
+  }
+  const linear::dead_report r = linear::dead_transitions(mgr_, top_, set, seed(), events_, guards, exact, entries);
   for (std::size_t i = 0; i < events_.size(); ++i) {
     if (r.verdicts[i] == linear::verdict::never_enabled) out_ << name << " dead " << event_names_[i] << " never\n";
     else if (r.verdicts[i] == linear::verdict::one_step) out_ << name << " dead " << event_names_[i] << " step\n";

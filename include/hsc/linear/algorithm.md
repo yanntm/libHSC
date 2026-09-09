@@ -49,45 +49,34 @@ For a transition `t` with guard `en(t)` (a selector):
    `t` (the first enabling marking on the path from the initial one), that
    predecessor is in `S`, and its successor would be in the image.
 
-The image `next(S ∖ en(t)(S))` is one step over a set the size of `S`: the
-cost class of one saturation round on `S`. It is computed once for all
-transitions (`I = next(S)` suffices: `next(S ∖ en(t)) ⊆ next(S)`, so
-`en(t)(S) ∩ I = ∅` is a sound cheap test, and the sharper
-`en(t)(S) ∩ next(S ∖ en(t)) = ∅`, one image each, is reserved for the few
-transitions the cheap test leaves alive), and it is an image under the
-**live candidates only**: a transition already proved dead never fires
-from a reachable marking, so the first enabling marking of `t` is reached
-by a live one. The never-enabled transitions contribute nothing anyway
-(`en(u)(S) = ∅` ⇒ `u(S) = ∅`) but each costs a traversal of `S` to find
-out — on BugTracking, the image under all 27 370 events did not return in
-385 s where 24 601 of them were already dead, and the image under the 2769
-live candidates alone did not return in 385 s either: the image of `S` is
-the largest object in reach, whatever the step. Every kill shrinks the live
-set, so the test **iterates**: image under the live candidates, verdicts,
-again while a transition fell; each round is sharper than the last (a
-one-step kill of `u` removes `u` from the step of the next round). The
-untested transitions (no exact guard) stay in the step: they may fire.
-This is where a diagram beats one linear program per (transition,
-producer, place): one image serves every transition of a round.
+The test is computed **backward, per slice**. A flow is an equality,
+preserved by firing in both directions, so the predecessor of a marking of
+`S` satisfies every flow; the converse events (`core/algorithm.md` §9),
+inverted against `S` and restricted to leaf domains as wide as the box, are
+exact converses of real firings. Then `en(t)(S) ∩ next(S ∖ en(t)(S)) = ∅`
+reads `pre(en(t)(S)) ∩ (S ∖ en(t)(S)) = ∅`: no marking of `S` outside the
+slice enters it. Two restrictions make it cheap where the forward image
+was not (the image of `S` under all events, or under the live ones, did not
+return in 385 s on BugTracking — `S` is the largest object in reach):
+only the **live** events count (a transition proved dead never fires from a
+reachable marking, and the first enabling marking of `t` is reached by a
+live one), and only those **writing a leaf the guard of `t` reads** (a
+firing that changes none of them leaves the guard's value as it was). The
+test **iterates**: every kill shrinks the live set, and the passes repeat
+while a transition falls. The untested transitions (no exact guard) stay
+live: they may fire. Stopped, the verdicts taken stand — each rests on
+tests that completed.
 
-**The backward reading of the same test** is the one to compute. A flow is
-an equality, preserved by firing in both directions, so the predecessor of
-a marking of `S` satisfies every flow; the converse events with their
-protection guards, restricted to `S`, are exact converses of real firings.
-Then `en(t)(S) ∩ next(S ∖ en(t)(S)) = ∅` reads `pre(en(t)(S)) ∩ (S ∖
-en(t)(S)) = ∅`: no marking of `S` outside the slice enters it. The slice
-`en(t)(S)` is thin where `S` is everything, and the only transitions that
-can enter it are the live producers of the input places of `t` — a handful
-of local applications on a slice per transition, instead of one image of
-`S`. The same test with any set `X` in place of `en(t)(S)` (`init ∩ X = ∅`
-and `pre(X) ∩ (S ∖ X) = ∅` ⇒ `X` unreachable) refutes a reachability
-target; `k` steps are `k`-induction; the fixpoint `pre*(X) ∩ S` is exact
-(the initial marking is in it iff `X` is reachable), finite over the
-covered places, and small when `X` is unreachable — backward analysis with
-the garbage predecessors pruned by the invariants. Soundness asks the
-uncovered places to be *removed* from the net (arcs included) rather than
-capped: that abstraction only adds behaviour, and the exactness gate on
-guards goes with it.
+The same test with any set `X` in place of `en(t)(S)` refutes a
+reachability target (`init ∩ X = ∅ ∧ pre(X) ∩ (S ∖ X) = ∅` ⇒ `X`
+unreachable); `k` steps are `k`-induction; the fixpoint `pre*(X) ∩ S`
+decides — the initial marking is in it iff `X` is reachable — finite on
+the covered places and small when `X` is unreachable: backward analysis
+with the garbage predecessors pruned by the invariants (`(backward …)`,
+`hsc-pn --approx-back`). Soundness of an *unreachable* verdict by the
+backward test asks every place to be exact in `S` (a capped predecessor
+would be missed); a *reachable* verdict (a layer meets the initial
+marking) is a real path whatever the caps.
 
 Both tests are sound (they under-approximate the dead transitions) and
 incomplete (a spurious marking of `S ∖ R` may enable `t`, or reach an
