@@ -17,7 +17,8 @@ if(EXPAT_FOUND)
   add_library(petri_import STATIC
     ${PROJECT_SOURCE_DIR}/src/petri_nupn.cc
     ${PROJECT_SOURCE_DIR}/src/petri_to_surface.cc
-    ${PROJECT_SOURCE_DIR}/src/petri_decompose.cc)
+    ${PROJECT_SOURCE_DIR}/src/petri_decompose.cc
+    ${PROJECT_SOURCE_DIR}/src/petri_invariants.cc)
   # The vendored PetriSpot tree keeps its upstream subfolder includes
   # ("expr/...", "parse/..."), hence the second include root.
   target_include_directories(petri_import PUBLIC
