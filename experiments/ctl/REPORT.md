@@ -223,6 +223,13 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    `HSC_CTL_GFP=rounds` the old one; the benchmark decides
    (`hsc-pn-m6b`, both ways, queued behind m5g).
 
+26. **Portfolio read complete** (`m5g`, `--shape louvain`): 7047 answered,
+   0 wrong, 413 complete files, 116 up / 58 down against `m5d`. Best of
+   the four per run: 7914 answered, 473 complete files (m5d alone: 6331,
+   359). Each configuration is the unique best somewhere (27 / 25 / 15 /
+   4 runs for NUPN+FORCE / Louvain+FORCE / NUPN / Louvain); the driver's
+   four-way split is justified, Louvain alone the weakest quarter.
+
 ## Where things stand for you
 
 * `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the

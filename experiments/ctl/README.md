@@ -36,6 +36,7 @@ Machine: the development workstation (20 cores, 64 GB), 8 runs side by side,
 | `results/m5d_le1e7.tsv` | the fast cycle witness of `has_image(gfp)` turned off (opt-in) | the fix of the IBM703 regression |
 | `results/m5e_le1e7.tsv` | the same with `--shape louvain --force` | the shape (one configuration of the driver's portfolio) |
 | `results/m5f_le1e7.tsv` | the same with `--shape nupn --force` | the second configuration of the portfolio |
+| `results/m5g_le1e7.tsv` | the same with `--shape louvain` | the last configuration of the portfolio |
 
 ### m4 baseline
 
@@ -57,7 +58,12 @@ states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 | m5d | 6331 | 0 | 3077 | 359 | 36 / 13 vs m5c; 76 / 22 vs m4 |
 | m5e (Louvain + FORCE) | 7267 | 0 | 2141 | 429 | 124 / 59 vs m5d |
 | m5f (nupn + FORCE) | 7067 | 0 | 2341 | 402 | 97 / 24 vs m5d |
-| best of m5d, m5e, m5f per run | 7897 | 0 | — | 471 | the driver's portfolio, three of its four configurations |
+| m5g (Louvain) | 7047 | 0 | 2361 | 413 | 116 / 58 vs m5d |
+| best of m5d, m5e, m5f, m5g per run | 7914 | 0 | — | 473 | the driver's portfolio, all four configurations |
+
+Unique best configuration per run (the others strictly lower): NUPN + FORCE
+27 runs, Louvain + FORCE 25, NUPN 15, Louvain alone 4 — every configuration
+earns its place, Louvain alone the least.
 
 `results/m5e_1e7_1e9.tsv`: the 129 instances between 10^7 and 10^9 states,
 120 s, Louvain + FORCE, 4 side by side with 8 GB each — the correctness
