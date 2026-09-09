@@ -90,7 +90,12 @@ what protection removes lies outside `R`, and `C`, `X` lie inside).
 Every `D_i` is exactly `X_i ∖ h(X_i)`: a state of `X_{i+1}` with no witness
 left had one in `X_i`, hence in `D_i = X_i ∖ X_{i+1}`, hence is in
 `h(D_i)`; and `K` is `h(X_{i+1}) ∩ C` by the converse. The fixpoint is the
-same as the round form's; the round form remains as `HSC_CTL_GFP=rounds`.
+same as the round form's. Measured on the MCC corpus (588 runs, 60 s) the
+round form answers more — 6414 against 6323, 31 runs down and 10 up for
+the frontier — so the **round form is the default** and the frontier form
+is the variation point `HSC_CTL_GFP=frontier`: the removed slice is often
+large, and then the frontier's per-event converse images cost more than the
+one image they replace.
 Used wherever the checker takes a hull: the `EG` rule, `fwdg`, the acyclicity
 test, and the witness hull.
 
@@ -218,8 +223,8 @@ cycles on its own); `HSC_CTL_PROTECT=test|never|always` decides which inverted e
 intersected with `R` after each step (`never` is sound for verdicts at the
 seed — see `research_notes/invert.md` §3 — and keeps every backward closure
 a saturating one, at the price of spurious states carried);
-`HSC_CTL_GFP=rounds` takes every hull by the round form instead of the
-frontier form (§3).
+`HSC_CTL_GFP=frontier` takes every hull by the frontier form instead of
+the round form (§3).
 
 **Observation point.** `HSC_CTL_TRACE=1` prints, on stderr, the wall time
 of every `sat`, `eval` and `nonempty` scope, and the number of `gfp`

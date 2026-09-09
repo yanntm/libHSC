@@ -252,6 +252,20 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    carried) is queued as a corpus run; the principled fix is the
    constrained saturation of `ctl_directions.md` §4.4 — a theory item.
 
+29. **m6b measured, the frontier loses** (`README.md` here): with the round
+   hull the throughput work answers 6414 against m5d's 6331 (+83, 36 runs
+   up / 3 down, median wall 10.3 → 8.0 s, 370 complete files, 0 wrong);
+   with the frontier hull 6323 (31 runs down / 10 up against rounds). The
+   round form is the default again, the frontier form the opt-in
+   `HSC_CTL_GFP=frontier`. Lesson kept in `ctl/algorithm.md` §3: the
+   removed slice is often large, and the frontier's per-event converse
+   images then cost more than the one image they replace. The big-corpus
+   NUPN run (`m6b_1e7_1e9`, in progress) ran with the frontier default.
+30. **The combiner** (`util/hash.hh`, at your request): one multiply, one
+   shift, two xors per element, lone integers hash as themselves. R on the
+   8-counter net 1.60 → 1.39 s, Angiogenesis-05 0.34 → 0.31 s, TokenRing
+   unchanged; 130/130 ctest.
+
 ## Where things stand for you
 
 * `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the

@@ -37,6 +37,8 @@ Machine: the development workstation (20 cores, 64 GB), 8 runs side by side,
 | `results/m5e_le1e7.tsv` | the same with `--shape louvain --force` | the shape (one configuration of the driver's portfolio) |
 | `results/m5f_le1e7.tsv` | the same with `--shape nupn --force` | the second configuration of the portfolio |
 | `results/m5g_le1e7.tsv` | the same with `--shape louvain` | the last configuration of the portfolio |
+| `results/m6b_le1e7.tsv` | 44fd8d8 (throughput work: scratch buffer, injective hint, indexed accumulator, capacity hint; hull by frontier) | default shape, against m5d |
+| `results/m6b_rounds_le1e7.tsv` | the same with `HSC_CTL_GFP=rounds` | the hull form A/B |
 
 ### m4 baseline
 
@@ -60,6 +62,9 @@ states; SieveSingleMsgMbox-PT-d1m04, 1295 places flat: `R` in 6 s, 1/16 in
 | m5f (nupn + FORCE) | 7067 | 0 | 2341 | 402 | 97 / 24 vs m5d |
 | m5g (Louvain) | 7047 | 0 | 2361 | 413 | 116 / 58 vs m5d |
 | best of m5d, m5e, m5f, m5g per run | 7914 | 0 | — | 473 | the driver's portfolio, all four configurations |
+
+| m6b, frontier hull | 6323 | 0 | 3085 | 360 | 27 / 23 vs m5d |
+| m6b, round hull | 6414 | 0 | 2994 | 370 | 36 / 3 vs m5d; 31 / 10 frontier vs rounds |
 
 Unique best configuration per run (the others strictly lower): NUPN + FORCE
 27 runs, Louvain + FORCE 25, NUPN 15, Louvain alone 4 — every configuration
