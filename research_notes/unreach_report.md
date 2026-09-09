@@ -73,3 +73,27 @@ builder (24 601, 15.4 s).
 Next: the sample sweep (`experiments/unreach/approx_sweep.sh`, 86 models,
 RC and RF, three engines, 60 s cap each) for the corpus-wide picture and
 any wrong verdict.
+
+### 2.2 The backward search inside `S` (built)
+
+`(pre …)`, `(minus …)`, `(backward NAME X SET [steps K] [writing LEAF*])`
+in the surface (`src/surface_backward.cc`): the converses of the default
+system inverted against `S` (kept per set, no protection — every
+predecessor is met with `S`), layers from the goal's markings of `S`; the
+first layer restricted to the events writing a place the goal reads. A
+layer meeting the initial marking is a real path (reachable); a closed
+search is unreachable when every place is exact in `S`. Client:
+`hsc-pn --approx-back K --approx-back-time T`. The leaf domains are widened
+to the box before the model is emitted (`approx_facts` before
+`to_surface`), since the converses are restricted to the declared domains.
+
+AirplaneLD-PT-0010, `--approx-units --approx-back 50`, 2 s per property:
+
+| examination | `S` alone | + backward | wrong | layers to the initial marking | time |
+|---|---|---|---|---|---|
+| RC | 13 / 16 | 15 / 16 (2 reachable) | 0 | 6, 6 | 0.10 s |
+| RF | 5 / 16 | 16 / 16 (11 reachable) | 0 | 3–9 | 0.14 s |
+
+Every open formula of Airplane was reachable, and the backward search
+found the path in a few layers of a 142 272-marking set. The other verdict
+(closed) did not occur here. Logs `tests/logs/unreach/airb_*`.

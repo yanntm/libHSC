@@ -6,6 +6,7 @@
 /// local places by one token in all. `F` names the box, `E_i` the flow
 /// equalities, `U_j` the unit constraints, `S` their meet.
 ///
+/// `approx_facts` reads the net, `build_approx` feeds the session.
 /// A place no fact bounds keeps its cap: `S` is exact on the covered places
 /// (its projection there contains the projection of `R`) and says nothing
 /// about the others — a question must not read them.
@@ -37,6 +38,7 @@ struct approx_set {
   std::vector<std::size_t> positive;  ///< indices into `flows`: the semiflows the set uses
   std::vector<long long> bound;       ///< per place: a bound (0 for never marked), -1 when only capped
   std::size_t covered = 0, zeros = 0, unit_constraints = 0;
+  bool tagged = false;                ///< a safe NUPN tree: every place bounded by 1
   std::string box_states, set_states, set_nodes;
   double flows_s = 0, set_s = 0;
   [[nodiscard]] bool exact(std::size_t p) const { return bound[p] >= 0; }
@@ -66,16 +68,16 @@ inline std::vector<char> markable_places(const SparsePetriNet<int>& net) {
   return markable;
 }
 
-/// Build `S` (and `F`) in \p s's session and return what it is made of.
-inline approx_set build_approx(solver& s, const SparsePetriNet<int>& net,
-                               const hsc::petri::unit_tree* units, const approx_options& o) {
+/// The linear facts of a net: flows, the bounds they and the tags give,
+/// the structural zeros. No session needed — computed before the model is
+/// emitted, so the leaf domains can be as wide as the box (the converses
+/// are restricted to the declared domains).
+inline approx_set approx_facts(const SparsePetriNet<int>& net, const hsc::petri::unit_tree* units, int flow_seconds) {
   using clock = std::chrono::steady_clock;
-  const auto sec = [](clock::time_point a, clock::time_point b) { return std::chrono::duration<double>(b - a).count(); };
   approx_set a;
-  const std::vector<std::string>& pnames = net.getPnames();
   const std::size_t np = net.getPlaceCount();
   const clock::time_point t0 = clock::now();
-  a.flows = hsc::petri::pflows(net, o.flow_seconds);
+  a.flows = hsc::petri::pflows(net, flow_seconds);
   a.bound.assign(np, -1);
   for (std::size_t i = 0; i < a.flows.size(); ++i) {
     const hsc::petri::pflow& f = a.flows[i];
@@ -89,17 +91,32 @@ inline approx_set build_approx(solver& s, const SparsePetriNet<int>& net,
       if (bp < 0 || b < bp) bp = b;
     }
   }
-  const bool tagged = units != nullptr && units->present() && units->safe;
-  if (tagged)
+  a.tagged = units != nullptr && units->present() && units->safe;
+  if (a.tagged)
     for (long long& b : a.bound) b = b < 0 ? 1 : std::min(b, 1LL);
   const std::vector<char> markable = markable_places(net);
   for (std::size_t p = 0; p < np; ++p) {
     if (!markable[p]) { a.bound[p] = 0; ++a.zeros; }
     if (a.bound[p] >= 0) ++a.covered;
   }
-  const clock::time_point t1 = clock::now();
-  a.flows_s = sec(t0, t1);
+  a.flows_s = std::chrono::duration<double>(clock::now() - t0).count();
+  return a;
+}
 
+/// The widest bound of the facts, -1 when none.
+inline long long widest_bound(const approx_set& a) {
+  long long w = -1;
+  for (const long long b : a.bound) w = std::max(w, b);
+  return w;
+}
+
+/// Build `S` (and `F`) in \p s's session from the facts \p a.
+inline void build_approx(solver& s, const SparsePetriNet<int>& net, const hsc::petri::unit_tree* units,
+                         approx_set& a, const approx_options& o) {
+  using clock = std::chrono::steady_clock;
+  const std::vector<std::string>& pnames = net.getPnames();
+  const std::size_t np = net.getPlaceCount();
+  const clock::time_point t1 = clock::now();
   // the box, then the constraints tightest first, then their meet
   std::string full = "(full F";
   for (std::size_t p = 0; p < np; ++p) {
@@ -118,7 +135,7 @@ inline approx_set build_approx(solver& s, const SparsePetriNet<int>& net,
     for (const auto& [p, c] : f.terms) eq += " (* " + std::to_string(c) + ' ' + pnames[static_cast<std::size_t>(p)] + ')';
     cs.push_back({f.constant, "(equality E" + std::to_string(n) + eq + ")", "E" + std::to_string(n)});
   }
-  if (o.units && tagged) {
+  if (o.units && a.tagged && units != nullptr) {
     std::unordered_map<std::string, std::size_t> index;
     for (std::size_t p = 0; p < np; ++p) index.emplace(pnames[p], p);
     std::size_t n = 0;
@@ -145,8 +162,7 @@ inline approx_set build_approx(solver& s, const SparsePetriNet<int>& net,
     else if (l.rfind("S nodes ", 0) == 0) a.set_nodes = l.substr(8);
     else if (o.verbose) std::cerr << l << '\n';
   }
-  a.set_s = sec(t1, clock::now());
-  return a;
+  a.set_s = std::chrono::duration<double>(clock::now() - t1).count();
 }
 
 /// One line of statistics for the logs.

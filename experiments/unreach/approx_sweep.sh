@@ -4,6 +4,8 @@
 #   hsc      hsc-pn --approx 5 --approx-only              (S from flows, zeros, safe tag)
 #   hscu     hsc-pn --approx 5 --approx-only --approx-units (S with the NUPN unit constraints)
 #   lp       petri64 --lp --lpTime 5                     (PetriSpot's state equation, rational)
+#   hscb     hscu + --approx-back 50 --approx-back-time 2 (the backward search inside S)
+# ENGINES selects them (default "hsc hscu lp").
 # Every run is capped at $CAP seconds. Outputs under tests/logs/unreach/$TAG/,
 # one <model>-<EXAM>.<engine>.{out,err} pair per run, then a rows file scored
 # against the contest oracles: TAG model exam engine total answered correct
@@ -20,7 +22,8 @@ HSC=$ROOT/build/tools/hsc-pn
 LP=${LP:-$HOME/git/PetriSpot/build/petri64}
 OUT=$ROOT/tests/logs/unreach/$TAG
 mkdir -p "$OUT"
-export ROOT CAP INPUTS ORACLE HSC LP OUT TAG
+ENGINES=${ENGINES:-hsc hscu lp}
+export ROOT CAP INPUTS ORACLE HSC LP OUT TAG ENGINES
 
 one() {  # model exam
   local m=$1 ex=$2 X props
@@ -28,11 +31,12 @@ one() {  # model exam
   props=$INPUTS/$m/$X.xml
   [ -f "$props" ] || return 0
   local eng cmd t0 t1
-  for eng in hsc hscu lp; do
+  for eng in $ENGINES; do
     case $eng in
       hsc)  cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only -q) ;;
       hscu) cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only --approx-units -q) ;;
       lp)   cmd=("$LP" -i "$INPUTS/$m/model.pnml" "--props=$props" --lp --lpTime 5) ;;
+      hscb) cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only --approx-units --approx-back 50 --approx-back-time 2 -q) ;;
     esac
     t0=$(date +%s.%N)
     timeout "$CAP" "${cmd[@]}" > "$OUT/$m-$ex.$eng.out" 2> "$OUT/$m-$ex.$eng.err"

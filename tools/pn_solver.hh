@@ -28,6 +28,7 @@ namespace hsc::pn {
 constexpr const char* TECHNIQUES = " TECHNIQUES DECISION_DIAGRAMS SATURATION";
 constexpr const char* TRIVIAL = " TECHNIQUES TOPOLOGICAL TRIVIAL";
 constexpr const char* APPROX = " TECHNIQUES DECISION_DIAGRAMS TOPOLOGICAL";  ///< refuted on the invariant set
+constexpr const char* APPROX_BACK = " TECHNIQUES DECISION_DIAGRAMS TOPOLOGICAL K_INDUCTION";  ///< decided by the backward search in the invariant set
 
 /// Owns the session and its output buffer; every query is a fresh batch.
 class solver {
@@ -140,6 +141,53 @@ class solver {
       default:
         return false;
     }
+  }
+
+  /// The names of the places \p e reads.
+  static void places_of(const ::petri::expr::Expression& e, const std::vector<std::string>& pnames, std::string& out) {
+    if (e.kind == ::petri::expr::Expression::Kind::Atom) {
+      for (const auto& [p, c] : e.atom.terms) if (p < pnames.size()) out += ' ' + pnames[p];
+      return;
+    }
+    for (const ::petri::expr::Expression& k : e.children) places_of(k, pnames, out);
+  }
+
+  /// Decide \p p by a backward search inside the over-approximation \p set:
+  /// `(backward B X set steps K writing …)` from `X`, the goal's markings of
+  /// the set. A layer meeting the initial marking is a real path: reachable
+  /// (TRUE for a reachability, FALSE for an invariant). A closed search
+  /// with nothing left is unreachable — sound only when every place is
+  /// exact in the set (\p all_exact), since a capped predecessor is missed.
+  /// Open or partial searches, goals reading capped places, constants and
+  /// other kinds leave the property open (false returned).
+  bool refute_back(const ::petri::expr::Property& p, const std::string& set,
+                   const std::vector<long long>& bound, bool all_exact, std::size_t steps,
+                   std::ostream& out, std::string* how = nullptr) {
+    using ::petri::expr::Expression;
+    using ::petri::expr::PropertyKind;
+    if (p.kind != PropertyKind::Reachability && p.kind != PropertyKind::Invariant) return false;
+    const bool inv = p.kind == PropertyKind::Invariant;
+    const Expression goal = ::petri::expr::simplify(inv ? Expression::makeNot(p.body) : p.body);
+    if (goal.isConstant() || reads_capped(goal, bound)) return false;
+    const std::vector<std::string>& pnames = net_.getPnames();
+    std::string places;
+    places_of(goal, pnames, places);
+    const std::string x = next_name(), b = next_name();
+    const std::string v = value_of(
+        feed("(select " + x + " " + set + " " + hsc::petri::query_atom(goal, pnames) + ") (backward " + b + " " + x +
+             " " + set + " steps " + std::to_string(steps) + " writing" + places + ")"),
+        b + " backward ");
+    if (how != nullptr) *how = v;
+    const std::string kind = v.substr(0, v.find(' '));
+    if (kind == "init") {
+      out << "FORMULA " << p.name << ' ' << verdict(inv, true) << APPROX_BACK << std::endl;
+      return true;
+    }
+    if (kind == "closed" && all_exact) {
+      out << "FORMULA " << p.name << ' ' << verdict(inv, false) << APPROX_BACK << std::endl;
+      return true;
+    }
+    return false;
   }
 
   /// `WITNESS <name> path K` then the run, on stderr: a shortest path from

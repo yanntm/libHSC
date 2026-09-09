@@ -25,7 +25,7 @@ business (`MCC-drivers/hsc/`); this tool answers properties.
 hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc|sexpr]
        [--shape nupn|flat|louvain|rcm|sloan|random | --shape-file FILE] [--seed N] [--force] [--reverse] [--invariants S]
        [--export-shape FILE] [--shape-only] [--bound N]
-       [--approx S [--approx-only] [--approx-units]] [--dead S [--dead-step]]
+       [--approx S [--approx-only] [--approx-units] [--approx-back K] [--approx-back-time T]] [--dead S [--dead-step]]
        [--states | --max-tokens] [--deadlock NAME] [--totalTime S] [--printUnknown] [--witness]
        [--export-hsc FILE] [-q] [-v]
 ```
@@ -172,8 +172,17 @@ is unreachable — `FALSE` for a reachability, `TRUE` for an invariant,
 reads a place `S` only caps, or that `S` does not rule out, stays open and
 goes to `R`. `--approx-only` stops there (UNKNOWN for the rest). The set
 is built without a deadline: a partial set would not over-approximate.
+`--approx-back K` then runs, for every property `S` alone leaves open, a
+backward search inside `S` from the goal's markings (`(backward …)`,
+manual §8h), up to K layers under `--approx-back-time` seconds each: a
+layer that meets the initial marking is a real path (the converses are
+exact), so the goal is reachable; a search that closes with nothing left
+proves it unreachable, a verdict taken only when every place is exact in
+`S` (a capped predecessor would be missed). Technique `K_INDUCTION`.
 `--dead S [--dead-step]` builds the same set and prints the transitions
-dead on it (`DEAD_TRANSITIONS …`, names under `-v`), no fixpoint.
+dead on it (`DEAD_TRANSITIONS …`, names under `-v`), no fixpoint. With
+`--approx` or `--dead` the leaf domains are widened to the box's bounds,
+which the converses are restricted to.
 `hsc-pn: approx …` on stderr is the record: flows, covered places, zeros,
 unit constraints, the sizes of `F` and `S`, the times, the count refuted.
 
