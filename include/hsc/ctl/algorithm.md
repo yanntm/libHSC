@@ -66,6 +66,34 @@ dropped. Every rule needs `pred`: this table is what the inverse buys
 (`core/algorithm.md` §9), and a model without inverted events refuses these
 nodes rather than approximating.
 
+**The `gfp` by frontier.** One full image of a big set costs about as much
+as its saturation did (the step is every event applied to every node,
+joined at every level), and the round form `X ← X ∩ h(X)` pays it once per
+round. A state can only drop out of `X` when it has lost its last
+`h`-witness, and its witnesses were in the states just removed; so after
+the first full image the work is proportional to what moved:
+
+    gfp_frontier(h = Σ_e h_e, X0):
+      X = X0
+      D = X ∖ h(X)                               # one full image
+      while D ≠ ∅:
+        X = X ∖ D
+        C = h(D) ∩ X                             # the candidates: they had a witness in D
+        K = ⋃_e ( h_e( h_e⁻¹(C) ∩ X ) ∩ C )       # those that still have one in X
+        D = C ∖ K
+      return X
+
+`h_e⁻¹` is the converse of the component `h_e`: for `h = pred` it is the
+forward event, for `h = next` the inverted one. The converses must be
+exact as relations on `R` (the inverted events are, protected or not:
+what protection removes lies outside `R`, and `C`, `X` lie inside).
+Every `D_i` is exactly `X_i ∖ h(X_i)`: a state of `X_{i+1}` with no witness
+left had one in `X_i`, hence in `D_i = X_i ∖ X_{i+1}`, hence is in
+`h(D_i)`; and `K` is `h(X_{i+1}) ∩ C` by the converse. The fixpoint is the
+same as the round form's; the round form remains as `HSC_CTL_GFP=rounds`.
+Used wherever the checker takes a hull: the `EG` rule, `fwdg`, the acyclicity
+test, and the witness hull.
+
 ## 4. Forward form
 
 The question is `I ∧ φ ≠ ∅` (or its dual, see polarity). The conversion
@@ -181,7 +209,9 @@ cheap ones are answered before an expensive one can take the whole budget.
 cycles on its own); `HSC_CTL_PROTECT=test|never|always` decides which inverted events are
 intersected with `R` after each step (`never` is sound for verdicts at the
 seed — see `research_notes/invert.md` §3 — and keeps every backward closure
-a saturating one, at the price of spurious states carried).
+a saturating one, at the price of spurious states carried);
+`HSC_CTL_GFP=rounds` takes every hull by the round form instead of the
+frontier form (§3).
 
 **Observation point.** `HSC_CTL_TRACE=1` prints, on stderr, the wall time
 of every `sat`, `eval` and `nonempty` scope, and the number of `gfp`
