@@ -134,6 +134,9 @@ class diagram_engine final : public support_algebra {
   /// hull follows anyway — measured to lose on the MCC corpus. A variation
   /// point for the tools (`HSC_CTL_SCCFAST=1`).
   void set_fast_cycle_witness(bool on) noexcept { fast_cycle_witness_ = on; }
+  /// \brief The number of `gfp` rounds run so far (one round = one image
+  /// and one meet), an observation counter for callers that time closures.
+  [[nodiscard]] std::size_t gfp_rounds() const noexcept { return gfp_rounds_; }
   /// Inversion at a composite sort is structural on the operation term
   /// (`inverter`); the domain's sort is the sort inverted at.
   code invert_local(code term, code domain) override;
@@ -200,6 +203,7 @@ class diagram_engine final : public support_algebra {
   mem::cache<diagram_engine, binary_op> ops_;
   code one_ = none;
   bool fast_cycle_witness_ = false;
+  std::size_t gfp_rounds_ = 0;
   mutable std::vector<double> cardinal_memo_;
   mutable std::unordered_map<code, mpz_class> exact_memo_;
 
