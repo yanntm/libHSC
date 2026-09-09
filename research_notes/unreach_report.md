@@ -305,3 +305,38 @@ same way — the events entering the *first layer's* markings, which is not
 a guard slice: the leaves the layer's atoms constrain, or only the
 survivors of a converged depth-1 run (1915 here) under a per-candidate
 cap. Left as an option, documented as expensive.
+
+### 2.12 The full local corpus (measured)
+
+430 P/T instances, RC and RF, 13 760 formulas, 60 s and 6 GB per run, 4
+runs at a time; binary of a8a5dff (the reachable-verdict fix, the
+zero-step deadlines); `experiments/unreach/results/full2_rows.tsv`,
+`summary.py`.
+
+| engine | answered / 13 760 | wrong | RC / 6880 | RF / 6880 | at the cap | out of memory | total time | median |
+|---|---|---|---|---|---|---|---|---|
+| **`hscb`** — `S` (flows, zeros, tags, units) + backward search | **6796 (49 %)** | **0** | **3582** | **3214** | 76 / 860 | 45 / 860 | 13 220 s | 5.7 s |
+| `lp` — PetriSpot's state equation | 3363 (24 %) | 0 | 2585 | 778 | 0 | 0 | 850 s | 0.01 s |
+
+Pairwise: `hscb` answered strictly more than `lp` on 541 instances, `lp`
+more than `hscb` on 244 (both sides of the complementarity of §2.4 hold at
+scale). Where the answers come from, over the 739 runs that reached their
+statistics line: 11 824 formulas open at the start of the pass; **3683
+refuted by `S` alone** (zero step); **3083 decided by the backward search**
+(about 2880 reachable by a layer meeting the initial marking on nets with
+nothing removed, 200 unreachable by closure); 2137 skipped for reading a
+removed place (88 of the 430 nets had one); 819 zero-step tests and 2501
+searches cut by their 2 s deadline; 116 searches open after 50 layers.
+
+The 45 out-of-memory runs are all `std::bad_alloc` under the 6 GB virtual
+limit on the largest nets (AirplaneLD-PT-2000, CANInsertWithFailure-PT-100,
+…); the 76 capped runs are the families of §2.4 (Sudoku, ServersAndClients,
+RwMutex, FileSystem, MultiCrashLeafsetExtension, CopsAndRobbers, Dekker,
+NQueens): `S` too costly under the order, or the selections on it.
+
+Reading. Half the reachability formulas of the contest's P/T corpus are
+decided by an over-approximation and a search inside it, without the
+reachable set, with no wrong answer on 13 760 formulas; the LP decides a
+quarter, in a fiftieth of the time. The two are complementary and both
+sound; run together they are the first pass of any reachability
+examination, and what they leave is what the fixpoint is for.

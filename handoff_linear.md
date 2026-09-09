@@ -20,18 +20,20 @@ transitions, the one-step test backward per slice. Every verdict is sound
 for the original net on the places kept; a goal reading a removed place is
 not asked.
 
-Measured on the sample (86 models, RC+RF, 2752 formulas, 60 s cap): `S`
-alone 643 answers, PetriSpot's LP 657, `S` + backward **1285**, 0 wrong
-anywhere. The two over-approximations are complementary (LP: cardinality,
-`x ≥ 0`, every place; `S`: fireability, integrality, units, the search).
+Measured on the full local corpus (430 models, RC+RF, 13 760 formulas,
+60 s and 6 GB a run): `S` + backward search **6796 answers, 0 wrong**;
+PetriSpot's LP 3363, 0 wrong; complementary (`hscb` ahead on 541
+instances, `lp` on 244). BugTracking: 854 sound one-step kills beyond the
+24 601 structural ones, converging in 250 s. Report §2.12, §2.10.
 
 ## Engineering — next
 
-1. **Read the full-corpus sweep** (`tests/logs/unreach/full/`, engines
-   `hscb` and `lp`, 430 models): `summary.py`; any wrong verdict is a bug
-   to chase first. Then the report §2.7 and the pages.
-2. **The cost of `S` and of the tests where the cap bites** (39 of 172
-   sample runs): the zero-step selection of a cardinality atom summing
+1. **Pages for the campaign** (`MCC-analysis/campaign` style) from
+   `experiments/unreach/results/*.tsv`, and the per-formula reading: which
+   formulas the LP decides and `S` does not (the 244 instances), by atom
+   shape and by coverage.
+2. **The cost of `S` and of the tests where the cap bites** (76 capped and
+   45 out-of-memory runs of 860): the zero-step selection of a cardinality atom summing
    places across the shape, the set's node count under a bad order, nets
    too big to compile in the budget (AirplaneLD-PT-2000). Instruments:
    `(stock S)`, the profile; a node budget on the construction; the

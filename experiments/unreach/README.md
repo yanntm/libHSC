@@ -16,3 +16,15 @@ against what.
 answered, correct, wrong, unchecked (oracle `?`), seconds, exit code, the
 names of the wrong ones. A wrong verdict is a soundness bug, never a
 statistic. Oracles: `/data/ythierry/MCC26deploy/MCC-drivers/oracle/<model>-<EXAM>.out`.
+
+## Results
+
+| file | campaign |
+|---|---|
+| `results/full2_rows.tsv` | the full local corpus (430 models, RC+RF), `hscb` and `lp`, binary a8a5dff — report §2.12 |
+| `results/full1_partial_rows.tsv` | the first full pass, killed at 1203 rows, binary 1d53acc (4 wrong verdicts of the class fixed in a8a5dff) — §2.8 |
+| `results/sample_rows.tsv`, `results/sampleb_rows.tsv` | the one-in-five sample, `hsc`/`hscu`/`lp` and `hscb`, binary c684504 — §2.4, §2.5 |
+
+Headline (full corpus, 13 760 formulas, 60 s and 6 GB a run): `hscb` 6796
+answered, 0 wrong; `lp` 3363 answered, 0 wrong; `hscb` ahead on 541
+instances, `lp` on 244.
