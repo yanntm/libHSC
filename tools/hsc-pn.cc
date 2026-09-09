@@ -304,9 +304,49 @@ int main(int argc, char** argv) {
     solver.set_arcs_countable(arcs_countable);
     solver.set_witness(witness);
     if (!dropped_tokens.empty()) solver.set_dropped_tokens(std::move(dropped_tokens));
+    const auto t_model = std::chrono::steady_clock::now();
     for (const std::string& l : solver.feed(model.str())) {
       if (verbose) std::cerr << l << '\n';
     }
+    if (verbose) {
+      // The statistics line of the sweeps (experiments/order/SWEEP.md §3):
+      // the reachable set's cost and size, its widest level, the shape.
+      const double reach_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t_model).count();
+      std::size_t nodes = 0, arcs = 0, belly = 0, belly_level = 0, belly_span = 0, level = 0;
+      for (const std::string& l : solver.feed("(nodes R)"))
+        if (l.rfind("R nodes ", 0) == 0) nodes = std::stoull(l.substr(8));
+      for (const std::string& l : solver.feed("(profile R)")) {
+        const std::size_t kn = l.find(" nodes "), ka = l.find(" arcs ");
+        if (kn == std::string::npos || ka == std::string::npos || l.rfind("  ", 0) != 0) continue;
+        const std::size_t n = std::stoull(l.substr(kn + 7)), a = std::stoull(l.substr(ka + 6));
+        std::size_t span = 1;
+        const std::size_t kp = l.rfind(" (", kn);
+        if (kp != std::string::npos && kp < kn) span = std::stoull(l.substr(kp + 2));
+        arcs += a;
+        if (n > belly) { belly = n; belly_level = level; belly_span = span; }
+        ++level;
+      }
+      std::size_t depth = 1, nunits = std::max<std::size_t>(1, units.units.size()), widest = net->getPlaceCount();
+      if (!units.units.empty()) {
+        widest = 0;
+        const auto walk = [&](auto&& self, const std::string& id, std::size_t d) -> void {
+          const auto it = units.units.find(id);
+          if (it == units.units.end()) return;
+          depth = std::max(depth, d);
+          widest = std::max(widest, it->second.places.size() + it->second.subunits.size());
+          for (const std::string& k : it->second.subunits) self(self, k, d + 1);
+        };
+        walk(walk, units.root, 1);
+      }
+      std::cerr << "hsc-pn: stats reach_s=" << reach_s << " reach_nodes=" << nodes << " reach_arcs=" << arcs
+                << " belly_nodes=" << belly << " belly_level=" << belly_level << " belly_span=" << belly_span
+                << " shape_depth=" << depth << " shape_units=" << nunits << " shape_widest=" << widest << '\n';
+    }
+    const auto note_answer = [&](std::size_t i) {
+      if (verbose)
+        std::cerr << "hsc-pn: answered " << properties[i].name << " at "
+                  << std::chrono::duration<double>(std::chrono::steady_clock::now() - t_model).count() << '\n';
+    };
     // Reachability questions run to their end, in order. CTL properties run
     // in rounds under a per-property deadline that grows fourfold each round
     // (a 64th of the budget first), so the cheap ones are answered before
@@ -318,7 +358,7 @@ int main(int argc, char** argv) {
         total_time > 0 ? std::optional(start + std::chrono::seconds(total_time)) : std::nullopt;
     for (std::size_t i = 0; i < properties.size(); ++i) {
       if (properties[i].kind == petri::expr::PropertyKind::CTL) continue;
-      if (solver.answer(properties[i], std::cout)) g_open[i] = 0;
+      if (solver.answer(properties[i], std::cout)) { g_open[i] = 0; note_answer(i); }
     }
     if (any_ctl && end) {
       // Fair shares in two passes: a property may take twice the remaining
@@ -340,7 +380,7 @@ int main(int argc, char** argv) {
                                            : remaining;
           const auto d = std::chrono::duration_cast<clock::duration>(std::chrono::duration<double>(slice));
           solver.set_deadline(std::min(*end, now + d));
-          if (solver.answer(properties[open[k]], std::cout)) g_open[open[k]] = 0;
+          if (solver.answer(properties[open[k]], std::cout)) { g_open[open[k]] = 0; note_answer(open[k]); }
           else still.push_back(open[k]);
         }
         solver.set_deadline(std::nullopt);
@@ -348,8 +388,10 @@ int main(int argc, char** argv) {
       }
     } else if (any_ctl) {
       for (std::size_t i = 0; i < properties.size(); ++i) {
-        if (properties[i].kind == petri::expr::PropertyKind::CTL && solver.answer(properties[i], std::cout))
+        if (properties[i].kind == petri::expr::PropertyKind::CTL && solver.answer(properties[i], std::cout)) {
           g_open[i] = 0;
+          note_answer(i);
+        }
       }
     }
     print_open(std::cout);
