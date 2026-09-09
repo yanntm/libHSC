@@ -69,6 +69,14 @@ class checker {
   [[nodiscard]] formulas& forms() noexcept { return f_; }
   /// The one-step term of a direction (`none` when there are no events).
   core::code step_term(bool backward);
+  /// \brief The states of \p x0 with an infinite path through \p x0 in the
+  /// direction asked (`backward`: `gfp(pred)·x0`, else `gfp(next)·x0`), by
+  /// the frontier form (`algorithm.md` §3); the round form under
+  /// `HSC_CTL_GFP=rounds`, or when the converses are unavailable.
+  core::code hull(bool backward, core::code x0);
+  /// Whether that hull is nonempty: the existential `has_image` when the
+  /// engine's fast cycle witness is on, else the hull itself.
+  bool hull_nonempty(bool backward, core::code x0);
   /// The first `nonempty?` leaf of \p form's tree that answers yes, if any.
   std::optional<q_id> answering_leaf(const forward_form& form);
   /// `gfp(pred)·Sat f`, the states of `Sat f` with an infinite `f`-path.
