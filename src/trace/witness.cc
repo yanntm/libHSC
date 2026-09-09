@@ -208,7 +208,7 @@ struct builder {
         const std::optional<path_result> p = path(mgr, g, from, t, core::op_table::id, *sq);
         if (!p) break;
         set(depth, e.arg, p->states.front());
-        note(depth, "through " + show(e.f) + ":");
+        note(depth, e.f == chk.forms().constant(true) ? "a path:" : "through " + show(e.f) + ":");
         run_after_first(depth, *p);
         if (e.kind == ctl::set_op::fwdg) {
           if (diagrams.meet(chk.the_model().dead, t) != core::none) {
