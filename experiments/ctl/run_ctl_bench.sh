@@ -8,7 +8,9 @@
 # ~/git/pnmcc-models-2026/website (INPUTS/<instance>.tgz, oracle.tar.gz), extracted
 # once under tests/logs/mcc2026/. One process per (instance, examination), each
 # under `timeout` and `ulimit -v`; the tool's own --totalTime is the cap minus one
-# second so it prints UNKNOWN for what it left open. Output: one TSV line per run
+# second so it prints UNKNOWN for what it left open. Per-run outputs go under
+# tests/logs/mcc2026/runs/<results basename>/, so two benchmarks can run side by
+# side. Output: one TSV line per run
 #   instance exam states wall_s maxrss_kb answered ok wrong unknown protected note
 # where `protected` is the number of inverted events hsc-pn intersected with R
 # (from its -v report; empty when the run never inverted), `note` the exit status.
@@ -21,16 +23,17 @@ shift $((OPTIND-1))
 LIST=${1:?models.txt}
 [ -n "$OUT" ] || { echo "-o results.tsv required"; exit 2; }
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-W=$ROOT/tests/logs/mcc2026; mkdir -p "$W/INPUTS" "$W/oracle" "$W/runs"
+W=$ROOT/tests/logs/mcc2026; TAG=$(basename "$OUT" .tsv); RUNS=$W/runs/$TAG
+mkdir -p "$W/INPUTS" "$W/oracle" "$RUNS"
 CORPUS=$HOME/git/pnmcc-models-2026/website
 [ -d "$W/oracle/oracle" ] || tar xzf "$CORPUS/oracle.tar.gz" -C "$W/oracle"
-export CAP BIN MEM EXTRA W ROOT
+export CAP BIN MEM EXTRA W ROOT RUNS
 one() {  # instance states exam short
   local m=$1 st=$2 x=$3 o=$4
   [ -d "$W/INPUTS/$m" ] || tar xzf "$CORPUS_/$m.tgz" -C "$W/INPUTS" 2>/dev/null
   local xml="$W/INPUTS/$m/$x.xml" orc="$W/oracle/oracle/$m-$o.out"
   [ -f "$xml" ] && [ -f "$orc" ] || { echo -e "$m\t$o\t$st\t\t\t\t\t\t\t\tno-input"; return; }
-  local out="$W/runs/$m-$o.out" err="$W/runs/$m-$o.err" tm="$W/runs/$m-$o.time"
+  local out="$RUNS/$m-$o.out" err="$RUNS/$m-$o.err" tm="$RUNS/$m-$o.time"
   ( ulimit -v $MEM; /usr/bin/time -f "%e %M" -o "$tm" timeout $CAP "$ROOT/$BIN" -i "$W/INPUTS/$m/model.pnml" --props "$xml" --totalTime $((CAP-1)) --printUnknown -q -v $EXTRA > "$out" 2> "$err" ); local rc=$?
   local wall mem; read -r wall mem < <(tail -1 "$tm" 2>/dev/null)
   local ok=0 wrong=0 unk=0 ans=0
