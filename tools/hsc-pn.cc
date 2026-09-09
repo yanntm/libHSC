@@ -103,6 +103,14 @@ int main(int argc, char** argv) {
   app.add_flag("-q,--quiet", quiet, "no import log on stderr");
   app.add_flag("-v,--verbose", verbose, "forward the session's own report lines to stderr");
   CLI11_PARSE(app, argc, argv);
+#ifndef _WIN32
+  // The budget is wall time from the start: the parse, the shape and the
+  // emission count too, and a net that takes minutes to load answers UNKNOWN.
+  if (total_time > 0) {
+    std::signal(SIGALRM, on_alarm);
+    alarm(static_cast<unsigned>(total_time));
+  }
+#endif
   if (pnml.empty() && pnet.empty()) {
     std::cerr << "one of -i or --net is required\n";
     return 2;
@@ -313,12 +321,6 @@ int main(int argc, char** argv) {
   for (const petri::expr::Property& p : properties) g_unknown.push_back("UNKNOWN " + p.name + "\n");
   g_open.assign(properties.size(), 1);
   g_print_unknown = print_unknown;
-#ifndef _WIN32
-  if (total_time > 0) {
-    std::signal(SIGALRM, on_alarm);
-    alarm(static_cast<unsigned>(total_time));
-  }
-#endif
 
   // --- the session: model and fixpoint, then one question at a time ---
   try {
