@@ -94,6 +94,14 @@ same as the round form's; the round form remains as `HSC_CTL_GFP=rounds`.
 Used wherever the checker takes a hull: the `EG` rule, `fwdg`, the acyclicity
 test, and the witness hull.
 
+A hull needs no protection (`core/algorithm.md` §9): every round meets with
+`X ⊆ R`, so a converse composed with `within(R)` would only add one meet
+with `R` per event per round — on a net where every event is protected
+(TokenRing: 1111 of 1111) that is the round's whole cost. The hull therefore
+takes the **raw** converses when the model offers them (`raw_pred_events`),
+the protected ones otherwise; the lfp closures keep the protected ones,
+where the protection is what keeps them inside `R`.
+
 ## 4. Forward form
 
 The question is `I ∧ φ ≠ ∅` (or its dual, see polarity). The conversion
@@ -222,7 +230,8 @@ bound by the cost of one full image over the big set, not by its depth.
 The `pred`-free fragment — everything the rules leave as `ey / fwdu / fwdg
 / filter` — needs `next`, the selectors, `dead`, `lfp` and `gfp` only. The
 inverted events are asked for lazily, the first time a backward operator
-needs them; a model that cannot provide them refuses those nodes.
+needs them; a model that cannot provide them refuses those nodes. A model
+may offer the raw converses beside the protected ones (§3, the hull).
 
 ## 7. Verdict
 
