@@ -10,6 +10,7 @@
 #include <CLI/CLI.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <csignal>
 #include <fstream>
 #include <iostream>
@@ -38,13 +39,14 @@ namespace {
 // --- the budget: UNKNOWN for every open property when the alarm fires ---
 
 std::vector<std::string> g_unknown;            // "UNKNOWN <name>\n" per property, in order
-volatile std::sig_atomic_t g_next_open = 0;    // index of the first open property
+std::vector<char> g_open;                       // 1 while the property is open
 volatile std::sig_atomic_t g_print_unknown = 0;
 
 extern "C" void on_alarm(int) {
 #ifndef _WIN32
   if (g_print_unknown) {
-    for (std::size_t i = static_cast<std::size_t>(g_next_open); i < g_unknown.size(); ++i) {
+    for (std::size_t i = 0; i < g_unknown.size(); ++i) {
+      if (!g_open[i]) continue;
       const std::string& s = g_unknown[i];
       (void)!write(1, s.data(), s.size());
     }
@@ -55,8 +57,8 @@ extern "C" void on_alarm(int) {
 
 void print_open(std::ostream& out) {
   if (!g_print_unknown) return;
-  for (std::size_t i = static_cast<std::size_t>(g_next_open); i < g_unknown.size(); ++i) {
-    out << g_unknown[i];
+  for (std::size_t i = 0; i < g_unknown.size(); ++i) {
+    if (g_open[i]) out << g_unknown[i];
   }
   out.flush();
 }
@@ -250,6 +252,7 @@ int main(int argc, char** argv) {
     f << model.str();
   }
   for (const petri::expr::Property& p : properties) g_unknown.push_back("UNKNOWN " + p.name + "\n");
+  g_open.assign(properties.size(), 1);
   g_print_unknown = print_unknown;
 #ifndef _WIN32
   if (total_time > 0) {
@@ -267,12 +270,45 @@ int main(int argc, char** argv) {
     for (const std::string& l : solver.feed(model.str())) {
       if (verbose) std::cerr << l << '\n';
     }
-    for (const petri::expr::Property& p : properties) {
-      if (!solver.answer(p, std::cout) && print_unknown) {
-        std::cout << "UNKNOWN " << p.name << std::endl;
-      }
-      g_next_open = g_next_open + 1;
+    // Reachability questions run to their end, in order. CTL properties run
+    // in rounds under a per-property deadline that grows fourfold each round
+    // (a 64th of the budget first), so the cheap ones are answered before
+    // an expensive one can eat the budget; a property stopped by its
+    // deadline resumes from what it memoised.
+    using clock = std::chrono::steady_clock;
+    const clock::time_point start = clock::now();
+    const std::optional<clock::time_point> end =
+        total_time > 0 ? std::optional(start + std::chrono::seconds(total_time)) : std::nullopt;
+    for (std::size_t i = 0; i < properties.size(); ++i) {
+      if (properties[i].kind == petri::expr::PropertyKind::CTL) continue;
+      if (solver.answer(properties[i], std::cout)) g_open[i] = 0;
     }
+    if (any_ctl && end) {
+      double budget = std::max(1.0, total_time / 64.0);
+      for (;;) {
+        bool open = false, progress = false;
+        for (std::size_t i = 0; i < properties.size(); ++i) {
+          if (!g_open[i] || properties[i].kind != petri::expr::PropertyKind::CTL) continue;
+          const clock::time_point now = clock::now();
+          if (now >= *end) break;
+          const auto slice = std::chrono::duration_cast<clock::duration>(std::chrono::duration<double>(budget));
+          solver.set_deadline(std::min(*end, now + slice));
+          if (solver.answer(properties[i], std::cout)) { g_open[i] = 0; progress = true; }
+          else open = true;
+        }
+        solver.set_deadline(std::nullopt);
+        if (!open || clock::now() >= *end) break;
+        if (budget >= total_time) break;  // a full-budget round already ran
+        budget *= 4;
+        (void)progress;
+      }
+    } else if (any_ctl) {
+      for (std::size_t i = 0; i < properties.size(); ++i) {
+        if (properties[i].kind == petri::expr::PropertyKind::CTL && solver.answer(properties[i], std::cout))
+          g_open[i] = 0;
+      }
+    }
+    print_open(std::cout);
     if (states) solver.state_space(std::cout);
     else if (max_tokens) solver.max_tokens(std::cout);
   } catch (const hsc::overflow_error& e) {

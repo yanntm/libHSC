@@ -7,6 +7,7 @@
 #pragma once
 
 #include <gmpxx.h>
+#include <chrono>
 
 #include <cstddef>
 #include <iostream>
@@ -54,6 +55,14 @@ class solver {
   /// and each value is a candidate for the largest marking of a place.
   void set_dropped_tokens(std::vector<long long> held) {
     dropped_ = std::move(held);
+  }
+
+  /// A deadline for the questions that follow: a CTL property still running
+  /// at that instant answers `TIMEOUT` and is left open; `nullopt` removes
+  /// it. Reachability questions are single applications and run to their end.
+  void set_deadline(std::optional<std::chrono::steady_clock::time_point> at) {
+    if (!at) session_.set_interrupt(nullptr);
+    else session_.set_interrupt([d = *at] { return std::chrono::steady_clock::now() > d; });
   }
 
   /// Feed a batch of forms given as text; returns the lines it produced.
