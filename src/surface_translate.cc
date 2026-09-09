@@ -32,6 +32,7 @@ void translator::dispatch(const datum& form) {
   else if (kw == "count") do_count(form);
   else if (kw == "leaf-weight") do_leaf_weight(form);
   else if (kw == "nodes") do_nodes(form);
+  else if (kw == "profile") do_profile(form);
   else if (kw == "print") do_print(form);
   else if (kw == "expect") do_expect(form);
   else if (kw == "ctl") do_ctl(form);
