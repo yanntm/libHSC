@@ -27,7 +27,7 @@ same objects fit with a few distinctions, spelled out in `algorithm.md`.
 |---|---|---|
 | the budget: one deadline, `remaining()`, an amortised `check()` | `core/manager` (replaces the bool interrupt hook) | to build |
 | polling points: closure loops (there), canonisation and cache misses (to add), the tool's phases (to add) | `core/`, `tools/` | to build |
-| `Slice`, `SliceReport`, `Task`, `Scheduler` | vendored from PetriSpot `walk/`, namespace kept, `sched/vendor.sh` like `petri/` | to vendor |
+| `Slice`, `SliceReport`, `Task`, `Scheduler` | vendored from PetriSpot `Petri/src/sched/` (`Task.h`, `Scheduler.h`, namespace `petri::sched`) by `vendor.sh`, the include path the only edit | vendored |
 | symbolic tasks: reachable set, a CTL property, a shape heuristic, a count | `sched/tasks.hh` | to build |
 | the coordinator policy for a symbolic portfolio (shares, parking, memory) | `sched/coordinator.hh` | after the sweep |
 | the accounting line: budget spent per phase, time left at each answer | `hsc-pn -v` | to build |
