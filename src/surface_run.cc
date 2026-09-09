@@ -33,6 +33,8 @@ class runner {
  public:
   explicit runner(std::ostream& out) : out_(out), t_(out) {}
 
+  void set_interrupt(std::function<bool()> hook) { t_.set_interrupt(std::move(hook)); }
+
   int run(const std::vector<datum>& forms) {
     // rewrite directives: forms whose head names a pass of the chain
     // ((simplify-constants) today; the vocabulary grows). Consumed here,
@@ -436,6 +438,10 @@ session::~session() = default;
 
 int session::feed(const std::vector<datum>& forms) {
   return impl_->r.run(forms);
+}
+
+void session::set_interrupt(std::function<bool()> hook) {
+  impl_->r.set_interrupt(std::move(hook));
 }
 
 namespace {

@@ -411,7 +411,10 @@ these declarations.
 ```
 
 `ctl` checks a formula of Computation Tree Logic at the seed, over the
-reachability graph of the default system, and prints `NAME ctl VERDICT`.
+reachability graph of the default system, and prints `NAME ctl VERDICT`
+(`TRUE`, `FALSE`, `UNKNOWN` when a subformula was refused, `TIMEOUT` when a
+driver's deadline stopped it — what was computed is kept for a later
+`ctl` of the same formula).
 The grammar is the atom language of `select` with the path operators:
 
 ```

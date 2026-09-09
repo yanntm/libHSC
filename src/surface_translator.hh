@@ -154,6 +154,9 @@ class translator final : public name_scope {
   /// One form given meaning — the runner routes here whatever is not an
   /// explicit-engine command.
   void form(const datum& f) { dispatch(f); }
+  /// The interrupt hook of the calculus (`core::manager::set_interrupt`): a
+  /// long computation stops with `hsc::interrupted` when it answers true.
+  void set_interrupt(std::function<bool()> hook) { mgr_.set_interrupt(std::move(hook)); }
   [[nodiscard]] int failures() const { return failures_; }
   [[nodiscard]] bool has_result(const std::string& name) const {
     return results_.contains(name);

@@ -12,6 +12,7 @@
 
 #include <iosfwd>
 #include <map>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -76,6 +77,11 @@ class session {
   /// Give \p forms meaning, writing command output to the session's stream.
   /// \return the number of `expect` assertions failed so far.
   int feed(const std::vector<datum>& forms);
+  /// \brief A deadline for the forms fed next: the predicate is consulted
+  /// once per iteration round of the calculus and a computation it stops
+  /// reports as interrupted (a `ctl` form answers `TIMEOUT`, its memoised
+  /// partial results kept for a later batch). Empty clears it.
+  void set_interrupt(std::function<bool()> hook);
 
  private:
   struct impl;

@@ -41,6 +41,11 @@ struct translator::ctl_state {
   /// protected by `within(R)`; empty when some event has no converse.
   /// Computed the first time a formula needs a backward operator.
   std::optional<std::vector<code>> pred;
+  /// The model and the checker, built once: memos (sets, Sat, closures,
+  /// the cycle test) are shared by every property of the session.
+  std::unique_ptr<ctl::model> model;
+  std::unique_ptr<ctl::checker> checker;
+  int pred_line = 0;  ///< the line of the form that first inverted, for notes
 };
 
 translator::ctl_state& translator::ctl() {
@@ -175,28 +180,38 @@ void translator::do_ctl(const datum& form) {
       }
     }
   }
-  ctl::model m;
-  m.sort = top_;
-  m.reach = *st.reach;
-  m.init = seed();
-  m.next_events = events_;
-  if (idle_event_) m.next_events.push_back(core::op_table::id);  // the self-loop
-  m.pred_events = [this, &st, &form]() -> std::span<const code> {
-    if (!st.pred) {
-      st.pred = invert_events(form, *st.reach);
-      if (idle_event_ && !st.pred->empty()) {
-        st.pred->push_back(core::op_table::id);  // self-converse
+  if (!st.model) {
+    auto m = std::make_unique<ctl::model>();
+    m->sort = top_;
+    m->reach = *st.reach;
+    m->init = seed();
+    m->next_events = events_;
+    if (idle_event_) m->next_events.push_back(core::op_table::id);  // the self-loop
+    m->pred_events = [this, &st]() -> std::span<const code> {
+      if (!st.pred) {
+        st.pred = invert_events(datum::list({}, st.pred_line), *st.reach);
+        if (idle_event_ && !st.pred->empty()) {
+          st.pred->push_back(core::op_table::id);  // self-converse
+        }
       }
-    }
-    return *st.pred;
-  };
-  m.selector = [this](ctl::node_id f) { return state_selector(f); };
-  m.dead = *st.dead;
-  ctl::checker chk(mgr_, m, st.fw);
+      return *st.pred;
+    };
+    m->selector = [this](ctl::node_id f) { return state_selector(f); };
+    m->dead = *st.dead;
+    st.model = std::move(m);
+    st.checker = std::make_unique<ctl::checker>(mgr_, *st.model, st.fw);
+  }
+  st.pred_line = form.line();
   const ctl::forward_form ff = st.fw.convert(phi);
-  const ctl::verdict v = chk.check(ff);
-  st.verdicts[name] = v;
-  out_ << name << " ctl " << ctl::name(v) << '\n';
+  try {
+    const ctl::verdict v = st.checker->check(ff);
+    st.verdicts[name] = v;
+    out_ << name << " ctl " << ctl::name(v) << '\n';
+  } catch (const interrupted&) {
+    // The deadline: what was memoised stays; asked again it resumes there.
+    st.verdicts[name] = ctl::verdict::unknown;
+    out_ << name << " ctl TIMEOUT\n";
+  }
 }
 
 void translator::do_expect_ctl(const datum& form) {
