@@ -6,7 +6,9 @@
 /// by one object and reaches the code that uses it as an explicit argument.
 #pragma once
 
+#include <chrono>
 #include <functional>
+#include <optional>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -67,14 +69,34 @@ class manager {
   /// applying an expr term with none registered is a logic error.
   void set_cases(case_evaluator* cases) noexcept { cases_ = cases; }
   [[nodiscard]] case_evaluator* cases() const noexcept { return cases_; }
-  /// \brief The interrupt hook: a predicate the iteration loops of the
-  /// calculus consult once per round; when it answers true the loop throws
-  /// `hsc::interrupted`. Empty (the default) never interrupts. A deadline is
-  /// the intended use; the check is a call per round, never per node.
-  void set_interrupt(std::function<bool()> hook) { interrupt_ = std::move(hook); }
-  void check_interrupt() const {
-    if (interrupt_ && interrupt_()) throw interrupted("deadline reached");
+  /// \name Stopping a computation (`sched/algorithm.md` §3b)
+  ///
+  /// A stop is requested by a deadline or by a caller (a coordinator, a
+  /// surface command); the closure loops consult `stopping()` once per
+  /// round — a call per round, never per node — and return what they have,
+  /// marking the result partial; nothing computed after the mark enters a
+  /// cache (`cache_results()` of the engines); `reset_stop()` clears both
+  /// at the root, before the next form. Computations that cannot use a
+  /// partial value (a backward CTL set) call `check_interrupt()` instead,
+  /// which throws `hsc::interrupted`. Nothing here is global: one manager,
+  /// one stop state, so concurrent tasks stop independently.
+  ///@{
+  void set_deadline(std::optional<std::chrono::steady_clock::time_point> at) noexcept { deadline_ = at; }
+  void request_stop() noexcept { stop_ = true; }
+  [[nodiscard]] bool stopping() noexcept {
+    if (!stop_ && deadline_ && std::chrono::steady_clock::now() > *deadline_) stop_ = true;
+    return stop_;
   }
+  void mark_partial() noexcept { partial_ = true; }
+  [[nodiscard]] bool partial() const noexcept { return partial_; }
+  void reset_stop() noexcept {
+    stop_ = false;
+    partial_ = false;
+  }
+  void check_interrupt() {
+    if (stopping()) throw interrupted("deadline reached");
+  }
+  ///@}
 
  private:
   shape_table shapes_;
@@ -82,7 +104,9 @@ class manager {
   std::vector<std::unique_ptr<support_algebra>> theories_;
   std::unique_ptr<diagram_engine> diagrams_;
   case_evaluator* cases_ = nullptr;
-  std::function<bool()> interrupt_;
+  std::optional<std::chrono::steady_clock::time_point> deadline_;
+  bool stop_ = false;
+  bool partial_ = false;
 };
 
 }  // namespace hsc::core
