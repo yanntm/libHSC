@@ -208,6 +208,21 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    run is 7897 answered and 471 complete files. The fourth configuration
    (`louvain` alone) runs now.
 
+25. **The hull by frontier** (`ctl/algorithm.md` §3, documented before
+   coded): the probe `tests/logs/ctl_probe/tpl_ctl.hsc` showed that one
+   full image of the 10^7-state set costs about what its saturation cost,
+   so a two-round `gfp` costs two reachabilities. The frontier form pays
+   the first image and then works on the removed states' neighbourhood
+   through the converses (`h_e(h_e⁻¹(C) ∩ X) ∩ C`), which the aligned
+   forward and inverted event lists make possible. Measured: a wash where
+   the first round removes a large slice (`fwdg init a2`, 2 rounds:
+   3.26 s both ways), −20% where the shrink is thin and long (204 rounds:
+   2.70 → 2.17 s); on Angiogenesis-05 and TwoPhaseLocking in a 10 s
+   budget no visible difference. Same verdicts everywhere, 130/130
+   ctest, 43/43 sample nets. Default is the frontier form,
+   `HSC_CTL_GFP=rounds` the old one; the benchmark decides
+   (`hsc-pn-m6b`, both ways, queued behind m5g).
+
 ## Where things stand for you
 
 * `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the
