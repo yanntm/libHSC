@@ -7,18 +7,26 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 
 ## Engineering — next
 
-1. **The benchmark is read** (`experiments/ctl/README.md`): m4 → m5d is
+1. **The portfolio read** (`experiments/ctl/README.md`): m4 → m5d is
    6101 → 6331 answered over 588 runs (294 instances below 10^7 states,
-   60 s), the Louvain + FORCE shape 7267, the best of the two shapes 7765;
-   0 wrong throughout; the 10^7–10^9 list at 120 s answers 2105 over 258
-   runs, 0 wrong, 72 runs with no answer. Next: the other two driver
-   configurations (`nupn --force`, `louvain`) to complete the portfolio
-   read before a campaign, and a look at which formulas the 72 empty runs
-   wait on (expected: `EG` hulls, item 2).
-2. **The `gfp` hull of `EG`** is the remaining bottleneck on big `R`
-   (Angiogenesis-PT-05: an `AF` under a restrict costs 4 s per node,
-   breadth-first over 40M states); the inversion itself is cheap (0.7 s).
-   No schedule known; `HSC_CTL_PROTECT=never` gains little there.
+   60 s); the shapes: Louvain + FORCE 7267, NUPN + FORCE 7067, best of
+   the three 7897 and 471 complete files; 0 wrong throughout. The 10^7–10^9
+   list at 120 s under Louvain + FORCE answers 2105 over 258 runs, 0 wrong,
+   72 runs with no answer — those are counter nets where the Louvain shape
+   never finishes `R`. Running or queued: `louvain` alone on the small
+   corpus (m5g); then the throughput build `hsc-pn-m6a` on the small
+   corpus (default shape, against m5d); then the big corpus at `nupn`.
+2. **Throughput of one image on a wide integer domain** is the lever on
+   counter nets: every backward closure costs about one `R`, the `gfp`
+   runs 2–9 rounds only. Done, measured on TwoPhaseLocking-PT-nC00100vN's
+   `R` (2.2 → 1.6 s, 19.0 G → 11.9 G instructions): scratch buffer in
+   int_set set ops, `injective(term)` on the support contract so the image
+   path skips the sieve, an index by sub in the accumulator. Next on the
+   profile: the hash combiner run over every arc at node interning (13.5%
+   of instructions — a design point, yours), the sieve inside `do_join`
+   (inherent), 12.5 M `operator new` calls (an accumulator capacity hint
+   is under A/B by instruction count). Wall time on this machine drifts
+   with load: decide on callgrind counts, not on `time`.
 3. **Backward closures with protected events**: `compose(within(R), p)` is
    an unfusable straddler; on nets where many events are protected the
    backward closures are breadth-first. Measure how many, then decide.
@@ -31,7 +39,7 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
    left open there: a shortest-overall end state for shapes other than
    `filter(fwdu(…))`, and `hsc-pn` printing a witness on request.
 
-Observation points: `HSC_CTL_TRACE=1` (per-node wall time on stderr).
+Observation points: `HSC_CTL_TRACE=1` (per-node wall time and `gfp` rounds on stderr).
 Variation points: `HSC_CTL_EXIST=0`, `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`.
 
 ## Theory — open
