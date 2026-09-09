@@ -142,7 +142,7 @@ class runner {
       if (kw == "expect") return xexpect(f);
       if (kw == "get-states") return xget_states(f);
       if (kw == "get-witness") return xget_witness(f);
-      if (kw == "nodes" || kw == "profile" || kw == "stock" || kw == "print" || kw == "max-value") {
+      if (kw == "nodes" || kw == "profile" || kw == "stock" || kw == "print" || kw == "max-value" || kw == "max-sum") {
         // a diagram statistic; no diagram — an honest line, not a failure
         out_ << f.items()[1].text() << ' ' << kw << " (unsupported)\n";
         return;

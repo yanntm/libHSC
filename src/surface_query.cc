@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cstdint>
 
+#include <limits>
 #include <unordered_map>
 
 #include "hsc/order/profile.hh"
@@ -272,6 +273,78 @@ std::int32_t translator::max_leaf_value(code c) {
   std::unordered_set<code> seen;
   collect_max(c, top_, mx, seen);
   return mx;
+}
+
+/// `(max-sum NAME [(* C LEAF)]*)`: the maximum over the states of NAME of a
+/// linear form on the leaves — every leaf with coefficient 1 when no term is
+/// given. One memoised bottom-up pass: at a node the best arc is the head's
+/// best weighted value plus the tail's best; a leaf's best is the largest
+/// coefficient × value among its elements. Linear in the nodes, no search:
+/// what `MAX_TOKEN_PER_MARKING` and the UpperBounds forms need, exactly.
+void translator::do_max_sum(const datum& form) {
+  const code c = named(arg(form, 1, "result name"));
+  std::vector<long long> coeff(order_.size(), form.items().size() > 2 ? 0 : 1);
+  for (std::size_t i = 2; i < form.items().size(); ++i) {
+    const datum& t = form.items()[i];
+    if (!t.is_list() || t.items().size() != 3 || !t.items()[0].is_atom() || t.items()[0].text() != "*") {
+      fail(t, "max-sum takes terms (* COEFF LEAF)");
+    }
+    const std::optional<std::uint32_t> pos = position(t.items()[2].text());
+    if (!pos) fail(t.items()[2], "max-sum: unknown leaf");
+    coeff[*pos] += std::stoll(t.items()[1].text());
+  }
+  // Leaf sorts are per theory, not per position: the position travels down
+  // the traversal (the head at the sort's first position, the tail after the
+  // head's width), and the memo is per (node, position) since structurally
+  // equal subtrees share a sort.
+  std::unordered_map<core::shape_code, std::size_t> width;
+  const auto span = [&](auto&& self, core::shape_code s) -> std::size_t {
+    switch (mgr_.shapes().kind(s)) {
+      case core::shape_kind::unit: return 0;
+      case core::shape_kind::leaf: return 1;
+      case core::shape_kind::pair: {
+        if (const auto it = width.find(s); it != width.end()) return it->second;
+        const std::size_t w = self(self, mgr_.shapes().head(s)) + self(self, mgr_.shapes().tail(s));
+        width[s] = w;
+        return w;
+      }
+    }
+    return 0;
+  };
+  span(span, top_);
+  std::unordered_map<std::uint64_t, long long> memo;
+  const long long lowest = std::numeric_limits<long long>::min() / 4;
+  const auto best = [&](auto&& self, code n, core::shape_code s, std::size_t first) -> long long {
+    switch (mgr_.shapes().kind(s)) {
+      case core::shape_kind::unit:
+        return 0;
+      case core::shape_kind::leaf: {
+        const long long k = coeff[first];
+        long long m = lowest;
+        for (const std::int32_t v : theory_->elements(n)) m = std::max(m, k * static_cast<long long>(v));
+        return m;
+      }
+      case core::shape_kind::pair: {
+        if (n == core::none) return lowest;
+        const std::uint64_t key = (static_cast<std::uint64_t>(n) << 20) ^ first;
+        if (const auto it = memo.find(key); it != memo.end()) return it->second;
+        const core::shape_code hs = mgr_.shapes().head(s), ts = mgr_.shapes().tail(s);
+        const std::size_t hw = mgr_.shapes().kind(hs) == core::shape_kind::leaf ? 1 : width[hs];
+        long long m = lowest;
+        for (const core::arc& a : mgr_.diagrams().arcs(n)) {
+          const long long h = self(self, a.prime, hs, first);
+          const long long t = self(self, a.sub, ts, first + hw);
+          if (h > lowest && t > lowest) m = std::max(m, h + t);
+        }
+        memo[key] = m;
+        return m;
+      }
+    }
+    return lowest;
+  };
+  const long long m = c == core::none ? lowest : best(best, c, top_, 0);
+  out_ << sym(form.items()[1]) << " max-sum ";
+  if (m == lowest) out_ << "none\n"; else out_ << m << '\n';
 }
 
 /// `(states [RESULT])`: the cardinal, MCC-format. With a bound result

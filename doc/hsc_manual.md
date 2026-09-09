@@ -240,6 +240,7 @@ certificate; `unfold` always enumerates.
 (leaf-weight NAME K)         ; NAME stands for K places of a fused free component, §8e
 (nodes NAME)                 ; diagram nodes — the representation size
 (profile NAME)               ; nodes and arcs per level of the shape, frontier order
+(max-sum NAME [(* C LEAF)]*) ; the maximum of a linear form over the states, one pass (all leaves, coefficient 1, by default)
 (stock NAME [since OTHER])   ; take stock: states, nodes, per level nodes/arcs/local states (gained since OTHER), values per leaf
 (budget SECONDS)             ; every following form runs at most SECONDS; a closure that runs out returns a partial set — `NAME partial`
 ; `hsc FILE --stdin` then reads forms from standard input one at a time, answering and flushing each: an engine driven over a pipe
