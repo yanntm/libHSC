@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
   CLI::App app{"hsc-pn — answer Petri net properties with the HSC engine.\n"
                "Net: -i model.pnml or --net model.pnet. Properties: MCC XML or\n"
                "s-expression forms (INTEROP.md). Answers: FORMULA lines on stdout."};
-  std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock;
+  std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock, shape_file, export_shape;
   bool force = false, reverse = false, states = false, max_tokens = false, print_unknown = false, quiet = false,
        verbose = false, witness = false, shape_only = false;
   int invariants_time = 0;
@@ -89,6 +89,8 @@ int main(int argc, char** argv) {
   app.add_flag("--force", force, "FORCE reordering after the shape");
   app.add_flag("--reverse", reverse, "mirror the shape at every level (after FORCE when both)");
   app.add_flag("--shape-only", shape_only, "build and rewrite the shape, print its signature (hsc-pn: shape sig=...), no fixpoint");
+  app.add_option("--shape-file", shape_file, "take the shape from this file: a (spine …)/(balanced …) expression over the place names, as --export-shape writes it (overrides --shape)");
+  app.add_option("--export-shape", export_shape, "write the shape after the rewrites (FORCE, reverse) to this file, one expression");
   app.add_option("--invariants", invariants_time, "compute the P-flows within S seconds and let them guide the louvain shape");
   app.add_option("--bound", bound, "leaf domain [0, N), raised to the max initial marking + 1");
   app.add_flag("--states", states, "the four StateSpace values");
@@ -268,6 +270,24 @@ int main(int argc, char** argv) {
       });
 
   hsc::petri::emit_options opts;
+  if (!shape_file.empty()) {
+    // The shape verbatim: the file holds one expression, with or without the
+    // `(shape` wrapper of a spec; a trailing (reorder-…) still applies.
+    std::ifstream f(shape_file);
+    std::stringstream buf;
+    buf << f.rdbuf();
+    std::string form = buf.str();
+    const std::size_t a = form.find('(');
+    if (a == std::string::npos) { std::cerr << "no shape expression in " << shape_file << '\n'; return 2; }
+    form = form.substr(a);
+    if (form.rfind("(shape", 0) == 0) {
+      form = form.substr(form.find('(', 1));
+      const std::size_t z = form.rfind(')');
+      if (z != std::string::npos) form = form.substr(0, z);  // the wrapper's own paren
+    }
+    while (!form.empty() && (form.back() == '\n' || form.back() == ' ' || form.back() == '\r')) form.pop_back();
+    opts.shape_form = form;
+  }
   opts.exam = hsc::petri::examination::model_only;
   // A transition that cannot change the marking adds nothing to the
   // fixpoint, and its guard is read from the net for deadlock and for arc
@@ -316,6 +336,7 @@ int main(int argc, char** argv) {
     for (const std::string& l : solver.feed(model.str())) {
       if (l.rfind("(shape", 0) == 0) {
         for (const unsigned char c : l) { sig ^= c; sig *= 1099511628211ull; }
+        if (!export_shape.empty()) { std::ofstream f(export_shape); f << l << '\n'; }
       } else if (verbose && (l.empty() || l.front() != '(')) {
         std::cerr << l << '\n';
       }

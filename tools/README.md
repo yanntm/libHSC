@@ -22,7 +22,8 @@ business (`MCC-drivers/hsc/`); this tool answers properties.
 
 ```
 hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc|sexpr]
-       [--shape nupn|flat|louvain|rcm|sloan|random] [--seed N] [--force] [--reverse] [--invariants S] [--bound N]
+       [--shape nupn|flat|louvain|rcm|sloan|random | --shape-file FILE] [--seed N] [--force] [--reverse] [--invariants S]
+       [--export-shape FILE] [--shape-only] [--bound N]
        [--states | --max-tokens] [--deadlock NAME] [--totalTime S] [--printUnknown] [--witness]
        [--export-hsc FILE] [-q] [-v]
 ```
@@ -42,6 +43,15 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
    (`shape_depth`, `shape_units`, `shape_widest`); every verdict then adds
    `hsc-pn: answered <name> at <s>` — the record the order sweep collects
    (`experiments/order/SWEEP.md`).
+   **The shape as a file.** `--export-shape FILE` writes the shape after
+   the rewrites as one `(shape (spine …))` expression over the place names;
+   `--shape-file FILE` takes such a file (with or without the `(shape`
+   wrapper) as the shape, overriding `--shape` — the reified order and
+   hierarchy every heuristic ends in, human-readable, diffable, buildable by
+   any other tool. `--shape-only` builds and rewrites the shape and prints
+   its signature (`hsc-pn: shape sig=<hex>`, also in the `-v` stats line as
+   `shape_sig`), no fixpoint: two heuristics with one signature produced
+   the same shape.
    `--force` appends the `(reorder-force)` directive, `--reverse` the
    `(reorder-reverse)` one after it (the mirror image of the shape: which
    end of an order sits at the top matters to the engine). `--invariants S`
