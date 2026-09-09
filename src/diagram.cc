@@ -17,6 +17,7 @@
 
 #include "hsc/core/manager.hh"
 #include "hsc/core/operation.hh"
+#include "hsc/util/hash.hh"
 
 namespace hsc::core {
 
@@ -57,28 +58,64 @@ struct node_view {
 /// rather than a pass at the end: adding an arc whose sub is already present
 /// joins the two primes instead of appending a second arc.
 ///
-/// Linear search rather than a map: node arities are small, and the caller's
-/// meet loop is quadratic anyway.
+/// A linear search while the node is small; past a few entries, an
+/// open-addressing index from sub to entry position — a wide head (an
+/// integer domain of a hundred values) makes the regroup quadratic
+/// otherwise. Entries are only ever appended and their subs never change,
+/// so the index stays valid while the sieve rewrites primes.
 class diagram_engine::accumulator {
  public:
   explicit accumulator(support_algebra& head) : head_(head) {}
 
   void add(code sub, code prime) {
     if (sub == none || prime == none) return;  // smash, before anything
-    for (arc& a : entries_) {
-      if (a.sub == sub) {
-        a.prime = a.prime == none ? prime : head_.join(a.prime, prime);
-        return;
+    if (index_.empty()) {
+      for (arc& a : entries_) {
+        if (a.sub == sub) {
+          merge(a, prime);
+          return;
+        }
       }
+      entries_.push_back({prime, sub});
+      if (entries_.size() > kLinear) reindex(4 * kLinear);
+      return;
     }
+    std::size_t slot = probe(sub);
+    if (index_[slot] != npos) {
+      merge(entries_[index_[slot]], prime);
+      return;
+    }
+    index_[slot] = static_cast<std::uint32_t>(entries_.size());
     entries_.push_back({prime, sub});
+    if (2 * entries_.size() > index_.size()) reindex(2 * index_.size());
   }
 
   [[nodiscard]] std::vector<arc>& entries() noexcept { return entries_; }
 
  private:
+  static constexpr std::size_t kLinear = 8;
+  static constexpr std::uint32_t npos = ~std::uint32_t{0};
+
+  void merge(arc& a, code prime) {
+    a.prime = a.prime == none ? prime : head_.join(a.prime, prime);
+  }
+  /// The slot holding \p sub, or the empty slot where it would go.
+  [[nodiscard]] std::size_t probe(code sub) const noexcept {
+    const std::size_t mask = index_.size() - 1;
+    std::size_t i = util::mix32(sub) & mask;
+    while (index_[i] != npos && entries_[index_[i]].sub != sub) i = (i + 1) & mask;
+    return i;
+  }
+  void reindex(std::size_t size) {
+    index_.assign(size, npos);  // size is a power of two
+    for (std::size_t k = 0; k < entries_.size(); ++k) {
+      index_[probe(entries_[k].sub)] = static_cast<std::uint32_t>(k);
+    }
+  }
+
   support_algebra& head_;
   std::vector<arc> entries_;
+  std::vector<std::uint32_t> index_;  ///< empty while the search is linear
 };
 
 diagram_engine::diagram_engine(manager& owner, std::size_t cache_capacity)
