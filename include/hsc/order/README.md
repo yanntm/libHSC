@@ -1,8 +1,27 @@
 # `order/` — variable-ordering heuristics
 
 The shape is a parameter of the representation, supplied from outside;
-this package computes good frontier orders for it. The
+this package computes good frontier orders and hierarchies for it. The
 calculus never guesses an order — a front end asks, then emits its shape.
+Everything that decides *where a variable sits* lives here, isolated from
+the calculus and from the front ends, because it is the part we experiment
+with most (`experiments/order/`): a heuristic is a function from a
+dependency structure to an order or a tree, and its clients are adapters.
+
+## Map
+
+| piece | what |
+|---|---|
+| `force.hh` / `src/order/force.cc` | FORCE: a one-dimensional spring layout over cliques and precedences |
+| `louvain/` | community detection (vendored Louvain) and `hyperedge.hh`, the bounds on what one hyperedge may contribute to the graph |
+| `src/surface_reorder.cc` (client) | the directives `(reorder-force)`, `(reorder-reverse)`, `(flatten)` over a spec's shape |
+| `src/surface_louvain.cc` (client) | the directive `(decompose-louvain)` over a spec's events |
+| `petri/decompose.hh` (client) | a NUPN unit tree for a bare net: co-occurrence graph, the P-flows as hyperedges, the contraction of heavy-constant flows |
+| `(profile NAME)` (`src/surface_query.cc`) | the post-mortem instrument: nodes and arcs per level of a computed set |
+
+Variation points, all environment variables read once: `HSC_INV_WEIGHT`,
+`HSC_INV_CROSS`, `HSC_INV_MERGE` (the flows in the decomposition). What is
+measured and what is next: `experiments/order/README.md`.
 
 ## FORCE (`force.hh`)
 
