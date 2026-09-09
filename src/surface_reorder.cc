@@ -12,6 +12,7 @@
 /// denotes the same states.
 
 #include <algorithm>
+#include <cstdlib>
 #include <cstdint>
 #include <limits>
 #include <numeric>
@@ -96,8 +97,14 @@ std::size_t reorder(snode& n, const xpl::model& m,
   }
   std::size_t moved = 0;
   if (!cliques.empty()) {
+    // HSC_FORCE_ITERS: the spring iterations (0, the default: libITS's
+    // rule, nvars capped at 256) — a variation point of the sweep.
+    static const std::size_t iters = [] {
+      const char* e = std::getenv("HSC_FORCE_ITERS");
+      return e == nullptr ? std::size_t{0} : static_cast<std::size_t>(std::atol(e));
+    }();
     const std::vector<std::uint32_t> perm =
-        order::force(n.kids.size(), cliques, {});
+        order::force(n.kids.size(), cliques, {}, iters);
     std::vector<std::uint32_t> identity(perm.size());
     std::iota(identity.begin(), identity.end(), 0);
     if (perm != identity) {
