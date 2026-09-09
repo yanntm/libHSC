@@ -25,7 +25,9 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
    also runs the checker on the CTL examinations (`~/git/ITStools`,
    committed, not pushed; the product's `hsc-pn` comes from the libHSC CI
    branch `HSC-Linux`, so a libHSC push is what updates it).
-5. Witness trees (a side quest): new files, a transverse concern.
+5. Witness trees are in (`include/hsc/trace/`, `(path …)`, `(witness …)`);
+   left open there: a shortest-overall end state for shapes other than
+   `filter(fwdu(…))`, and `hsc-pn` printing a witness on request.
 
 Observation points: `HSC_CTL_TRACE=1` (per-node wall time on stderr).
 Variation points: `HSC_CTL_EXIST=0`, `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`.
@@ -50,7 +52,10 @@ Variation points: `HSC_CTL_EXIST=0`, `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`.
   composition.
 * Surface `(ctl …)`, `(expect-ctl …)`, `(gfp …)`, `(invert …)`,
   `(deadlock)`; manual §8f; `examples/models/ctl_*.hsc`.
-* `hsc-pn` answers CTLCardinality / CTLFireability in rounds; no-effect
+* `trace/`: shortest paths (layers + backtrack through inverted events) and
+  the witness tree of a `ctl` verdict; differential of the path against an
+  explicit BFS.
+* `hsc-pn` answers CTLCardinality / CTLFireability under fair shares; no-effect
   transitions kept for CTL; `examples/mcc` fixtures + oracles from
   pnmcc-models-2026 (96/96 on the three small nets); baseline benchmark:
   0 wrong verdicts on 6101 answered.
