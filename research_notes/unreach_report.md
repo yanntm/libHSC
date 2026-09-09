@@ -243,3 +243,20 @@ on 153. The 4 wrong verdicts are all reachable answers on nets with
 removed places (§2.7; RobotManipulation-PT-00005 adds two to the pair);
 the 20 failures are the deadline exception of §2.5. Both fixed in the
 binary of the second pass, running as this is written (`full2`).
+
+### 2.9 BugTracking on the abstract net, cheap candidates first (measured)
+
+The abstraction makes 2701 candidates of the one-step test (the capped set
+had fewer: a transition reading a capped place was not one); visited in
+index order, no verdict landed in 300 s. Visited **cheapest first** — by the
+number of live events writing a leaf the guard reads — the 150 s budget
+yields **169 one-step kills** (24 770 dead in all), 0 contradicted by the
+QLA oracle, peak memory 2.7 GB, every verdict now sound (the abstract net,
+`tests/logs/unreach/dead_bt_abs5.err`). The converses of the 27 370 events
+against `S` take 7 s. The profile is uneven — 100 candidates in the first
+50 s, then 100 in one second, then 100 in fifteen — so the cost is the
+slice's size and its predecessors', not the writer count: the order to
+try next is by the slice's cardinal or node count, and the writers can be
+halved by sign (only a producer into an input place, or a consumer of an
+inhibitor place, enters the slice). The run to completion (1200 s budget)
+follows.
