@@ -22,6 +22,11 @@ dependency structure to an order or a tree, and its clients are adapters.
 | `petri/decompose.hh` (client) | a NUPN unit tree for a bare net: co-occurrence graph, the P-flows as hyperedges, the contraction of heavy-constant flows |
 | `(profile NAME)` (`src/surface_query.cc`, client) | prints `profile.hh` with the spec's leaf names |
 
+The shape is a value: the surface `(shape …)` expression over the leaf
+names, written by `hsc-pn --export-shape`, read back by `--shape-file` or the
+`(use-shape FILE)` directive — human-readable, diffable, tweakable, buildable
+by any tool. `experiments/order/sweep_summary.py` reads a sweep's record.
+
 Variation points, all environment variables read once: `HSC_INV_WEIGHT`,
 `HSC_INV_CROSS`, `HSC_INV_MERGE` (the flows in the decomposition),
 `HSC_FORCE_ITERS` (the spring iterations of `(reorder-force)`). What is
