@@ -92,3 +92,16 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    `examples/models/trace_ring.hsc`: five paths and five witnesses,
    hand-checked lengths. A bug found on the way: the answering-leaf walk
    asked `nonempty` with a question id instead of its set id.
+14. **m5a read** (existential leaves, on-the-fly search, fourfold rounds):
+   6141 answered against 6101, 0 wrong on both, but 341 complete files
+   against 357 — 60 runs gained answers, 48 lost some: the rounds re-ask a
+   property up to four times and the work of an interrupted attempt is lost
+   but for its memoised sub-results, which hurt files that used to complete
+   just under the cap (CANConstruction-PT-005 CTLC: 16 in 51 s, then 12).
+15. **Fair shares instead of rounds**: a property may take twice the
+   remaining budget divided by the open ones, a second pass shares what is
+   left, a last pass gives the rest to one. CANConstruction-PT-005 CTLC is
+   back to 16/16; Angiogenesis keeps 5/16. Benchmarked as `m5c`.
+16. Every variation point passes the sample suite (`HSC_CTL_EXIST=0`,
+   `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`, `HSC_CTL_PROTECT=always|never`):
+   they change cost, never verdicts.
