@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <chrono>
 #include <csignal>
+#include <sys/resource.h>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -104,6 +105,17 @@ int main(int argc, char** argv) {
   app.add_flag("-v,--verbose", verbose, "forward the session's own report lines to stderr");
   CLI11_PARSE(app, argc, argv);
 #ifndef _WIN32
+  // The recursion of the calculus is as deep as the shape (a flat spine of
+  // ten thousand places is ten thousand levels): give the main thread the
+  // stack that allows, up to the hard limit.
+  {
+    struct rlimit rl{};
+    if (getrlimit(RLIMIT_STACK, &rl) == 0) {
+      const rlim_t want = static_cast<rlim_t>(1) << 30;  // 1 GB
+      rl.rlim_cur = rl.rlim_max == RLIM_INFINITY ? want : std::min(rl.rlim_max, want);
+      setrlimit(RLIMIT_STACK, &rl);
+    }
+  }
   // The budget is wall time from the start: the parse, the shape and the
   // emission count too, and a net that takes minutes to load answers UNKNOWN.
   if (total_time > 0) {
