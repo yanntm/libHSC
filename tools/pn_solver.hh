@@ -79,11 +79,38 @@ class solver {
     return lines;
   }
 
-  /// `(select Q R ATOM) (count Q)`: is the selection non-empty?
-  bool nonempty(const std::string& atom) {
+  /// `(select Q R ATOM) (count Q)`: is the selection non-empty? With
+  /// \p witness_for (a property name) and `--witness`, a non-empty
+  /// selection is followed by a shortest path to it on stderr.
+  bool nonempty(const std::string& atom, const std::string* witness_for = nullptr) {
     const std::string q = next_name();
-    return value_of(feed("(select " + q + " R " + atom + ") (count " + q + ")"),
-                    q + " count ") != "0";
+    const bool some = value_of(feed("(select " + q + " R " + atom + ") (count " + q + ")"),
+                               q + " count ") != "0";
+    if (some && witness_ && witness_for != nullptr) witness_path(*witness_for, q);
+    return some;
+  }
+
+  /// `WITNESS <name> path K` then the run, on stderr: a shortest path from
+  /// the initial marking (named once as a word) to the selection \p q.
+  void witness_path(const std::string& name, const std::string& q) {
+    if (!seed_named_) {
+      const std::vector<std::string>& pnames = net_.getPnames();
+      const std::vector<int>& marks = net_.getMarks();
+      std::string w = "(word hsc-pn-I";
+      for (std::size_t i = 0; i < pnames.size(); ++i) {
+        if (marks[i] != 0) w += " (" + pnames[i] + ' ' + std::to_string(marks[i]) + ')';
+      }
+      feed(w + ")");
+      seed_named_ = true;
+    }
+    const std::string w = next_name();
+    for (const std::string& l : feed("(path " + w + " hsc-pn-I " + q + ")")) {
+      if (l.rfind(w + " path", 0) == 0) {
+        std::cerr << "WITNESS " << name << l.substr(w.size()) << '\n';
+      } else {
+        std::cerr << without_zero_places(l) << '\n';
+      }
+    }
   }
 
   /// `(count Q exact)` of a selection (`R` itself when \p atom is empty).
@@ -134,7 +161,7 @@ class solver {
               << std::endl;
           return true;
         }
-        const bool reached = nonempty(hsc::petri::query_atom(goal, pnames));
+        const bool reached = nonempty(hsc::petri::query_atom(goal, pnames), &p.name);
         out << "FORMULA " << p.name << ' ' << verdict(inv, reached) << TECHNIQUES
             << std::endl;
         return true;
@@ -145,7 +172,7 @@ class solver {
           out << "FORMULA " << p.name << " FALSE" << TRIVIAL << std::endl;
           return true;
         }
-        out << "FORMULA " << p.name << ' ' << (nonempty(*atom) ? "TRUE" : "FALSE")
+        out << "FORMULA " << p.name << ' ' << (nonempty(*atom, &p.name) ? "TRUE" : "FALSE")
             << TECHNIQUES << std::endl;
         return true;
       }
@@ -262,7 +289,8 @@ class solver {
   const SparsePetriNet<int>& net_;
   int bound_;
   bool verbose_;
-  bool witness_ = false;  ///< forward CTL witness trees to stderr
+  bool witness_ = false;    ///< forward witnesses to stderr
+  bool seed_named_ = false; ///< `(word hsc-pn-I …)` fed, for the paths
   std::vector<long long> mult_;  ///< empty means every multiplicity is 1
   bool arcs_countable_ = true;
   std::vector<long long> dropped_;  ///< markings of removed constant places
