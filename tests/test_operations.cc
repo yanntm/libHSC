@@ -13,6 +13,7 @@
 
 #include <doctest/doctest.h>
 
+#include <array>
 #include <cstdint>
 #include <random>
 #include <span>
@@ -153,6 +154,42 @@ void words_of(core::manager& mgr, leaves::int_set_theory& theory,
         }
       }
       return;
+    }
+  }
+}
+
+TEST_CASE("the fused composition of two product terms acts as their sequence") {
+  for (std::uint64_t seed = 1; seed <= 150; ++seed) {
+    core::manager mgr;
+    auto [index, theory] = mgr.import<leaves::int_set_theory>();
+    std::mt19937_64 rng(seed);
+    const model m = random_model(mgr, theory, index, rng);
+    core::diagram_engine& diagrams = mgr.diagrams();
+    const core::code reach = diagrams.apply_local(
+        core::saturate(mgr, m.sort, m.events), m.start);
+    // A random selector (guards only) and a random shifting event, so the
+    // table's rows beyond keep/assign are exercised too.
+    std::vector<core::code> by_leaf(m.leaves);
+    for (std::size_t i = 0; i < m.leaves; ++i) {
+      const auto v = static_cast<std::int32_t>(rng() % domain);
+      by_leaf[i] = rng() % 2 ? core::op_table::id : theory.keep(theory.of(std::array{v, (v + 1) % domain}));
+    }
+    const core::code sel = core::product(mgr.operations(), mgr.shapes(), m.sort, by_leaf);
+    for (std::size_t i = 0; i < m.leaves; ++i) {
+      by_leaf[i] = rng() % 2 ? core::op_table::id
+                             : theory.shift(theory.singleton(static_cast<std::int32_t>(rng() % domain)),
+                                            rng() % 2 ? 1 : -1);
+    }
+    const core::code shifter = core::product(mgr.operations(), mgr.shapes(), m.sort, by_leaf);
+    std::vector<core::code> terms = m.events;
+    terms.push_back(sel);
+    terms.push_back(shifter);
+    for (const core::code a : terms) {
+      for (const core::code b : terms) {
+        const core::code fused = core::compose_at(mgr, m.sort, a, b);
+        const core::code expect = diagrams.apply_local(a, diagrams.apply_local(b, reach));
+        CHECK(diagrams.apply_local(fused, reach) == expect);
+      }
     }
   }
 }

@@ -3,7 +3,9 @@
 /// (`hsc/ctl/checker.hh`, `algorithm.md` §3–§7).
 #include "hsc/ctl/checker.hh"
 
+#include <chrono>
 #include <cstdlib>
+#include <iostream>
 #include <string>
 
 #include "hsc/core/diagram.hh"
@@ -61,10 +63,11 @@ checker::code checker::closure(bool backward, code sel, bool before) {
     return it->second;
   std::vector<code> filtered;
   filtered.reserve(events(backward).size());
-  core::op_table& ops = mgr_.operations();
   for (const code t : events(backward)) {
-    // compose(after, before): the filter before the step is `t ∘ sel`.
-    filtered.push_back(before ? ops.compose(t, sel) : ops.compose(sel, t));
+    // compose(after, before): the filter before the step is `t ∘ sel`;
+    // fused into a product where the terms allow, so the closure saturates.
+    filtered.push_back(before ? core::compose_at(mgr_, m_.sort, t, sel)
+                              : core::compose_at(mgr_, m_.sort, sel, t));
   }
   const code c = core::saturate(mgr_, m_.sort, filtered);
   closure_memo_.emplace(key, c);
@@ -121,6 +124,30 @@ std::optional<checker::code> checker::constrained_lfp(bool backward,
   }
 }
 
+bool checker::trace_enabled() {
+  static const bool on = [] {
+    const char* e = std::getenv("HSC_CTL_TRACE");
+    return e != nullptr && std::string(e) == "1";
+  }();
+  return on;
+}
+
+namespace {
+/// Prints "ctl-trace: <what> <ms> ms" at scope exit when tracing.
+struct trace_scope {
+  std::string what;
+  std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+  bool on = checker::trace_enabled();
+  ~trace_scope() {
+    if (!on) return;
+    const double ms = std::chrono::duration<double, std::milli>(
+                          std::chrono::steady_clock::now() - t0)
+                          .count();
+    if (ms >= 1.0) std::cerr << "ctl-trace: " << what << ' ' << ms << " ms\n";
+  }
+};
+}  // namespace
+
 bool checker::otf_enabled() {
   static const bool on = [] {
     const char* e = std::getenv("HSC_CTL_OTF");
@@ -168,6 +195,10 @@ bool checker::has_cycles() {
 }
 
 std::optional<bool> checker::nonempty(set_id s) {
+  trace_scope tr{trace_enabled() ? "nonempty " + fw_.print_set(s, [](std::uint32_t a) {
+                                     return "a" + std::to_string(a);
+                                   })
+                                 : std::string()};
   if (!existential_enabled()) {
     const std::optional<code> v = eval(s);
     if (!v) return std::nullopt;
@@ -246,6 +277,10 @@ std::optional<checker::code> checker::eval(set_id s) {
   if (const auto it = set_memo_.find(s); it != set_memo_.end())
     return it->second;
   const set_expr e = fw_.set(s);
+  trace_scope tr{trace_enabled() ? "eval " + fw_.print_set(s, [](std::uint32_t a) {
+                                     return "a" + std::to_string(a);
+                                   })
+                                 : std::string()};
   core::diagram_engine& diagrams = mgr_.diagrams();
   std::optional<code> r;
   switch (e.kind) {
@@ -334,6 +369,10 @@ std::optional<checker::code> checker::sat(node_id f) {
   if (const auto it = sat_memo_.find(f); it != sat_memo_.end())
     return it->second;
   const fnode n = f_[f];
+  trace_scope tr{trace_enabled() ? "sat " + f_.print(f, [](std::uint32_t a) {
+                                     return "a" + std::to_string(a);
+                                   })
+                                 : std::string()};
   core::diagram_engine& diagrams = mgr_.diagrams();
   const code R = m_.reach;
   std::optional<code> r;
