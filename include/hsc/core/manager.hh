@@ -85,6 +85,7 @@ class manager {
   /// one stop state, so concurrent tasks stop independently.
   ///@{
   void set_deadline(std::optional<std::chrono::steady_clock::time_point> at) noexcept { deadline_ = at; }
+  [[nodiscard]] bool has_deadline() const noexcept { return deadline_.has_value(); }
   void request_stop() noexcept { stop_ = true; }
   [[nodiscard]] bool stopping() noexcept {
     if (!stop_ && deadline_ && std::chrono::steady_clock::now() > *deadline_) stop_ = true;

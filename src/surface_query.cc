@@ -75,6 +75,15 @@ code translator::run_reach(bool naive, std::optional<code> system,
     if (trace) std::cerr << "reach-trace: closure built in " << build.seconds() << " s\n";
     util::stopwatch apply;
     reachable = diagrams.apply_local(closure, reachable);
+    // The divergence watch is an epoch boundary only under a deadline (a
+    // driver then takes stock and resumes); without one the reach notes the
+    // doubling and resumes by itself until the fixpoint.
+    while (mgr_.partial() && theory_->diverged() && !mgr_.has_deadline()) {
+      out_ << "; diverged " << theory_->domain_limit() << '\n';
+      theory_->clear_diverged();
+      mgr_.reset_stop();
+      reachable = diagrams.apply_local(closure, reachable);
+    }
     if (trace) std::cerr << "reach-trace: applied in " << apply.seconds() << " s, partial=" << mgr_.partial() << '\n';
   }
   reach_seconds_ += sw.seconds();
