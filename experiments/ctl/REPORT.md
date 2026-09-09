@@ -230,6 +230,13 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    4 runs for NUPN+FORCE / Louvain+FORCE / NUPN / Louvain); the driver's
    four-way split is justified, Louvain alone the weakest quarter.
 
+27. **Witnesses from `hsc-pn`** (`--witness`, side quest, `tools/README.md`):
+   after each CTL verdict the surface's `(witness Q)` tree goes to
+   stderr — `WITNESS <name>`, then states as words without their zero
+   places, transition names, `;` notes. SupplyChain-PT-00005 CTLC, 16
+   verdicts: 8.6 s without, 9.0 s with (the machine was loaded); the
+   inverted events are built once on the first request.
+
 ## Where things stand for you
 
 * `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the

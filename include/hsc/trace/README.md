@@ -14,6 +14,8 @@ inverter for one backward step) and on `ctl/` for the witness tree (the
 question tree and its set expressions). Knows nothing about the surface;
 the surface binds `(path …)` and `(witness …)` to it and prints the words in
 its own syntax.
+`hsc-pn --witness` forwards the tree of every CTL verdict to stderr
+(`tools/README.md`).
 
 ## Files
 

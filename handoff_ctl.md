@@ -35,9 +35,10 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
    also runs the checker on the CTL examinations (`~/git/ITStools`,
    committed, not pushed; the product's `hsc-pn` comes from the libHSC CI
    branch `HSC-Linux`, so a libHSC push is what updates it).
-5. Witness trees are in (`include/hsc/trace/`, `(path …)`, `(witness …)`);
-   left open there: a shortest-overall end state for shapes other than
-   `filter(fwdu(…))`, and `hsc-pn` printing a witness on request.
+5. Witness trees are in (`include/hsc/trace/`, `(path …)`, `(witness …)`,
+   `hsc-pn --witness`); left open there: a shortest-overall end state for
+   shapes other than `filter(fwdu(…))`, and a replay check of a printed
+   witness on the explicit engine.
 
 Observation points: `HSC_CTL_TRACE=1` (per-node wall time and `gfp` rounds on stderr).
 Variation points: `HSC_CTL_EXIST=0`, `HSC_CTL_OTF=0`, `HSC_CTL_FWD=left`.
