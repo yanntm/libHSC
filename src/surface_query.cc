@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cstdint>
 
+#include <cstdlib>
+#include <iostream>
 #include <limits>
 #include <unordered_map>
 
@@ -40,14 +42,31 @@ code translator::run_reach(bool naive, std::optional<code> system,
   if (naive) {
     const code all = core::sum_at(mgr_, top_, summands);
     for (;;) {
-      const code grown =
-          diagrams.join(reachable, diagrams.apply_local(all, reachable));
+      if (mgr_.stopping()) {  // the reference iteration stops like the closures: partial
+        mgr_.mark_partial();
+        break;
+      }
+      code grown;
+      try {
+        grown = diagrams.join(reachable, diagrams.apply_local(all, reachable));
+      } catch (const interrupted&) {
+        mgr_.mark_partial();
+        break;
+      }
       if (grown == reachable) break;
       reachable = grown;
     }
   } else {
+    // HSC_REACH_TRACE=1: the two steps of a saturation timed on stderr, an
+    // observation point (the construction of the closure term against its
+    // application).
+    static const bool trace = std::getenv("HSC_REACH_TRACE") != nullptr;
+    util::stopwatch build;
     const code closure = core::saturate(mgr_, top_, summands);
+    if (trace) std::cerr << "reach-trace: closure built in " << build.seconds() << " s\n";
+    util::stopwatch apply;
     reachable = diagrams.apply_local(closure, reachable);
+    if (trace) std::cerr << "reach-trace: applied in " << apply.seconds() << " s, partial=" << mgr_.partial() << '\n';
   }
   reach_seconds_ += sw.seconds();
   return reachable;
@@ -110,16 +129,30 @@ void translator::do_stock(const datum& form) {
   const std::string& name = sym(form.items()[1]);
   out_ << name << " stock states " << d.cardinal(c) << " nodes " << d.size(c) << '\n';
   const std::vector<order::level_profile> prof = order::profile(mgr_, top_, c);
-  const std::vector<order::local_states> now = order::subshape_states(mgr_, top_, c);
+  // the unions behind the local states can be long on a big set: under a
+  // budget they are what gives way, the rest of the stock stands
+  std::vector<order::local_states> now;
+  try {
+    now = order::subshape_states(mgr_, top_, c);
+  } catch (const interrupted&) {
+    out_ << "  ; local states not computed (deadline)\n";
+  }
   std::unordered_map<core::shape_code, double> before;
-  if (since) for (const order::local_states& l : order::subshape_states(mgr_, top_, *since)) before[l.sort] = l.states;
+  if (since && !now.empty()) {
+    try {
+      for (const order::local_states& l : order::subshape_states(mgr_, top_, *since)) before[l.sort] = l.states;
+    } catch (const interrupted&) {
+      since.reset();
+    }
+  }
   std::unordered_map<core::shape_code, double> local;
   for (const order::local_states& l : now) local[l.sort] = l.states;
   for (const order::level_profile& l : prof) {
     out_ << "  " << order_[l.first];
     if (l.width > 1) out_ << ".." << order_[l.first + l.width - 1] << " (" << l.width << ')';
-    out_ << " nodes " << l.nodes << " arcs " << l.arcs << " local " << local[l.sort];
-    if (since) out_ << " gained " << (local[l.sort] - before[l.sort]);
+    out_ << " nodes " << l.nodes << " arcs " << l.arcs;
+    if (!now.empty()) out_ << " local " << local[l.sort];
+    if (since && !now.empty()) out_ << " gained " << (local[l.sort] - before[l.sort]);
     out_ << '\n';
   }
   out_ << "  leaves";
