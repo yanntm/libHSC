@@ -64,6 +64,11 @@ class support_algebra {
   ///@{
   /// The term acting as \p a or \p b.
   virtual code term_sum(code a, code b) = 0;
+  /// \brief The term acting as \p before then \p after, fused into one local
+  /// term (`algorithm.md` §11). An **optional** capability: the default
+  /// refuses with `unsupported_error`, and the caller keeps an unfused
+  /// composition instead.
+  virtual code term_compose(code after, code before);
   /// \brief The least fixpoint `lfp(t) = (id + t)*`, as a term.
   ///
   /// The derived form of the theory contract's pure star, offered as the
@@ -111,6 +116,10 @@ class support_algebra {
   }
   ///@}
 };
+
+inline code support_algebra::term_compose(code, code) {
+  throw unsupported_error("this theory does not compose its local terms");
+}
 
 inline code support_algebra::invert_local(code, code) {
   throw unsupported_error("this theory does not invert its local terms");

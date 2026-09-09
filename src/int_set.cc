@@ -232,6 +232,197 @@ core::code int_set_theory::invert_local(core::code term, core::code domain) {
   return zero;
 }
 
+namespace {
+/// Guards of two kinds conjoined into one: symbolic with symbolic by `conj`,
+/// set with set by `meet`, mixed by filtering the set. `none` guard = true.
+struct guard_conj {
+  int_guard kind = int_guard::none;
+  core::code g = core::none;
+};
+}  // namespace
+
+core::code int_set_theory::term_compose(core::code after, core::code before) {
+  if (before == 0) return after;
+  if (after == 0) return before;
+  const int_term a = terms_[after];   // copies: interning below may grow terms_
+  const int_term b = terms_[before];
+  if (b.shape == int_shape::sum) {
+    return term_sum(term_compose(after, b.a), term_compose(after, b.b));
+  }
+  if (a.shape == int_shape::sum) {
+    return term_sum(term_compose(a.a, before), term_compose(a.b, before));
+  }
+  if (a.shape != int_shape::primitive || b.shape != int_shape::primitive) {
+    throw unsupported_error("int_set: a closure does not compose");
+  }
+  const core::code zero = keep_if(lia::bfalse);
+  const lia::iexpr x = exprs_.variable(0);
+
+  // The second guard, read after the first action: a symbolic guard by
+  // substitution, an extensional one by a set computation; `passing` is
+  // the set the first action's values are drawn from when it chooses.
+  guard_conj g2;  // g2 after act1, over the pre-value x
+  core::code choose_from = core::none;  // for choose/havoc: S ∩ g2
+  bool g2_value = false;  // for assign: whether the constant passes g2
+  switch (b.action) {
+    case int_action::keep:
+      g2.kind = a.gkind;
+      g2.g = a.a;
+      break;
+    case int_action::shift:
+      if (a.gkind == int_guard::none) break;
+      if (a.gkind == int_guard::symbolic) {
+        g2.kind = int_guard::symbolic;
+        g2.g = exprs_.subst_bool(a.a, 0, exprs_.add(x, exprs_.constant(b.arg)));
+      } else {  // v passes iff v + d in the set: shift the set by -d
+        std::vector<std::int32_t> out;
+        for (const std::int32_t v : elements(a.a)) {
+          std::int32_t nv;
+          if (__builtin_sub_overflow(v, b.arg, &nv)) continue;
+          out.push_back(nv);
+        }
+        g2.kind = int_guard::set;
+        g2.g = of_sorted(out);
+        if (g2.g == core::none) return zero;
+      }
+      break;
+    case int_action::assign: {
+      if (a.gkind == int_guard::none) g2_value = true;
+      else if (a.gkind == int_guard::set) g2_value = meet(a.a, singleton(b.arg)) != core::none;
+      else {
+        const std::int32_t env[] = {b.arg};
+        g2_value = exprs_.eval_bool(a.a, env) == lia::expr_factory::truth::yes;
+      }
+      if (!g2_value) return zero;
+      break;
+    }
+    case int_action::choose:
+    case int_action::havoc: {
+      const core::code s0 = b.action == int_action::choose
+                                ? b.b
+                                : interval(b.arg, static_cast<std::int32_t>(b.b));
+      choose_from = a.gkind == int_guard::none ? s0
+                    : a.gkind == int_guard::set ? meet(s0, a.a)
+                                                : filter(s0, a.a);
+      if (choose_from == core::none) return zero;
+      break;
+    }
+    case int_action::xform:
+      if (b.arg != 0) throw unsupported_error("int_set: modulo under composition");
+      if (a.gkind == int_guard::set) throw unsupported_error("int_set: set guard after a transform");
+      if (a.gkind == int_guard::symbolic) {
+        g2.kind = int_guard::symbolic;
+        g2.g = exprs_.subst_bool(a.a, 0, b.b);
+      }
+      break;
+  }
+
+  // The composite guard: g1 ∧ g2-after-act1.
+  guard_conj g{b.gkind, b.a};
+  if (g2.kind != int_guard::none) {
+    if (g.kind == int_guard::none) g = g2;
+    else if (g.kind == int_guard::symbolic && g2.kind == int_guard::symbolic) g.g = exprs_.conj(g.g, g2.g);
+    else if (g.kind == int_guard::set && g2.kind == int_guard::set) g.g = meet(g.g, g2.g);
+    else if (g.kind == int_guard::set) g.g = filter(g.g, g2.g);
+    else { g.kind = int_guard::set; g.g = filter(g2.g, g.g); }
+    if (g.kind == int_guard::set && g.g == core::none) return zero;
+    if (g.kind == int_guard::symbolic && g.g == lia::bfalse) return zero;
+    if (g.kind == int_guard::symbolic && g.g == lia::btrue) g.kind = int_guard::none;
+  }
+  const auto prim = [&](int_action act, std::int32_t arg, core::code bb) {
+    return terms_.get(int_term{int_shape::primitive, act, g.kind, arg,
+                               g.kind == int_guard::none ? core::none : g.g, bb});
+  };
+
+  // The composite action act2 ∘ act1.
+  switch (b.action) {
+    case int_action::keep:
+      return prim(a.action, a.arg, a.b);
+    case int_action::shift:
+      switch (a.action) {
+        case int_action::keep: return prim(int_action::shift, b.arg, 0);
+        case int_action::shift: {
+          std::int32_t d;
+          if (__builtin_add_overflow(a.arg, b.arg, &d)) throw overflow_error("shift composition");
+          return d == 0 ? prim(int_action::keep, 0, 0) : prim(int_action::shift, d, 0);
+        }
+        case int_action::assign: return prim(int_action::assign, a.arg, 0);
+        case int_action::choose: return prim(int_action::choose, 0, a.b);
+        case int_action::havoc: return prim(int_action::havoc, a.arg, a.b);
+        case int_action::xform:
+          if (a.arg != 0) throw unsupported_error("int_set: modulo under composition");
+          return prim(int_action::xform, 0, exprs_.subst(a.b, 0, exprs_.add(x, exprs_.constant(b.arg))));
+      }
+      break;
+    case int_action::assign:
+      switch (a.action) {
+        case int_action::keep: return prim(int_action::assign, b.arg, 0);
+        case int_action::shift: {
+          std::int32_t c;
+          if (__builtin_add_overflow(b.arg, a.arg, &c)) throw overflow_error("assign then shift");
+          return prim(int_action::assign, c, 0);
+        }
+        case int_action::assign: return prim(int_action::assign, a.arg, 0);
+        case int_action::choose: return prim(int_action::choose, 0, a.b);
+        case int_action::havoc: return prim(int_action::havoc, a.arg, a.b);
+        case int_action::xform: {
+          const std::int32_t env[] = {b.arg};
+          bool undef = false;
+          std::int64_t r = exprs_.eval_int(a.b, env, undef);
+          if (undef) return zero;
+          if (a.arg != 0) r = ((r % a.arg) + a.arg) % a.arg;
+          if (r < INT32_MIN || r > INT32_MAX) throw overflow_error("assign then transform");
+          return prim(int_action::assign, static_cast<std::int32_t>(r), 0);
+        }
+      }
+      break;
+    case int_action::choose:
+    case int_action::havoc:
+      switch (a.action) {
+        case int_action::keep: return prim(int_action::choose, 0, choose_from);
+        case int_action::shift: {
+          std::vector<std::int32_t> out;
+          for (const std::int32_t v : elements(choose_from)) {
+            std::int32_t nv;
+            if (__builtin_add_overflow(v, a.arg, &nv)) throw overflow_error("choose then shift");
+            out.push_back(nv);
+          }
+          return prim(int_action::choose, 0, of_sorted(out));
+        }
+        case int_action::assign: return prim(int_action::assign, a.arg, 0);
+        case int_action::choose: return prim(int_action::choose, 0, a.b);
+        case int_action::havoc: return prim(int_action::havoc, a.arg, a.b);
+        case int_action::xform: {
+          std::vector<std::int32_t> out;
+          for (const std::int32_t v : elements(choose_from)) {
+            const std::int32_t env[] = {v};
+            bool undef = false;
+            std::int64_t r = exprs_.eval_int(a.b, env, undef);
+            if (undef) continue;
+            if (a.arg != 0) r = ((r % a.arg) + a.arg) % a.arg;
+            if (r < INT32_MIN || r > INT32_MAX) throw overflow_error("choose then transform");
+            out.push_back(static_cast<std::int32_t>(r));
+          }
+          return prim(int_action::choose, 0, of(out));
+        }
+      }
+      break;
+    case int_action::xform:
+      switch (a.action) {
+        case int_action::keep: return prim(int_action::xform, 0, b.b);
+        case int_action::shift: return prim(int_action::xform, 0, exprs_.add(b.b, exprs_.constant(a.arg)));
+        case int_action::assign: return prim(int_action::assign, a.arg, 0);
+        case int_action::choose: return prim(int_action::choose, 0, a.b);
+        case int_action::havoc: return prim(int_action::havoc, a.arg, a.b);
+        case int_action::xform:
+          if (a.arg != 0) throw unsupported_error("int_set: modulo under composition");
+          return prim(int_action::xform, 0, exprs_.subst(a.b, 0, b.b));
+      }
+      break;
+  }
+  throw unsupported_error("int_set: composition not spelled");
+}
+
 core::code int_set_theory::filter(core::code set, lia::bexpr g) {
   if (set == core::none || g == lia::bfalse) return core::none;
   if (g == lia::btrue) return set;

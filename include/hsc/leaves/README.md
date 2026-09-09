@@ -24,6 +24,10 @@ not the domain, is what the calculus sees: `core/support.hh` is that window.
   to a finite domain, spelled in the same language plus the one action a
   converse needs and a model does not — `choose(S)`, `x := any value of a
   set`, of which the range havoc is the interval case.
+  It also composes two of its terms into one (`term_compose`,
+  `core/algorithm.md` §11): guards conjoin, the second read after the
+  first action, actions compose — what lets a constrained closure keep its
+  product events and saturate.
 
 ## Pending
 

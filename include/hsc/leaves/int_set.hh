@@ -158,6 +158,12 @@ class int_set_theory final : public core::support_algebra {
   /// extensional; `assign`, `havoc`, `apply` turn into `choose`; `shift`
   /// reverses; `sum` and `lfp` pointwise.
   core::code invert_local(core::code term, core::code domain) override;
+  /// \brief `after ∘ before` as one primitive when the table of
+  /// `core/algorithm.md` §11 has a row for it (guards conjoin, the second
+  /// guard read after the first action, actions compose); sums pointwise;
+  /// refuses (`unsupported_error`) on a closure or a modulo transform under
+  /// substitution.
+  core::code term_compose(core::code after, core::code before) override;
 
   /// The elements of \p set on which \p g evaluates to true (⊥ excludes).
   core::code filter(core::code set, lia::bexpr g);
