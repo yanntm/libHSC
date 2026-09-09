@@ -449,6 +449,18 @@ code diagram_engine::do_apply(code term, code d) {
     return finish(sort, acc);
   }
 
+  if (head.injective(t.operand(0))) {
+    // The head acts injectively: the image primes stay pairwise disjoint,
+    // so again only the regroup by sub is owed.
+    accumulator acc(head);
+    for (const arc& x : n.arcs()) {
+      const code prime = head.apply_local(t.operand(0), x.prime);
+      if (prime == none) continue;
+      acc.add(tail.apply_local(t.operand(1), x.sub), prime);
+    }
+    return finish(sort, acc);
+  }
+
   // The head acts, so primes may now overlap or collide: full construction.
   std::vector<arc> bag;
   bag.reserve(n.arity);
