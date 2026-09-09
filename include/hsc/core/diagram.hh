@@ -128,6 +128,12 @@ class diagram_engine final : public support_algebra {
   code has_image_local(code term, code value) override {
     return has_image(term, value);
   }
+  /// \brief Whether `has_image` of a `gfp` tries the per-arc cycle witness
+  /// (`algorithm.md` §10) before the full hull. Off by default: when no
+  /// component cycles on its own the descent is paid for nothing and the
+  /// hull follows anyway — measured to lose on the MCC corpus. A variation
+  /// point for the tools (`HSC_CTL_SCCFAST=1`).
+  void set_fast_cycle_witness(bool on) noexcept { fast_cycle_witness_ = on; }
   /// Inversion at a composite sort is structural on the operation term
   /// (`inverter`); the domain's sort is the sort inverted at.
   code invert_local(code term, code domain) override;
@@ -193,6 +199,7 @@ class diagram_engine final : public support_algebra {
   mem::intern<node> nodes_;
   mem::cache<diagram_engine, binary_op> ops_;
   code one_ = none;
+  bool fast_cycle_witness_ = false;
   mutable std::vector<double> cardinal_memo_;
   mutable std::unordered_map<code, mpz_class> exact_memo_;
 

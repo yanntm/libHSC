@@ -274,7 +274,9 @@ code diagram_engine::do_has_image(code term, code d) {
       return do_apply(term, d);  // the case engine, in full
     case op_kind::gfp: {
       // A cycle of a part of the events inside a part of the set is a cycle
-      // of the whole: try below the cut and on the head before the full hull.
+      // of the whole: try below the cut and on the head before the full hull
+      // — when asked to; the descent is a loss where no component cycles.
+      if (!fast_cycle_witness_) return do_apply(term, d);
       const node& n = nodes_[d];
       const shape_code sort = n.sort;
       const shape_code hs = owner_.shapes().head(sort);

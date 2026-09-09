@@ -266,6 +266,12 @@ algebra (no leaf term is needed for it). Completeness is the fallback's: a
 cycle that alternates parts is only found in full. This is libDDD's "fast
 SCC detection" (`Fixpoint::has_image`), stated for terms.
 
+The per-arc cycle witness is **opt-in** (`diagram_engine::set_fast_cycle_witness`):
+where no component cycles on its own the descent — sub-hulls for every arc
+at every level — is paid and the full hull follows anyway; on the MCC
+corpus that loses more than it wins, so by default `has_image(gfp h, d)`
+is the hull itself.
+
 `has_image` is memoised like `apply` (the traversal order is fixed, so the
 witness is a function of its arguments). What it buys: a `nonempty?` question
 on a filtered set stops at the first arc that passes; whether a set holds a

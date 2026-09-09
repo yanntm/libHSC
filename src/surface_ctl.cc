@@ -53,7 +53,11 @@ struct translator::ctl_state {
 };
 
 translator::ctl_state& translator::ctl() {
-  if (!ctl_) ctl_ = std::make_shared<ctl_state>();
+  if (!ctl_) {
+    ctl_ = std::make_shared<ctl_state>();
+    const char* fast = std::getenv("HSC_CTL_SCCFAST");
+    mgr_.diagrams().set_fast_cycle_witness(fast != nullptr && std::string(fast) == "1");
+  }
   return *ctl_;
 }
 
