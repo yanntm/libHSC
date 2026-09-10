@@ -43,10 +43,8 @@ class transformer {
     emit_shape();
     emit_init();
     for (datum& ev : events_) out_.forms.push_back(std::move(ev));
-    out_.forms.push_back(datum::list(
-        {atom("reach", 0), atom("R", 0), atom("saturate", 0)}, 0));
-    out_.forms.push_back(datum::list({atom("count", 0), atom("R", 0)}, 0));
-    out_.forms.push_back(datum::list({atom("nodes", 0), atom("R", 0)}, 0));
+    // Declarations and events only: what to compute is the caller's
+    // session (a driver file or -e forms), not the model's.
     return std::move(out_);
   }
 

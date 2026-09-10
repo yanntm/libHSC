@@ -7,7 +7,7 @@ action right-hand sides reading foreign units, dynamic array indexes —
 and price the enumeration grounding that would remove them: case-split
 each offending event on the values of the units it must enumerate, one
 event copy per value tuple.  The price is finite exactly when every
-enumerated unit has a finite inferred domain (``hsc --domains``).
+enumerated unit has a finite inferred domain (``hsc MODEL -e '(xdomains)'``).
 
 Output TSV, one row per model:
   model  events  crossing  max_mult  sum_mult  verdict
@@ -66,9 +66,9 @@ def parse_all(text: str) -> list[Sexpr]:
 
 
 def domain_sizes(path: Path) -> dict[str, Optional[int]]:
-    """Per-unit inferred domain size via ``hsc --domains``; None = infinite."""
+    """Per-unit inferred domain size via ``hsc MODEL -e (xdomains)``; None = infinite."""
     res = subprocess.run(
-        [str(HSC), "--domains", str(path)], capture_output=True, text=True
+        [str(HSC), str(path), "-e", "(xdomains)"], capture_output=True, text=True
     )
     sizes: dict[str, Optional[int]] = {}
     for line in res.stdout.splitlines():

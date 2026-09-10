@@ -1,8 +1,8 @@
 #!/bin/bash
 # Sweep the BEEM corpus through the cegar bridge and classify acceptance.
-# For each examples/divine/hsc/M.hsc: keep the declarations/events (strip
-# engine commands), append (declare-domains) and a trivial one-leaf cegar
-# probe, run under a per-model timeout, and classify the outcome:
+# For each examples/divine/hsc/M.hsc (command-free by construction): splice
+# (declare-domains) and a trivial one-leaf cegar probe onto the model with
+# -e, run under a per-model timeout, and classify the outcome:
 #   ok-violation / ok-holds  — the bridge accepted; the loop ran
 #   ok-timeout / ok-cap      — accepted; the loop hit the time or state cap
 #   refused-bound            — a leaf domain defied inference
@@ -23,21 +23,19 @@ trap 'rm -rf "$WORK"' EXIT
 
 for f in examples/divine/hsc/*.hsc; do
   m=$(basename "$f" .hsc)
-  p="$WORK/$m.hsc"
-  sed '/^(reach/,$d' "$f" > "$p"
   # property leaf: the first scalar leaf with a non-constant domain (a
   # constant leaf is elided by simplify-constants and cannot carry the atom)
-  "$HSC" --domains "$p" 2>/dev/null | awk \
+  "$HSC" "$f" -e '(xdomains)' 2>/dev/null | awk \
     '/^xdom /{if (!($0~/kind=set/ && $0~/ size=1 /) && !($0~/kind=top/))
        print $2}' > "$WORK/ok-units"
-  leaf=$(grep '^(leaf' "$p" | awk '{print $2}' | tr -d ')' |
+  leaf=$(grep '^(leaf' "$f" | awk '{print $2}' | tr -d ')' |
          grep -m1 -Fxf "$WORK/ok-units")
   if [ -z "$leaf" ]; then
     printf '%s\terror\tno-usable-leaf\t0\n' "$m" >> "$OUT"; continue
   fi
-  printf '(declare-domains)\n(cegar v (== %s 1))\n' "$leaf" >> "$p"
   t0=$(date +%s.%N)
-  outp=$(timeout "$TMO" "$HSC" "$p" 2>&1)
+  outp=$(timeout "$TMO" "$HSC" "$f" \
+           -e "(declare-domains) (cegar v (== $leaf 1))" 2>&1)
   rc=$?
   t1=$(date +%s.%N)
   secs=$(echo "$t1 $t0" | awk '{printf "%.2f", $1-$2}')

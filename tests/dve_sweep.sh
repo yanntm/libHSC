@@ -17,7 +17,10 @@ LABEL="${2:-}"
 shift $(( $# > 2 ? 2 : $# ))
 DVE2HSC=build/tools/dve2hsc
 HSCRUN=build/tools/hsc
-HSCFLAGS="${HSCFLAGS:-}"                       # e.g. --explicit
+# The sweep's question, spliced after the (command-free) model; the result
+# must be named R for the parse below. Explicit-engine sweep:
+#   QUERY='(xreach R) (count R) (nodes R)'
+QUERY="${QUERY:-(reach R saturate) (count R) (nodes R)}"
 OUT="${OUT:-examples/divine/status.tsv}"       # override to spare status.tsv
 LOG="${LOG:-tests/logs/dve_sweep.log}"
 GEN="${GEN:-1}"    # 0: reuse existing .hsc — lets parallel sweeps share them
@@ -26,7 +29,7 @@ STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 ARCHIVE=examples/divine/runs/${STAMP}_${REV}${LABEL:+_$LABEL}.tsv
 mkdir -p tests/logs examples/divine/hsc examples/divine/runs
 {
-  echo "# dve_sweep $STAMP rev=$REV timeout=${TMO}s dve2hsc-flags='$*' hsc-flags='$HSCFLAGS'"
+  echo "# dve_sweep $STAMP rev=$REV timeout=${TMO}s dve2hsc-flags='$*' query='$QUERY'"
   echo "# model	status	states-or-detail	nodes	seconds"
 } > "$ARCHIVE"
 : > "$LOG"
@@ -46,7 +49,7 @@ for f in examples/divine/dve/*.dve; do
     continue
   fi
   t0=$(date +%s.%N)
-  run=$(timeout "$TMO" "$HSCRUN" $HSCFLAGS "$hsc" 2>&1)
+  run=$(timeout "$TMO" "$HSCRUN" "$hsc" -e "$QUERY" 2>&1)
   rc=$?
   secs=$(echo "$(date +%s.%N) $t0" | awk '{printf "%.2f", $1 - $2}')
   echo "== $b rc=$rc ${secs}s" >> "$LOG"; echo "$run" >> "$LOG"

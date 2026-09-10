@@ -12,7 +12,6 @@ LABEL=${1:?label}
 DIRECTIVES=${2:?directives}
 LIST=${3:-}
 OUT=tests/logs/${LABEL}_sweep.tsv
-TMP=tests/logs/${LABEL}_tmp.hsc
 : > "$OUT"
 models() {
   if [ -n "$LIST" ]; then sed 's/$/.hsc/;s|^|examples/divine/hsc/|' "$LIST"
@@ -20,10 +19,9 @@ models() {
 }
 models | while read -r f; do
   m=$(basename "$f" .hsc)
-  { printf '%s\n' "$DIRECTIVES"; cat "$f"; } > "$TMP"
-  out=$(timeout 15 ./build/tools/hsc "$TMP" 2>&1); rc=$?
+  out=$(timeout 15 ./build/tools/hsc -e "$DIRECTIVES" "$f" \
+          -e '(reach R saturate) (count R) (nodes R)' 2>&1); rc=$?
   cnt=$(sed -n 's/^R count //p' <<<"$out"); nod=$(sed -n 's/^R nodes //p' <<<"$out")
   printf '%s\t%s\t%s\t%s\n' "$m" "$rc" "${cnt:--}" "${nod:--}" >> "$OUT"
 done
-rm -f "$TMP"
 awk -F'\t' 'BEGIN{ok=to=0} $2==0{ok++} $2==124{to++} END{print "'"$LABEL"'": run-ok", ok, "timeout", to}' "$OUT"
