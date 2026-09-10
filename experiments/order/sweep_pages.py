@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Static pages over an order-sweep record (sweep_job.sh TSVs) — SWEEP.md §2.
 
-    experiments/order/sweep_pages.py results/sweep1.tsv [more.tsv ...] -o pages/ [--logs results/sweep1]
+    experiments/order/sweep_pages.py results/sweep1.tsv [more.tsv ...] -o /data/ythierry/MCC26logs/web/order-sweep [--logs results/sweep1]
 
 One page per examination and an index; the campaign pages' look (DataTables
 and Plotly from their CDNs, the data embedded as JSON, one file per page).
