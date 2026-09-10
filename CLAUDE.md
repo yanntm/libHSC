@@ -109,7 +109,10 @@ If its really one shot ok, rm after use. Else add/commit. This saves tokens amon
   wait on completion events, never sleep/poll loops.
 - Anything touching the cluster, campaign logs or benchmark models follows
   PetriSpot's `CLAUDE.md` and `docs/CLUSTER.md`; those instructions apply to
-  this repo's runs too.
+  this repo's runs too. In particular `/data/ythierry` is not a scratch
+  space: nothing is written at its top level, a local experiment's files go
+  under `/data/ythierry/MCC26logs/_local/<name>/`, unpacked models and `.log`
+  files are deleted after use.
 - **Legacy tools are bounded-or-skipped, never waited on** in the construction/test
   path — libDDD and ITS-tools run as external baselines for comparison, not as
   dependencies. A stall is reported, not blocked on.
