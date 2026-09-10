@@ -48,6 +48,19 @@ TEST_CASE("negation normal form pushes not to the atoms through the duals") {
   CHECK(x.F.negate(x.F.negate(n)) == n);
 }
 
+TEST_CASE("path quantifiers of a formula in NNF") {
+  fx x;
+  using Q = formulas::quantifiers;
+  CHECK(x.F.path_quantifiers(x.F.conj(x.a, x.F.negation(x.b))) == Q::none);
+  CHECK(x.F.path_quantifiers(x.F.unary(op::ef, x.F.conj(x.a, x.F.unary(op::ex, x.b)))) == Q::existential);
+  CHECK(x.F.path_quantifiers(x.F.binary(op::au, x.a, x.F.unary(op::ag, x.b))) == Q::universal);
+  CHECK(x.F.path_quantifiers(x.F.unary(op::ef, x.F.unary(op::ag, x.b))) == Q::mixed);
+  // the dual of an existential formula is universal: what stands as TRUE
+  // on one side stands as FALSE on the other
+  const node_id f = x.F.unary(op::ef, x.F.disj(x.a, x.F.unary(op::eg, x.b)));
+  CHECK(x.F.path_quantifiers(x.F.nnf(x.F.negation(f))) == Q::universal);
+}
+
 TEST_CASE("state formulas and convertibility") {
   fx x;
   CHECK(x.F.is_state(x.F.conj(x.a, x.F.negation(x.b))));

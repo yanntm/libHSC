@@ -95,6 +95,13 @@ class formulas {
 
   /// A state formula: no path operator anywhere below.
   [[nodiscard]] bool is_state(node_id f) const;
+  /// \brief The path quantifiers of a formula in NNF: `existential` when
+  /// every path operator is an E, `universal` when every one is an A,
+  /// `none` for a state formula, `mixed` otherwise. On an under-approximated
+  /// reachable set an existential formula answered TRUE stands, and so does
+  /// a universal one answered FALSE; nothing else does (`algorithm.md` §7).
+  enum class quantifiers : std::uint8_t { none, existential, universal, mixed };
+  [[nodiscard]] quantifiers path_quantifiers(node_id f) const;
   /// \brief Convertible to forward form without putting a negation over a
   /// path operator (`algorithm.md` §4): a state formula, an existential
   /// node, or a conjunction / disjunction of convertibles. Expects NNF.

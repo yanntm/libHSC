@@ -190,6 +190,19 @@ bool formulas::is_state(node_id f) const {
   return true;
 }
 
+formulas::quantifiers formulas::path_quantifiers(node_id f) const {
+  const fnode& n = nodes_[f];
+  quantifiers q = quantifiers::none;
+  if (is_path(n.kind)) q = is_existential(n.kind) ? quantifiers::existential : quantifiers::universal;
+  for (const node_id k : n.kids) {
+    const quantifiers kq = path_quantifiers(k);
+    if (kq == quantifiers::none) continue;
+    if (q == quantifiers::none) q = kq;
+    else if (q != kq) return quantifiers::mixed;
+  }
+  return q;
+}
+
 bool formulas::convertible(node_id f) const {
   const fnode& n = nodes_[f];
   if (is_state(f)) return true;
