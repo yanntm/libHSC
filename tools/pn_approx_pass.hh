@@ -35,6 +35,7 @@ struct approx_pass_options {
   bool dead_step = false;   ///< with dead, the one-step test too
   std::size_t dead_depth = 1;  ///< layers of the backward search from a slice
   int dead_budget = 0;      ///< with dead, seconds for the tests (0: none); the verdicts taken stand
+  int dead_gfp = -1;        ///< with dead: after the tests, one image of S under the live events, then the forward gfp (rounds; 0: unbounded; -1: off)
   bool verbose = false;
 };
 
@@ -145,6 +146,20 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
     }
     s.set_deadline(std::nullopt);
     rep.dead_s = sec(t2, clock::now());
+    if (o.dead_gfp >= 0) {
+      // the cost of one step of the live transition relation on S, then the
+      // forward gfp over it (`(support …)`), each under the same budget
+      const clock::time_point t3 = clock::now();
+      if (o.dead_budget > 0) s.set_deadline(t3 + std::chrono::seconds(o.dead_budget));
+      for (const std::string& l : s.feed("(post I S S alive D)"))
+        if (l.rfind("I ", 0) == 0) std::cerr << "hsc-pn: image " << l.substr(2) << " in " << sec(t3, clock::now()) << " s\n";
+      s.set_deadline(std::nullopt);
+      const clock::time_point t4 = clock::now();
+      if (o.dead_budget > 0) s.set_deadline(t4 + std::chrono::seconds(o.dead_budget));
+      for (const std::string& l : s.feed("(support G S alive D rounds " + std::to_string(o.dead_gfp) + ")"))
+        if (l.rfind("G ", 0) == 0) std::cerr << "hsc-pn: gfp " << l.substr(2) << " in " << sec(t4, clock::now()) << " s\n";
+      s.set_deadline(std::nullopt);
+    }
     std::ostringstream line;
     line << "DEAD_TRANSITIONS " << (rep.never + rep.step) << " of " << net.getTransitionCount() << " (never " << rep.never
          << ", one step " << rep.step << ", alive " << rep.alive << ", untested " << rep.untested

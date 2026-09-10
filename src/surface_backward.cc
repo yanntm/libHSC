@@ -156,4 +156,91 @@ void translator::do_backward(const datum& form) {
   out_ << name << " backward " << how << ' ' << k << '\n';
 }
 
+/// The events of the default system a `(dead …)` result left alive, when the
+/// form carries `alive NAME` from item \p from; all of them otherwise.
+std::vector<std::size_t> translator::events_alive(const datum& form, std::size_t from) {
+  const std::vector<char>* live = nullptr;
+  for (std::size_t i = from; i + 1 < form.items().size(); ++i) {
+    const datum& d = form.items()[i];
+    if (d.is_atom() && d.text() == "alive") {
+      const auto it = dead_live_.find(sym(form.items()[i + 1]));
+      if (it == dead_live_.end()) fail(form.items()[i + 1], "alive: no such dead result");
+      live = &it->second;
+    }
+  }
+  std::vector<std::size_t> out;
+  for (std::size_t u = 0; u < events_.size(); ++u)
+    if (live == nullptr || (u < live->size() && (*live)[u])) out.push_back(u);
+  return out;
+}
+
+/// `post(X) ∩ set` under the listed events, each image met with \p set
+/// before the join. Throws `interrupted` when stopped.
+code translator::post_within(code x, code set, std::span<const std::size_t> which) {
+  core::diagram_engine& d = mgr_.diagrams();
+  code acc = core::none;
+  for (const std::size_t i : which) {
+    if (mgr_.stopping()) throw interrupted("forward step stopped");
+    const code p = d.meet(d.apply_local(events_[i], x), set);
+    if (p == core::none) continue;
+    acc = acc == core::none ? p : d.join(acc, p);
+  }
+  return acc;
+}
+
+/// `(post NAME X SET [alive D])`: the successors of X inside SET under the
+/// default system — the events a dead result D left alive when given.
+/// Prints `NAME post COUNT NODES`, or `NAME partial` when stopped.
+void translator::do_post(const datum& form) {
+  if (top_ == core::none) fail(form, "post before shape");
+  const std::string& name = sym(arg(form, 1, "result name"));
+  const code x = named(arg(form, 2, "source set"));
+  const code set = named(arg(form, 3, "potential set"));
+  const std::vector<std::size_t> which = events_alive(form, 4);
+  try {
+    results_[name] = post_within(x, set, which);
+    out_ << name << " post " << (results_[name] == core::none ? 0.0 : mgr_.diagrams().cardinal(results_[name]))
+         << ' ' << (results_[name] == core::none ? 0 : mgr_.diagrams().size(results_[name])) << " events " << which.size() << '\n';
+  } catch (const interrupted&) {
+    results_[name] = core::none;
+    out_ << name << " partial\n";
+  }
+}
+
+/// `(support NAME SET [alive D] [rounds K])`: the greatest fixpoint of
+/// `X ↦ X ∩ (init ∪ post(X))` below SET — the markings of SET that a chain
+/// of firings inside the set supports from the initial marking; a sound
+/// over-approximation of the reachable set finer than SET (a cycle of
+/// unreachable markings survives it). Forward images only. Prints
+/// `NAME support closed|open|partial K COUNT NODES`; NAME is bound to the
+/// last set.
+void translator::do_support(const datum& form) {
+  if (top_ == core::none) fail(form, "support before shape");
+  const std::string& name = sym(arg(form, 1, "result name"));
+  const code set = named(arg(form, 2, "set"));
+  const std::vector<std::size_t> which = events_alive(form, 3);
+  std::size_t rounds = 0;
+  for (std::size_t i = 3; i + 1 < form.items().size(); ++i)
+    if (form.items()[i].is_atom() && form.items()[i].text() == "rounds") rounds = std::stoul(form.items()[i + 1].text());
+  core::diagram_engine& d = mgr_.diagrams();
+  code cur = set;
+  std::size_t k = 0;
+  const char* how = "open";
+  try {
+    for (;;) {
+      if (rounds != 0 && k >= rounds) { how = "open"; break; }
+      const code img = post_within(cur, cur, which);
+      const code next = d.meet(cur, img == core::none ? seed() : d.join(img, seed()));
+      ++k;
+      if (next == cur) { how = "closed"; break; }
+      cur = next;
+    }
+  } catch (const interrupted&) {
+    how = "partial";
+  }
+  results_[name] = cur;
+  out_ << name << " support " << how << ' ' << k << ' ' << (cur == core::none ? 0.0 : d.cardinal(cur)) << ' '
+       << (cur == core::none ? 0 : d.size(cur)) << '\n';
+}
+
 }  // namespace hsc::surface

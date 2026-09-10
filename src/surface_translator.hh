@@ -555,6 +555,10 @@ class translator final : public name_scope {
   void do_pre(const datum& form);
   void do_minus(const datum& form);
   void do_backward(const datum& form);
+  void do_post(const datum& form);
+  void do_support(const datum& form);
+  std::vector<std::size_t> events_alive(const datum& form, std::size_t from);
+  code post_within(code x, code set, std::span<const std::size_t> which);
   const std::vector<code>& converses_against(const datum& at, code potential);
   std::vector<std::size_t> events_writing(const std::unordered_set<std::string>& leaves);
   /// The events that can move a leaf in a wanted direction: \p wanted maps a
@@ -634,6 +638,8 @@ class translator final : public name_scope {
   /// Every named term: events, alts, seqs — one namespace.
   std::unordered_map<std::string, code> named_events_;
   std::unordered_map<std::string, code> results_;
+  /// Per `(dead …)` result name, one flag per event of events_: alive (not proved dead).
+  std::unordered_map<std::string, std::vector<char>> dead_live_;
   /// Per declared event, the atoms of its `when` clauses (the guard as
   /// written); empty for an always-enabled event. What `(deadlock)` reads.
   std::vector<std::vector<datum>> event_guards_;

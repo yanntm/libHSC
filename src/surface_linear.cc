@@ -227,7 +227,10 @@ void translator::do_dead(const datum& form) {
   }
   const linear::dead_report r =
       linear::dead_transitions(mgr_, top_, set, seed(), events_, guards, exact, entries);
+  std::vector<char>& live = dead_live_[name];
+  live.assign(events_.size(), 1);
   for (std::size_t i = 0; i < events_.size(); ++i) {
+    live[i] = r.verdicts[i] != linear::verdict::never_enabled && r.verdicts[i] != linear::verdict::one_step;
     if (r.verdicts[i] == linear::verdict::never_enabled) out_ << name << " dead " << event_names_[i] << " never\n";
     else if (r.verdicts[i] == linear::verdict::one_step) out_ << name << " dead " << event_names_[i] << " step\n";
   }

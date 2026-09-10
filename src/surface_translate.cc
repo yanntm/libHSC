@@ -57,6 +57,8 @@ void translator::dispatch(const datum& form) {
   else if (kw == "pre") do_pre(form);
   else if (kw == "minus") do_minus(form);
   else if (kw == "backward") do_backward(form);
+  else if (kw == "post") do_post(form);
+  else if (kw == "support") do_support(form);
   else if (kw == "budget") do_budget(form);
   else if (kw == "print") do_print(form);
   else if (kw == "expect") do_expect(form);

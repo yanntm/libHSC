@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
   std::string pnml, pnet, props, syntax = "auto", shape = "nupn", export_hsc, deadlock, shape_file, export_shape;
   bool force = false, reverse = false, states = false, max_tokens = false, print_unknown = false, quiet = false,
        verbose = false, witness = false, shape_only = false, cover = false;
-  int dead_time = 0, approx_time = 0, approx_back = 0, dead_budget = 0, dead_depth = 1;
+  int dead_time = 0, approx_time = 0, approx_back = 0, dead_budget = 0, dead_depth = 1, dead_gfp = -1;
   double approx_back_time = 2.0;
   bool dead_step = false, approx_only = false, approx_units = false;
   int invariants_time = 0;
@@ -98,6 +98,7 @@ int main(int argc, char** argv) {
   app.add_option("--dead", dead_time, "dead transitions from the invariant set: the P-flows within S seconds, their bounds and equalities as a diagram, every transition tested (hsc/linear); no fixpoint");
   app.add_flag("--dead-step", dead_step, "with --dead, also the one-step test, backward per slice");
   app.add_option("--dead-depth", dead_depth, "with --dead-step, layers of the backward search from a slice (default 1)");
+  app.add_option("--dead-gfp", dead_gfp, "with --dead: after the tests, one image of S under the live transitions, then the forward gfp over them (K rounds, 0 unbounded), sizes and times on stderr");
   app.add_option("--dead-budget", dead_budget, "with --dead, seconds for the tests; what was decided when it runs out is reported");
   app.add_option("--approx", approx_time, "before the fixpoint, build the invariant set S (the P-flows within S seconds, the structural zeros, the NUPN safe tag) and answer the reachability, invariant and deadlock properties it refutes");
   app.add_flag("--approx-only", approx_only, "with --approx, stop there: no fixpoint, UNKNOWN for the rest");
@@ -448,6 +449,7 @@ int main(int argc, char** argv) {
       po.dead_step = dead_step;
       po.dead_budget = dead_budget;
       po.dead_depth = static_cast<std::size_t>(std::max(1, dead_depth));
+      po.dead_gfp = dead_gfp;
       po.verbose = verbose;
       const hsc::pn::approx_pass_report rep = hsc::pn::run_approx_pass(*net, tags, properties, g_open, po, std::cout);
       std::cout << rep.dead_line << std::endl;

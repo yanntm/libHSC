@@ -250,6 +250,8 @@ certificate; `unfold` always enumerates.
 (minus NAME A B)             ; the states of A not in B
 (pre NAME X SET [writing LEAF*]) ; the predecessors of X inside SET under the default system (converses against SET); only the events writing a listed leaf when given
 (backward NAME X SET [steps K] [writing LEAF*]) ; the states of SET leading to X, by layers: `NAME backward init|closed|open|partial K`
+(post NAME X SET [alive D])  ; the successors of X inside SET under the default system, the events a (dead …) result D left alive when given
+(support NAME SET [alive D] [rounds K]) ; the greatest fixpoint of X ↦ X ∩ (init ∪ post(X)) below SET: what a chain of firings inside SET supports from the initial marking
 (stock NAME [since OTHER])   ; take stock: states, nodes, per level nodes/arcs/local states (gained since OTHER), values per leaf
 (budget SECONDS)             ; every following form runs at most SECONDS; a closure that runs out returns a partial set — `NAME partial`
 ; `hsc FILE --stdin` then reads forms from standard input one at a time, answering and flushing each: an engine driven over a pipe
