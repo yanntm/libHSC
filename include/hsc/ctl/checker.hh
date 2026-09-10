@@ -89,6 +89,9 @@ class checker {
   /// Is the set of \p s nonempty? Existential at the outermost operator
   /// (`algorithm.md` §6) when enabled, else by `eval`; `nullopt` when refused.
   std::optional<bool> nonempty(set_id s);
+  /// The same, before the check that no closure it ran was stopped: a set
+  /// marked partial on the manager decides nothing, `nonempty` refuses it.
+  std::optional<bool> nonempty_unchecked(set_id s);
   /// The `HSC_CTL_EXIST` variation point (default on).
   static bool existential_enabled();
   /// The `HSC_CTL_OTF` variation point (default on): a goal inside a closure

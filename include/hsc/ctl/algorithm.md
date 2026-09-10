@@ -242,3 +242,24 @@ may offer the raw converses beside the protected ones (§3, the hull).
 
 `TRUE` / `FALSE` at the seed, with the technique tags of the driver. A
 refused node makes the verdict `unknown`, reported as such: never a guess.
+
+**Stopped closures decide nothing.** Under a deadline the closure loops
+return what they have, marked partial on the manager (`sched/algorithm.md`
+§3b): a `saturate` or `lfp` loop an under-approximation, a `gfp` loop an
+over-approximation. Every memo insert (`eval`, `sat`, `closure`), the hulls
+and the existential leaves (`nonempty`) check the mark after computing and
+throw `interrupted` instead of returning; the property answers `TIMEOUT`
+and what was memoised before the stop, all of it exact, serves the next
+round. A verdict read off a partial set is a guess about half the time
+(measured on the order sweep), never an answer.
+
+**A partial reachable set.** When `R` itself was cut, every set the checker
+computes within it under-approximates the reachable states satisfying its
+formula as long as no negation stands over a path operator: images and
+closures step through reachable states only, `Sat` is bounded by `R`, the
+deadlocks of `R` are real deadlocks, the cycles found are real. So on a
+partial `R` a formula whose NNF holds only E operators answered `TRUE`
+stands (a witness is real), and one holding only A operators answered
+`FALSE` stands (its dual's witness is real); a state formula is exact; the
+rest is reported `UNKNOWN` (`formulas::path_quantifiers`, the surface
+`(ctl …)` form applies the rule and says once that the set is partial).

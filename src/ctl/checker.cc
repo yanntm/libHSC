@@ -71,11 +71,17 @@ checker::code checker::hull(bool backward, code x0) {
     return e != nullptr && std::string(e) == "frontier";
   }();
   if (!frontier || conv.size() != h.size()) {
+    // A gfp loop stopped by the deadline returns what it has, an
+    // over-approximation marked partial: no set to answer from.
+    code x;
     if (backward && h.data() != events(true).data()) {
       hull_step(true, x0);  // ensures raw_pred_step_
-      return diagrams.apply_local(mgr_.operations().gfp(raw_pred_step_), x0);
+      x = diagrams.apply_local(mgr_.operations().gfp(raw_pred_step_), x0);
+    } else {
+      x = diagrams.apply_local(mgr_.operations().gfp(step_term(backward)), x0);
     }
-    return diagrams.apply_local(mgr_.operations().gfp(step_term(backward)), x0);
+    if (mgr_.partial()) throw interrupted("stopped: a partial hull is no answer");
+    return x;
   }
   // The frontier form: one full image, then work proportional to what moved.
   code x = x0;
@@ -101,8 +107,10 @@ bool checker::hull_nonempty(bool backward, code x0) {
   if (x0 == core::none) return false;
   if (existential_enabled() && mgr_.diagrams().fast_cycle_witness()) {
     step(backward, x0);  // ensures the step term
-    return mgr_.diagrams().has_image(
+    const bool some = mgr_.diagrams().has_image(
                mgr_.operations().gfp(backward ? pred_step_ : next_step_), x0) != core::none;
+    if (mgr_.partial()) throw interrupted("stopped: a partial hull is no answer");
+    return some;
   }
   return hull(backward, x0) != core::none;
 }
@@ -256,6 +264,16 @@ bool checker::has_cycles() {
 }
 
 std::optional<bool> checker::nonempty(set_id s) {
+  // The closures below return what they have when the deadline stops
+  // them (a saturate loop an under-approximation, a gfp loop an
+  // over-approximation), marked partial on the manager: a verdict read
+  // off such a set is a guess, so the answer is refused instead.
+  const std::optional<bool> r = nonempty_unchecked(s);
+  if (mgr_.partial()) throw interrupted("stopped: a partial set is no answer");
+  return r;
+}
+
+std::optional<bool> checker::nonempty_unchecked(set_id s) {
   trace_scope tr{trace_enabled() ? "nonempty " + fw_.print_set(s, [](std::uint32_t a) {
                                      return "a" + std::to_string(a);
                                    })
