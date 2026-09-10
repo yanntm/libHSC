@@ -364,7 +364,8 @@ int main(int argc, char** argv) {
     std::uint64_t sig = 1469598103934665603ull;
     // The reachable set runs under the budget's deadline (four fifths of it:
     // the alarm stays the backstop): a closure that runs out returns what it
-    // has, marked partial — reported, never answered from.
+    // has, marked partial — reported, and answered from only where a state
+    // found in it decides the property (`pn_solver::answer`).
     if (total_time > 0 && !shape_only) {
       solver.set_deadline(t_model + std::chrono::milliseconds(total_time * 800));
     }
@@ -513,7 +514,7 @@ int main(int argc, char** argv) {
         total_time > 0 ? std::optional(start + std::chrono::seconds(total_time)) : std::nullopt;
     for (std::size_t i = 0; i < properties.size(); ++i) {
       if (properties[i].kind == petri::expr::PropertyKind::CTL) continue;
-      if (solver.answer(properties[i], std::cout)) { g_open[i] = 0; note_answer(i); }
+      if (solver.answer(properties[i], std::cout, r_partial)) { g_open[i] = 0; note_answer(i); }
     }
     if (any_ctl && end) {
       // Fair shares in two passes: a property may take twice the remaining
@@ -535,7 +536,7 @@ int main(int argc, char** argv) {
                                            : remaining;
           const auto d = std::chrono::duration_cast<clock::duration>(std::chrono::duration<double>(slice));
           solver.set_deadline(std::min(*end, now + d));
-          if (solver.answer(properties[open[k]], std::cout)) { g_open[open[k]] = 0; note_answer(open[k]); }
+          if (solver.answer(properties[open[k]], std::cout, r_partial)) { g_open[open[k]] = 0; note_answer(open[k]); }
           else still.push_back(open[k]);
         }
         solver.set_deadline(std::nullopt);
@@ -543,7 +544,7 @@ int main(int argc, char** argv) {
       }
     } else if (any_ctl) {
       for (std::size_t i = 0; i < properties.size(); ++i) {
-        if (properties[i].kind == petri::expr::PropertyKind::CTL && solver.answer(properties[i], std::cout)) {
+        if (properties[i].kind == petri::expr::PropertyKind::CTL && solver.answer(properties[i], std::cout, r_partial)) {
           g_open[i] = 0;
           note_answer(i);
         }
@@ -551,9 +552,10 @@ int main(int argc, char** argv) {
     }
     print_open(std::cout);
     if (r_partial) {
-      // nothing is answered from a partial set: the StateSpace values would be
-      // wrong, and the properties' selections unsound — unless the set proves
-      // a place unbounded (a pumping pair), which answers StateSpace for good
+      // no StateSpace value comes from a partial set (the properties above
+      // were answered only where a state found in it decides them) — unless
+      // the set proves a place unbounded (a pumping pair), which answers
+      // StateSpace for good
       if (cover && states) {
         if (!pumped) {  // the deadline cut the set without a divergence note: one last look
           for (const std::string& l : solver.feed("(pump R)")) {
@@ -567,7 +569,7 @@ int main(int argc, char** argv) {
           return 0;
         }
       }
-      if (verbose) std::cerr << "hsc-pn: the reachable set is partial, no answers\n";
+      if (verbose) std::cerr << "hsc-pn: the reachable set is partial, no StateSpace values\n";
       print_open(std::cout);
       return 0;
     }

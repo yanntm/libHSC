@@ -275,7 +275,12 @@ class solver {
   }
 
   /// Answer one property with a FORMULA line; false when it is left open.
-  bool answer(const ::petri::expr::Property& p, std::ostream& out) {
+  /// With \p partial the session's `R` is an under-approximation (its
+  /// closure was cut): every state in it is reachable and nothing says the
+  /// rest is not, so only a goal met in it is answered (a reachable goal,
+  /// a violated invariant, a deadlock found); an empty selection, a bound,
+  /// and a CTL verdict the session itself does not stand by are left open.
+  bool answer(const ::petri::expr::Property& p, std::ostream& out, bool partial = false) {
     using ::petri::expr::Expression;
     using ::petri::expr::PropertyKind;
     const std::vector<std::string>& pnames = property_names();
@@ -292,6 +297,7 @@ class solver {
           return true;
         }
         const bool reached = nonempty(hsc::petri::query_atom(goal, pnames), &p.name);
+        if (partial && !reached) return false;
         out << "FORMULA " << p.name << ' ' << verdict(inv, reached) << TECHNIQUES
             << std::endl;
         return true;
@@ -302,17 +308,21 @@ class solver {
           out << "FORMULA " << p.name << " FALSE" << TRIVIAL << std::endl;
           return true;
         }
-        out << "FORMULA " << p.name << ' ' << (nonempty(*atom, &p.name) ? "TRUE" : "FALSE")
+        const bool found = nonempty(*atom, &p.name);
+        if (partial && !found) return false;
+        out << "FORMULA " << p.name << ' ' << (found ? "TRUE" : "FALSE")
             << TECHNIQUES << std::endl;
         return true;
       }
       case PropertyKind::Bound:
+        if (partial) return false;  // a maximum over part of the set is a lower bound
         out << "FORMULA " << p.name << ' ' << maximum(p.body.atom, p.boundHint)
             << TECHNIQUES << std::endl;
         return true;
       case PropertyKind::CTL: {
         // `(ctl Q FORMULA)` answers `Q ctl TRUE|FALSE|UNKNOWN`; unknown is
-        // left open (no line), never guessed.
+        // left open (no line), never guessed. On a partial set the session
+        // keeps only the verdicts that stand (`ctl/algorithm.md` §7).
         const std::string q = next_name();
         const std::string v = value_of(
             feed("(ctl " + q + " " + hsc::petri::ctl_text(p.ctl, pnames) + ")"),

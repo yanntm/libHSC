@@ -41,7 +41,12 @@ hsc-pn (-i model.pnml | --net model.pnet) [--props FILE] [--propsSyntax auto|mcc
    shuffle — the control);
    The reachable set runs under four fifths of `--totalTime` as a
    cooperative deadline (the alarm stays the backstop): when it runs out the
-   set is partial, nothing is answered from it, and the run says so.
+   set is partial and the run says so. Every state in a partial set is
+   reachable, nothing says the rest is not, so it answers only what a state
+   found in it decides: a reachable goal, a violated invariant, a deadlock
+   found, a CTL formula with E operators only that holds or with A operators
+   only that fails (`ctl/algorithm.md` §7); bounds, StateSpace values and
+   everything else stay `UNKNOWN`.
    Under `-v`, once the reachable set is built or cut, one `hsc-pn: stats`
    line gives its cost and size (`reach_s`, `partial`, `reach_states`,
    `reach_nodes`, `reach_arcs`), its
