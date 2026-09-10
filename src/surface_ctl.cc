@@ -40,6 +40,10 @@ struct translator::ctl_state {
   std::unordered_map<std::string, ctl::forward_form> converted;  ///< by property, for `witness`
   std::optional<std::vector<code>> raw_preds;  ///< the unprotected converses, for the paths
   std::optional<code> reach;  ///< `R`, computed on first use
+  /// `R` was cut by the deadline: an under-approximation. Only an
+  /// existential formula answered TRUE or a universal one answered FALSE
+  /// stands on it (`ctl/algorithm.md` §7); the rest is reported UNKNOWN.
+  bool reach_partial = false;
   std::optional<code> dead;   ///< the reachable deadlocks, once `reach` is
   /// The inverted events against `R`, exact ones raw and the others
   /// protected by `within(R)`; empty when some event has no converse.
@@ -177,6 +181,8 @@ void translator::do_ctl(const datum& form) {
   ctl_state& st = ctl();
   if (!st.reach) {
     st.reach = run_reach(false);
+    st.reach_partial = mgr_.partial();
+    if (st.reach_partial) out_ << "ctl: the reachable set is partial, verdicts restricted\n";
     st.dead = core::none;
     if (guards_complete_) {
       const ctl::node_id dl = deadlock_formula(form);
@@ -219,7 +225,16 @@ void translator::do_ctl(const datum& form) {
   const ctl::forward_form ff = st.fw.convert(phi);
   st.converted[name] = ff;
   try {
-    const ctl::verdict v = st.checker->check(ff);
+    ctl::verdict v = st.checker->check(ff);
+    if (st.reach_partial && v != ctl::verdict::unknown) {
+      // Every set computed within a partial `R` under-approximates the
+      // states satisfying its formula when no negation stands over a path
+      // operator; a witness found there is real, a refutation is not.
+      const ctl::formulas::quantifiers q = st.forms.path_quantifiers(st.forms.nnf(phi));
+      const bool sound = (v == ctl::verdict::yes && q == ctl::formulas::quantifiers::existential) ||
+                         (v == ctl::verdict::no && q == ctl::formulas::quantifiers::universal);
+      if (!sound) v = ctl::verdict::unknown;
+    }
     st.verdicts[name] = v;
     out_ << name << " ctl " << ctl::name(v) << '\n';
   } catch (const interrupted&) {
