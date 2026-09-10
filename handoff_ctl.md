@@ -7,22 +7,6 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
 
 ## Engineering — next
 
-0. **A verdict off a partial `R` is unsound, and the checker emits them.**
-   Found by the cluster sweep (`experiments/order/SWEEP.md` §9.1), unseen
-   before because every earlier CTL measurement closed `R`. On
-   `FMS-PT-10000` under `louvain` the run prints `R partial`, `partial=1`,
-   `reach_states=8764` after the 216 s the budget left it, then answers
-   `FALSE` on a formula that is `TRUE`. Over the sweep: 545 of the 559
-   wrong CTLC verdicts come from a run whose `R` was partial, and of the
-   1153 runs that answered on a partial `R`, **545 — 47 % — were wrong**.
-   A truncated `R` under-approximates: a witness found in it is real, so an
-   existential leaf answered TRUE stands; FALSE never does, and nothing
-   else does without an argument. Until the checker can say which of its
-   verdicts survive a partial `R`, a run that did not close `R` answers
-   UNKNOWN. The `partial` flag is already on the stats line, so the cheap
-   correct move is available today; the useful one is the per-verdict
-   criterion. This invalidates the "0 wrong" of every budgeted run below.
-
 1. **The portfolio read** (`experiments/ctl/README.md`): m4 → m5d is
    6101 → 6331 answered over 588 runs (294 instances below 10^7 states,
    60 s); the shapes: Louvain + FORCE 7267, NUPN + FORCE 7067, best of

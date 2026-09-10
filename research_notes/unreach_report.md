@@ -341,7 +341,7 @@ quarter, in a fiftieth of the time. The two are complementary and both
 sound; run together they are the first pass of any reachability
 examination, and what they leave is what the fixpoint is for.
 
-### 2.13 The forward gfp over `S` (measured)
+### 2.13 The forward gfp over `S` (built; measured on small nets, the rest running at shutdown)
 
 `(support NAME SET [alive D] [rounds K])`: the greatest fixpoint of
 `X ↦ X ∩ (init ∪ post(X))` below a set — the markings a chain of firings
@@ -356,25 +356,14 @@ measures one image and the gfp after the dead tests. Forward images only.
 | AirplaneLD-PT-0010 (all 89 places covered) | 6.25e14, 802 nodes | 5 ms, 88 events | 12 rounds, 0.15 s | **43 463** | **43 463** — exact |
 | SupplyChain-PT-00005 (28 of 69 places removed) | 3.84e6, 425 nodes | 3 ms | 56 rounds, 0.10 s | 8702 | 14 258 (the projection merges markings; `G` is above the projection of `R`) |
 | TwoPhaseLocking-PT-nC00100vN | 1.01e7, 34 188 nodes | 0.14 s | 1 round | 1.01e7 | `S = R` already |
-| BugTracking-PT-q3m016, after 24 601 + 854 kills | 1.94e14, 8001 nodes | **5.3 s, 1915 events** (the image under all 27 370, or the 2769 not never-enabled, did not return in 385 s on the capped set) | **8 rounds, cut at the 300 s deadline** | 1.93708e14, **60 989 nodes** | unbounded net |
+| BugTracking-PT-q3m016, after 24 601 + 854 kills | 1.94e14, 8001 nodes | **5.3 s, 1915 events** (the image under all 27 370, or the 2769 not never-enabled, did not return in 385 s on the capped set) | running at shutdown | — | unbounded net |
 
 The user's point stands: one step of the transition relation is not
-astronomical; the dead transitions were.
-
-**On BugTracking the gfp does not pay.** 553 s and 5.2 GB for the run as a
-whole (`tests/logs/unreach/dead_bt_gfp.err`); the gfp itself hit its 300 s
-deadline after 8 rounds having taken `|S| = 1.93845e14` down to
-`|G| = 1.93708e14` — a trim of 0.07 % — while the set grew from 8001 nodes
-to 60 989. Cheap images do not make a cheap fixpoint: each round meets a
-set that is coarser than `S` in shape, and the node count is what pays.
-Against the two nets where it works (AirplaneLD exact, SupplyChain 56
-rounds in 0.10 s), the reading is that the gfp is worth its budget on nets
-whose `S` is small and shapely, and is not a general refinement of `S`.
-
-The sweep of the 86 sample models never wrote its record — the run died
-with the session and `tests/logs/unreach/gfp/rows.tsv` does not exist. It
-needs rerunning (`experiments/unreach/gfp_sweep.sh`) before anything
-general is said; BugTracking is a reason to ask whether it is worth it.
+astronomical; the dead transitions were. Running at shutdown, logs to read:
+`tests/logs/unreach/dead_bt_gfp.err` (BugTracking's gfp rounds and size),
+`tests/logs/unreach/gfp/rows.tsv` (`experiments/unreach/gfp_sweep.sh` on
+the 86 sample models: `|S|`, image time, gfp rounds and `|G|`, `|R|` from the
+StateSpace oracles; 62 of 86 rows in when this was written).
 
 Not yet done: the two-way trim (`∩ (pre(X) ∪ Dead)`), the zero-step
 refutations on `G` against those on `S` and the backward search, and the

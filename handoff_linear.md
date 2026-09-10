@@ -26,27 +26,22 @@ PetriSpot's LP 3363, 0 wrong; complementary (`hscb` ahead on 541
 instances, `lp` on 244). BugTracking: 854 sound one-step kills beyond the
 24 601 structural ones, converging in 250 s. Report §2.12, §2.10.
 
-## The two runs that were unread (2026-09-10, read)
+## At shutdown (2026-09-10, midday)
 
-* **BugTracking's forward gfp finished, and the gfp does not pay there.**
-  553 s and 5.2 GB in all (`tests/logs/unreach/dead_bt_gfp.err`); the live
-  image under the 1915 live events took 5.3 s as recorded, but the gfp
-  itself was **cut at its 300 s deadline after 8 rounds**, having trimmed
-  `|S| = 1.93845e14` to `|G| = 1.93708e14` — 0.07 % — while the set went
-  from S's 8001 nodes to **60 989**. On this model the gfp of support buys
-  nothing in the budget and costs 7.6× the nodes. Report §2.13.
-* **The gfp sweep of the 86 sample models was lost**, not merely unread:
-  `tests/logs/unreach/gfp/rows.tsv` does not exist — the run died with the
-  session before writing. Rerun `experiments/unreach/gfp_sweep.sh` if the
-  sweep is still wanted; BugTracking above is a reason to ask first.
+* Running in the background when the session closed, unread:
+  BugTracking's forward gfp (`tests/logs/unreach/dead_bt_gfp.err`: the
+  image under the 1915 live events took 5.3 s, the gfp rounds follow) and
+  the gfp sweep of the 86 sample models (`tests/logs/unreach/gfp/rows.tsv`,
+  62 rows in; `experiments/unreach/gfp_sweep.sh`).
 * The cluster campaign of `PetriSpot/Petri/test/mcc/campaign-2026-09-10.md`
-  is still **not submitted**, but the queue that blocked it is gone: the
-  2651 waiting sweep jobs were cancelled and our account holds nothing.
-  Everything is deployed and warmup-tested locally; the submit script is
-  `submit-2026-09-10.sh`. `tall%` remains full, so legs 2 and 3 (`hsc`,
-  `hscapprox`) go to `small%` — `hsc-pn` runs there unmodified — while leg
-  1 waits for `tall%` or for a native image built at `-march=x86-64-v2`
-  (PetriSpot `docs/CLUSTER.md` §1a).
+  is **not submitted**: at 01:28 our account held 4314 jobs of the
+  order-heuristics sweep; at 11:00, 2651 waiting and 0 running — the 19
+  alive `tall` nodes are all taken by other users' whole-node jobs (lacour
+  6, clusterbd 4, nibert 7 on 24 h jobs ending 09-11 morning, riwan 1,
+  lemattre 1; tall14 dead), the scheduler's estimate for our next job is
+  2026-09-14. Everything else is deployed and warmup-tested locally; the
+  submit script is `submit-2026-09-10.sh`. The user decides whether to wait,
+  cancel the sweep, or move to `small%`.
 
 ## Engineering — next
 
