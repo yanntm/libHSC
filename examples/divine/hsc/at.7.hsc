@@ -102,6 +102,3 @@
 (event P_5_t12_p12_NCS (when (== P_5_state 10) (!= glob_y 5)) (do (:= P_5_state 0)) (do (:= glob_t_5 255)))
 (event P_5_t13_p12_p13 (when (== P_5_state 10) (== glob_y 5)) (do (:= P_5_state 11)) (do (:= glob_t_5 2)))
 (event P_5_t14_p13_NCS (when (== P_5_state 11)) (do (:= P_5_state 0)) (do (:= glob_y 255)) (do (:= glob_t_5 255)))
-(reach R saturate)
-(count R)
-(nodes R)

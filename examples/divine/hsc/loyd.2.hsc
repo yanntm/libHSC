@@ -19,6 +19,3 @@
 (event P_t3_q_q (when (== P_state 0) (> glob_y 0)) (do (:= P_state 0)) (do (:= (at glob_a (+ (* glob_y 3) glob_x)) (% (+ (% (at glob_a (+ (* (- glob_y 1) 3) glob_x)) 256) 256) 256))) (do (:= (at glob_a (+ (* (- glob_y 1) 3) glob_x)) 0)) (do (:= glob_y (% (+ (% (- glob_y 1) 256) 256) 256))))
 (event P_t4_q_q (when (== P_state 0) (< glob_y (- 3 1))) (do (:= P_state 0)) (do (:= (at glob_a (+ (* glob_y 3) glob_x)) (% (+ (% (at glob_a (+ (* (+ glob_y 1) 3) glob_x)) 256) 256) 256))) (do (:= (at glob_a (+ (* (+ glob_y 1) 3) glob_x)) 0)) (do (:= glob_y (% (+ (% (+ glob_y 1) 256) 256) 256))))
 (event Check_t1_not_done_done (when (== Check_state 0) (== glob_a_0 8) (== glob_a_1 7) (== glob_a_2 6) (== glob_a_3 5) (== glob_a_4 4) (== glob_a_5 3) (== glob_a_6 2) (== glob_a_7 1) (== glob_a_8 0)) (do (:= Check_state 1)))
-(reach R saturate)
-(count R)
-(nodes R)

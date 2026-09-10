@@ -81,6 +81,3 @@
 (event Sender_t10_success_next_frame (when (== Sender_state 4) (< Sender_i Sender_n)) (do (:= Sender_state 1)) (do (:= Sender_i (% (+ (% (+ Sender_i 1) 256) 256) 256))))
 (event Receiver_t2_first_safe_frame_received (when (== Receiver_state 4)) (do (:= Receiver_state 2)) (do (:= Receiver_exp_ab (% (+ (% (& Receiver_value 1) 256) 256) 256))))
 (event Receiver_t9_idle_ret (when (== Receiver_state 0) (== (& Receiver_value 2) 2)) (do (:= Receiver_state 5)))
-(reach R saturate)
-(count R)
-(nodes R)

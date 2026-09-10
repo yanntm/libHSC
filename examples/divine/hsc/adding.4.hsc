@@ -11,6 +11,3 @@
 (event a2_t1_Q_R (when (== a2_state 0) (< glob_c 400)) (do (:= a2_state 1)) (do (:= glob_x2 glob_c)))
 (event a2_t2_R_S (when (== a2_state 1)) (do (:= a2_state 2)) (do (:= glob_x2 (+ glob_x2 glob_c))))
 (event a2_t3_S_Q (when (== a2_state 2)) (do (:= a2_state 0)) (do (:= glob_c glob_x2)))
-(reach R saturate)
-(count R)
-(nodes R)

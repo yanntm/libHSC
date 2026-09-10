@@ -50,6 +50,3 @@
 (event P_3_t5_q3_wait (when (== P_3_state 4) (or (!= (at glob_step (- P_3_j 1)) 3) (== P_3_k 4))) (do (:= P_3_state 2)) (do (:= P_3_j (% (+ (% (+ P_3_j 1) 256) 256) 256))))
 (event P_3_t6_wait_CS (when (== P_3_state 2) (== P_3_j 4)) (do (:= P_3_state 1)))
 (event P_3_t7_CS_NCS (when (== P_3_state 1)) (do (:= P_3_state 0)) (do (:= glob_pos_3 0)))
-(reach R saturate)
-(count R)
-(nodes R)

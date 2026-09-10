@@ -223,6 +223,3 @@
 (event P_t7_q_q (when (== P_state 0) (== glob_done 0) (== (at glob_a (+ (+ (* glob_y 19) glob_x) 1)) 2) (== (at glob_a (+ (+ (* glob_y 19) glob_x) 2)) 0)) (do (:= P_state 0)) (do (:= (at glob_a (+ (+ (* glob_y 19) glob_x) 2)) 2)) (do (:= (at glob_a (+ (+ (* glob_y 19) glob_x) 1)) 0)) (do (:= glob_x (% (+ (% (+ glob_x 1) 256) 256) 256))))
 (event P_t8_q_q (when (== P_state 0) (== glob_done 0) (== (at glob_a (+ (* (- glob_y 1) 19) glob_x)) 2) (== (at glob_a (+ (* (- glob_y 2) 19) glob_x)) 0)) (do (:= P_state 0)) (do (:= (at glob_a (+ (* (- glob_y 2) 19) glob_x)) 2)) (do (:= (at glob_a (+ (* (- glob_y 1) 19) glob_x)) 0)) (do (:= glob_y (% (+ (% (- glob_y 1) 256) 256) 256))))
 (event P_t9_q_q (when (== P_state 0) (== glob_done 0) (== (at glob_a (+ (* (+ glob_y 1) 19) glob_x)) 2) (== (at glob_a (+ (* (+ glob_y 2) 19) glob_x)) 0)) (do (:= P_state 0)) (do (:= (at glob_a (+ (* (+ glob_y 2) 19) glob_x)) 2)) (do (:= (at glob_a (+ (* (+ glob_y 1) 19) glob_x)) 0)) (do (:= glob_y (% (+ (% (+ glob_y 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

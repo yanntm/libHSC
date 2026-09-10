@@ -54,6 +54,3 @@
 (event P_2_t12_q5_NCS (when (== P_2_state 8) (== glob_y 255)) (do (:= P_2_state 0)))
 (event P_2_t13_CS_e1 (when (== P_2_state 1)) (do (:= P_2_state 9)) (do (:= glob_y 255)))
 (event P_2_t14_e1_NCS (when (== P_2_state 9)) (do (:= P_2_state 0)) (do (:= glob_b_2 0)))
-(reach R saturate)
-(count R)
-(nodes R)

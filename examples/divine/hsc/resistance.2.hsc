@@ -41,6 +41,3 @@
 (event Device_state_t2_state_request_err7 (when (== Device_state_state 0)) (do (:= Device_state_state 2)))
 (event Device_state_t3_state0_state1 (when (== Device_state_state 1)) (do (:= Device_state_state 4)) (do (:= glob_cage_safe 1)))
 (event Device_state_t5_state0_err7 (when (== Device_state_state 1)) (do (:= Device_state_state 2)))
-(reach R saturate)
-(count R)
-(nodes R)

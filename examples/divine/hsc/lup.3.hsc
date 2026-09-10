@@ -119,6 +119,3 @@
 (event to_lup8_Timer_lup8_t9_t10 (when (== Timer_state 0) (== Timer_time 8) (== lup8_state 5)) (do (:= lup8_state 0)) (do (:= Timer_time 0)) (do (:= Timer_state 0)))
 (event to_lup8_Timer_lup8_t9_t11 (when (== Timer_state 0) (== Timer_time 8) (== lup8_state 5) (not (!= (| (| (| (| (| (| (| (| (== lup0_state 2) (== lup1_state 2)) (== lup2_state 2)) (== lup3_state 2)) (== lup4_state 2)) (== lup5_state 2)) (== lup6_state 2)) (== lup7_state 2)) (== lup8_state 2)) 0))) (do (:= lup8_state 2)) (do (:= Timer_time 0)) (do (:= Timer_state 0)))
 (event to_lup8_Timer_lup8_t9_t12 (when (== Timer_state 0) (== Timer_time 8) (== lup8_state 5) (!= (| (| (| (| (| (| (| (| (== lup0_state 2) (== lup1_state 2)) (== lup2_state 2)) (== lup3_state 2)) (== lup4_state 2)) (== lup5_state 2)) (== lup6_state 2)) (== lup7_state 2)) (== lup8_state 2)) 0)) (do (:= lup8_state 1)) (do (:= Timer_time 0)) (do (:= Timer_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

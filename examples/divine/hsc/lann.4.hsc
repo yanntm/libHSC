@@ -75,6 +75,3 @@
 (event P_4_t2_got_msg_CS (when (== P_4_state 2) (== P_4_v 255)) (do (:= P_4_state 1)))
 (event P_4_t8_got_msg_wait (when (== P_4_state 2) (!= P_4_v 255) (== P_4_v 23) (!= P_4_status 1)) (do (:= P_4_state 0)) (do (:= P_4_status 0)) (do (:= P_4_sended 0)))
 (event P_4_t9_got_msg_CS (when (== P_4_state 2) (!= P_4_v 255) (== P_4_v 23) (== P_4_status 1)) (do (:= P_4_state 1)) (do (:= P_4_sended 0)))
-(reach R saturate)
-(count R)
-(nodes R)

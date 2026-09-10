@@ -60,6 +60,3 @@
 (event channel_link_1_t2_tr_ready (when (== channel_link_1_state 1)) (do (:= channel_link_1_state 0)))
 (event channel_link_2_t2_tr_ready (when (== channel_link_2_state 1)) (do (:= channel_link_2_state 0)))
 (event channel_link_3_t2_tr_ready (when (== channel_link_3_state 1)) (do (:= channel_link_3_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

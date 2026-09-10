@@ -90,6 +90,3 @@
 (event User5_t4_got_wait (when (== User5_state 1) (== 5 User5_m)) (do (:= User5_state 0)))
 (event User5_t5_got_wrong_data (when (== User5_state 1) (!= 5 User5_m)) (do (:= User5_state 2)))
 (event Master_t2_wait_send (when (== Master_state 1) (== Medium_state 0) (== Slave1_state 0) (== Slave2_state 0) (== Slave3_state 0) (== Slave4_state 0) (== Slave5_state 0)) (do (:= Master_state 0)) (do (:= Master_next (% (+ (% (+ (% Master_next 5) 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

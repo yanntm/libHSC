@@ -35,6 +35,3 @@
 (event krebs_1_t5_fumarat_malat (when (== krebs_1_state 6) (>= glob_H20 1)) (do (:= krebs_1_state 7)) (do (:= glob_H20 (% (+ (% (- glob_H20 1) 256) 256) 256))))
 (event krebs_1_t6_malat_oxalacetrat (when (== krebs_1_state 7) (>= glob_NADp 1)) (do (:= krebs_1_state 0)) (do (:= glob_NADp (% (+ (% (- glob_NADp 1) 256) 256) 256))) (do (:= glob_NADH (% (+ (% (+ glob_NADH 1) 256) 256) 256))))
 (event rest_of_cell_t1_q_q (when (== rest_of_cell_state 0) (>= glob_ATP 1)) (do (:= rest_of_cell_state 0)) (do (:= glob_ATP (% (+ (% (- glob_ATP 1) 256) 256) 256))) (do (:= glob_ADP (% (+ (% (+ glob_ADP 1) 256) 256) 256))) (do (:= glob_energy (% (+ (% (+ glob_energy 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

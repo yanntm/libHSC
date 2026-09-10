@@ -666,6 +666,3 @@
 (event Application_t2_q_r (when (== Application_state 0)) (do (:= Application_state 1)) (do (:= Application_i 1)))
 (event Application_t3_q_r (when (== Application_state 0)) (do (:= Application_state 1)) (do (:= Application_i 2)))
 (event Application_t4_q_r (when (== Application_state 0)) (do (:= Application_state 1)) (do (:= Application_i 3)))
-(reach R saturate)
-(count R)
-(nodes R)

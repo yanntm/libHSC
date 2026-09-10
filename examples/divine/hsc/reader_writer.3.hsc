@@ -142,6 +142,3 @@
 (event stop_write_writer_12_control_t2_t7 (when (== writer_12_state 1) (== control_state 2)) (do (:= control_state 0)) (do (:= writer_12_state 0)))
 (event stop_write_writer_13_control_t2_t5 (when (== writer_13_state 1) (== control_state 1)) (do (:= control_state 3)) (do (:= writer_13_state 0)))
 (event stop_write_writer_13_control_t2_t7 (when (== writer_13_state 1) (== control_state 2)) (do (:= control_state 0)) (do (:= writer_13_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

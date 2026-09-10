@@ -163,6 +163,3 @@
 (event CC_t72_doneUpdate1_update_cycle (when (== CC_state 23)) (do (:= CC_state 45)) (do (:= CC_ID (% (+ (% (+ CC_ID 1) 256) 256) 256))))
 (event CC_t73_update_step1_update_cycle (when (== CC_state 46) (or (== CC_ID (% CC_cmd 16)) (== (at CC_registered CC_ID) 0))) (do (:= CC_state 45)) (do (:= CC_ID (% (+ (% (+ CC_ID 1) 256) 256) 256))))
 (event CC_t74_update_cycle_ready (when (== CC_state 45) (>= CC_ID 2)) (do (:= CC_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

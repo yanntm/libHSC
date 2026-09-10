@@ -129,6 +129,3 @@
 (event Car_ver_7_t2_q_q (when (== Car_ver_7_state 0) (< (+ Car_ver_7_y Car_ver_7_length) 7) (== (at glob_A (+ (* (+ Car_ver_7_y Car_ver_7_length) 7) Car_ver_7_x)) 0)) (do (:= Car_ver_7_state 0)) (do (:= (at glob_A (+ (* Car_ver_7_y 7) Car_ver_7_x)) 0)) (do (:= (at glob_A (+ (* (+ Car_ver_7_y Car_ver_7_length) 7) Car_ver_7_x)) 1)) (do (:= Car_ver_7_y (% (+ (% (+ Car_ver_7_y 1) 256) 256) 256))))
 (event Car_ver_8_t1_q_q (when (== Car_ver_8_state 0) (> Car_ver_8_y 0) (== (at glob_A (+ (* (- Car_ver_8_y 1) 7) Car_ver_8_x)) 0)) (do (:= Car_ver_8_state 0)) (do (:= (at glob_A (+ (* (- (+ Car_ver_8_y Car_ver_8_length) 1) 7) Car_ver_8_x)) 0)) (do (:= (at glob_A (+ (* (- Car_ver_8_y 1) 7) Car_ver_8_x)) 1)) (do (:= Car_ver_8_y (% (+ (% (- Car_ver_8_y 1) 256) 256) 256))))
 (event Car_ver_8_t2_q_q (when (== Car_ver_8_state 0) (< (+ Car_ver_8_y Car_ver_8_length) 7) (== (at glob_A (+ (* (+ Car_ver_8_y Car_ver_8_length) 7) Car_ver_8_x)) 0)) (do (:= Car_ver_8_state 0)) (do (:= (at glob_A (+ (* Car_ver_8_y 7) Car_ver_8_x)) 0)) (do (:= (at glob_A (+ (* (+ Car_ver_8_y Car_ver_8_length) 7) Car_ver_8_x)) 1)) (do (:= Car_ver_8_y (% (+ (% (+ Car_ver_8_y 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

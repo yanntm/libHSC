@@ -138,6 +138,3 @@
 (event User_3_t27_tconnected_tconnected (when (== User_3_state 12) (== (/ glob_chan_3 20) 1) (== User_3_dev 0)) (do (:= User_3_state 12)) (do (:= User_3_dev 1)))
 (event User_3_t28_tconnected_tconnected (when (== User_3_state 12) (== (/ glob_chan_3 20) 1) (== User_3_dev 1)) (do (:= User_3_state 12)) (do (:= User_3_dev 0)))
 (event User_3_t29_tconnected_idle (when (== User_3_state 12) (== (/ glob_chan_3 20) 0)) (do (:= User_3_state 0)) (do (:= glob_partner_3 255)) (do (:= glob_chan_3 255)) (do (:= User_3_dev 1)))
-(reach R saturate)
-(count R)
-(nodes R)

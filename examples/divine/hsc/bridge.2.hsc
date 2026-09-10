@@ -73,6 +73,3 @@
 (event wanna_go_soldier_6_torch_t3_t1 (when (== soldier_6_state 2) (== glob_where_is_torch 1) (== torch_state 0)) (do (:= torch_time1 30)) (do (:= torch_state 1)) (do (:= glob_on_right (% (+ (% (- glob_on_right 1) 256) 256) 256))) (do (:= soldier_6_state 3)))
 (event wanna_go_soldier_6_torch_t3_t2 (when (== soldier_6_state 2) (== glob_where_is_torch 1) (== torch_state 1)) (do (:= torch_time2 30)) (do (:= torch_state 2)) (do (:= glob_on_right (% (+ (% (- glob_on_right 1) 256) 256) 256))) (do (:= soldier_6_state 3)))
 (event torch_t3_one_going (when (== torch_state 1)) (do (:= torch_state 3)))
-(reach R saturate)
-(count R)
-(nodes R)

@@ -2022,6 +2022,3 @@
 (event pour_full9_Bottle_3_Bottle_2_t124_t200 (when (== Bottle_3_state 10) (== Bottle_2_state 4)) (do (:= Bottle_2_state 13)) (do (:= Bottle_3_state 1)))
 (event pour_full9_Bottle_3_Bottle_1_t135_t640 (when (== Bottle_3_state 11) (== Bottle_1_state 15)) (do (:= Bottle_1_state 24)) (do (:= Bottle_3_state 2)))
 (event pour_full9_Bottle_3_Bottle_2_t135_t200 (when (== Bottle_3_state 11) (== Bottle_2_state 4)) (do (:= Bottle_2_state 13)) (do (:= Bottle_3_state 2)))
-(reach R saturate)
-(count R)
-(nodes R)

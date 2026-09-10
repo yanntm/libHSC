@@ -44,6 +44,3 @@
 (event controller_t3_work_done (when (== controller_state 1) (>= glob_t 0) (< glob_t 13) (== (at glob_req glob_t) 1)) (do (:= controller_state 2)))
 (event controller_t4_work_work (when (== controller_state 1) (>= glob_t 0) (< glob_t 13) (== (at glob_req glob_t) 0)) (do (:= controller_state 1)) (do (:= glob_t (- (+ glob_t (* 2 controller_ldir)) 1))))
 (event controller_t5_done_wait (when (== controller_state 2)) (do (:= controller_state 0)) (do (:= glob_v 1)))
-(reach R saturate)
-(count R)
-(nodes R)

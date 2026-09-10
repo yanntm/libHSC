@@ -90,6 +90,3 @@
 (event P_2_t22_p9_p9 (when (== P_2_state 11) (< P_2_j 2) (== (at glob_w P_2_j) 0) (== (at glob_s P_2_j) 0)) (do (:= P_2_state 11)) (do (:= P_2_j (% (+ (% (+ P_2_j 1) 256) 256) 256))))
 (event P_2_t23_p9_CS (when (== P_2_state 11) (== P_2_j 2)) (do (:= P_2_state 12)))
 (event P_2_t24_CS_NCS (when (== P_2_state 12)) (do (:= P_2_state 0)) (do (:= glob_s_2 0)))
-(reach R saturate)
-(count R)
-(nodes R)

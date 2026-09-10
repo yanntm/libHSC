@@ -34,6 +34,3 @@
 (event Consumer_t5_consume1_ready (when (== Consumer_state 3)) (do (:= Consumer_state 0)))
 (event Sender_t5_wait_ack_failed (when (== Sender_state 2) (== Sender_retry 40)) (do (:= Sender_state 3)))
 (event Receiver_t2_got_msg_waiting (when (== Receiver_state 1) (!= (% Receiver_value 2) Receiver_rab)) (do (:= Receiver_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

@@ -165,6 +165,3 @@
 (event Node_3_t28_l2_wait (when (== Node_3_state 5)) (do (:= Node_3_state 1)) (do (:= Node_3_lrec (% (+ (% (+ Node_3_lrec 1) 256) 256) 256))) (do (:= Node_3_win (% (+ (% (/ (% Node_3_m (* 10 10)) 10) 256) 256) 256))))
 (event Node_3_t29_wait_leader (when (== Node_3_state 1) (== Node_3_lrec 2) (== Node_3_win 3)) (do (:= Node_3_state 11)) (do (:= glob_leaders_num (% (+ (% (+ glob_leaders_num 1) 256) 256) 256))))
 (event Node_3_t30_wait_lost (when (== Node_3_state 1) (== Node_3_lrec 2) (!= Node_3_win 3)) (do (:= Node_3_state 12)))
-(reach R saturate)
-(count R)
-(nodes R)

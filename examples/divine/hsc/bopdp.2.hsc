@@ -103,6 +103,3 @@
 (event IOP_t39_observe_status_clear_lsl_interrupt (when (== IOP_state 27) (== glob_cur 0) (== glob_some_data 1)) (do (:= IOP_state 28)))
 (event IOP_t40_clear_lsl_interrupt_send_active_command (when (== IOP_state 28) (== glob_cur 0)) (do (:= IOP_state 29)) (do (:= glob_enabled_lsl_interrupt 0)) (do (:= glob_generated_lsl_interrupt 0)))
 (event IOP_t42_back_to_active_active (when (== IOP_state 30) (== glob_cur 0)) (do (:= IOP_state 2)))
-(reach R saturate)
-(count R)
-(nodes R)

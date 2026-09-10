@@ -241,6 +241,3 @@
 (event Node_5_t16_qwcheck_qw (when (== Node_5_state 10) (== Node_5_number 21)) (do (:= Node_5_state 9)) (do (:= glob_nr_leaders (% (+ (% (+ glob_nr_leaders 1) 256) 256) 256))))
 (event Node_5_t17_qwcheck_qw (when (== Node_5_state 10) (!= Node_5_number 21)) (do (:= Node_5_state 9)))
 (event Node_5_t18_qw_wait (when (== Node_5_state 9) (!= Node_5_know 0)) (do (:= Node_5_state 1)))
-(reach R saturate)
-(count R)
-(nodes R)

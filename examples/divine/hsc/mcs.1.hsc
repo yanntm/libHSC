@@ -54,6 +54,3 @@
 (event P_2_t11_p9_p10 (when (== P_2_state 7) (!= glob_tail 2)) (do (:= P_2_state 9)))
 (event P_2_t12_p10_p13 (when (== P_2_state 9) (!= glob_next_2 255)) (do (:= P_2_state 8)))
 (event P_2_t13_p13_NCS (when (== P_2_state 8)) (do (:= P_2_state 0)) (do (:= (at glob_locked glob_next_2) 0)))
-(reach R saturate)
-(count R)
-(nodes R)

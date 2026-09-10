@@ -106,6 +106,3 @@
 (event phil_12_t4_one_eat (when (== phil_12_state 2) (== glob_fork_0 0)) (do (:= phil_12_state 3)) (do (:= glob_fork_0 1)))
 (event phil_12_t5_eat_finish (when (== phil_12_state 3)) (do (:= phil_12_state 4)) (do (:= glob_fork_12 0)))
 (event phil_12_t6_finish_inside (when (== phil_12_state 4)) (do (:= phil_12_state 1)) (do (:= glob_fork_0 0)))
-(reach R saturate)
-(count R)
-(nodes R)

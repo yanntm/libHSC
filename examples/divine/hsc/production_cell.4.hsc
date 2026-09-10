@@ -56,6 +56,3 @@
 (event Robot_t10_Apress_Bdeposit (when (== Robot_state 3) (!= Robot_B 255)) (do (:= Robot_state 4)))
 (event Robot_t11_Apress_wait (when (== Robot_state 3) (or (== Robot_A 255) (== Robot_at_press 1)) (== Robot_B 255)) (do (:= Robot_state 2)))
 (event Robot_t13_Bdeposit_Apress (when (== Robot_state 4) (== Robot_B 255)) (do (:= Robot_state 3)))
-(reach R saturate)
-(count R)
-(nodes R)

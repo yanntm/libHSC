@@ -73,6 +73,3 @@
 (event Person_0_t42_Spilberk_Spilberk (when (== Person_0_state 5) (== glob_done_0 0) (== glob_solved_8 0) (>= glob_time 8) (<= glob_time 9)) (do (:= Person_0_state 5)) (do (:= glob_done_0 1)) (do (:= glob_solved_8 1)) (do (:= glob_body (% (+ (% (+ glob_body 1) 256) 256) 256))))
 (event Person_0_t43_Burian_Wilson (when (== Person_0_state 9) (== glob_done_0 0)) (do (:= Person_0_state 10)) (do (:= glob_done_0 1)))
 (event Person_0_t44_Wilson_Modul (when (== Person_0_state 10) (== glob_done_0 0)) (do (:= Person_0_state 11)) (do (:= glob_at_modul (% (+ (% (+ glob_at_modul 1) 256) 256) 256))) (do (:= glob_done_0 1)))
-(reach R saturate)
-(count R)
-(nodes R)

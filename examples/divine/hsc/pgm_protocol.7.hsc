@@ -258,6 +258,3 @@
 (event NR_t8_q_out_3_q (when (== NR_state 5)) (do (:= NR_state 6)) (do (:= glob_NR_time_0 (% (+ (% glob_NR_time_1 256) 256) 256))) (do (:= glob_NR_time_1 (% (+ (% glob_NR_time_2 256) 256) 256))) (do (:= glob_NR_time_2 (% (+ (% glob_NR_time_3 256) 256) 256))) (do (:= glob_NR_time_3 (% (+ (% glob_NR_time_4 256) 256) 256))) (do (:= glob_NR_time_4 (% (+ (% glob_NR_time_5 256) 256) 256))) (do (:= glob_NR_time_5 (% (+ (% glob_NR_time_6 256) 256) 256))) (do (:= glob_NR_time_6 0)) (do (:= glob_NR_size (% (+ (% (- glob_NR_size 1) 256) 256) 256))))
 (event RN_t2_q_in_1_q (when (== RN_state 0)) (do (:= RN_state 2)) (do (:= (at glob_RN_time glob_RN_size) 2)) (do (:= glob_RN_size (% (+ (% (+ glob_RN_size 1) 256) 256) 256))))
 (event RN_t4_q_out_1_q (when (== RN_state 1)) (do (:= RN_state 2)) (do (:= glob_RN_time_0 (% (+ (% glob_RN_time_1 256) 256) 256))) (do (:= glob_RN_time_1 (% (+ (% glob_RN_time_2 256) 256) 256))) (do (:= glob_RN_time_2 (% (+ (% glob_RN_time_3 256) 256) 256))) (do (:= glob_RN_time_3 (% (+ (% glob_RN_time_4 256) 256) 256))) (do (:= glob_RN_time_4 (% (+ (% glob_RN_time_5 256) 256) 256))) (do (:= glob_RN_time_5 (% (+ (% glob_RN_time_6 256) 256) 256))) (do (:= glob_RN_time_6 0)) (do (:= glob_RN_size (% (+ (% (- glob_RN_size 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

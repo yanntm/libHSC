@@ -28,6 +28,3 @@
 (event P_1_t6_wait_for_loop (when (== P_1_state 3) (or (or (== (at glob_number P_1_j) 0) (> (at glob_number P_1_j) glob_number_1)) (and (== (at glob_number P_1_j) glob_number_1) (<= 1 P_1_j)))) (do (:= P_1_state 2)) (do (:= P_1_j (% (+ (% (+ P_1_j 1) 256) 256) 256))))
 (event P_1_t7_for_loop_CS (when (== P_1_state 2) (== P_1_j 2)) (do (:= P_1_state 4)))
 (event P_1_t8_CS_NCS (when (== P_1_state 4)) (do (:= P_1_state 0)) (do (:= glob_number_1 0)))
-(reach R saturate)
-(count R)
-(nodes R)

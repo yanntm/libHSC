@@ -78,6 +78,3 @@
 (event Receiver_t30_q_e2_q_error (when (== Receiver_state 11) (!= Receiver_m Receiver_n)) (do (:= Receiver_state 10)))
 (event StoR_t4_q_q (when (== StoR_state 0) (not (== StoR_buf_act 0))) (do (:= StoR_state 0)) (do (:= StoR_buf_0 (% (+ (% StoR_buf_1 256) 256) 256))) (do (:= StoR_buf_1 (% (+ (% StoR_buf_2 256) 256) 256))) (do (:= StoR_buf_2 0)) (do (:= StoR_buf_act (% (+ (% (- StoR_buf_act 1) 256) 256) 256))))
 (event RtoS_t4_q_q (when (== RtoS_state 0) (not (== RtoS_buf_act 0))) (do (:= RtoS_state 0)) (do (:= RtoS_buf_0 (% (+ (% RtoS_buf_1 256) 256) 256))) (do (:= RtoS_buf_1 (% (+ (% RtoS_buf_2 256) 256) 256))) (do (:= RtoS_buf_2 0)) (do (:= RtoS_buf_act (% (+ (% (- RtoS_buf_act 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

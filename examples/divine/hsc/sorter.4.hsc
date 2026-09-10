@@ -84,6 +84,3 @@
 (event LongBrick2_t14_B_B (when (== LongBrick2_state 0) (== glob_token 7) (== LongBrick2_location 2) (== glob_belt2_moving 1) (== LongBrick2_position 5)) (do (:= LongBrick2_state 0)) (do (:= LongBrick2_location 4)) (do (:= glob_token 0)))
 (event LongBrick2_t15_B_B (when (== LongBrick2_state 0) (== glob_token 7) (== LongBrick2_location 2) (== glob_belt2_moving 2) (== LongBrick2_position 0)) (do (:= LongBrick2_state 0)) (do (:= LongBrick2_location 5)) (do (:= glob_token 0)))
 (event LongBrick2_t16_B_B (when (== LongBrick2_state 0) (or (or (== LongBrick2_location 5) (== LongBrick2_location 4)) (== LongBrick2_location 3))) (do (:= LongBrick2_state 0)) (do (:= glob_token 0)))
-(reach R saturate)
-(count R)
-(nodes R)

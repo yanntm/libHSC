@@ -66,6 +66,3 @@
 (event Receiver_t11_put_data_wait (when (== Receiver_state 2) (!= Receiver_sent (/ 3 2)) (== (at Receiver_recbuf (% (+ Receiver_recseq 1) 6)) 0)) (do (:= Receiver_state 0)))
 (event Receiver_t13_corr_data_wait (when (== Receiver_state 4) (== (at Receiver_nakd Receiver_value) 1)) (do (:= Receiver_state 0)))
 (event Receiver_t14_on_timeout_on_timeout (when (== Receiver_state 5) (< Receiver_i 6)) (do (:= Receiver_state 5)) (do (:= (at Receiver_nakd Receiver_i) 0)) (do (:= Receiver_i (% (+ (% (+ Receiver_i 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

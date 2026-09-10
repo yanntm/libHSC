@@ -395,6 +395,3 @@
 (event P_4_t12_p5_NCS (when (== P_4_state 5) (== P_4_v 0)) (do (:= P_4_state 0)))
 (event P_4_t30_p9_p8 (when (== P_4_state 9) (== P_4_v 0)) (do (:= P_4_state 3)) (do (:= P_4_i (% (+ (% (+ P_4_i 1) 256) 256) 256))))
 (event P_4_t31_p8_CS (when (== P_4_state 3) (== P_4_i 5)) (do (:= P_4_state 10)))
-(reach R saturate)
-(count R)
-(nodes R)

@@ -80,6 +80,3 @@
 (event Receiver_t27_q_e_advance (when (== Receiver_state 7) (== Receiver_m Receiver_n)) (do (:= Receiver_state 3)))
 (event Receiver_t29_q_e2_idle (when (== Receiver_state 11) (== Receiver_m Receiver_n)) (do (:= Receiver_state 0)))
 (event Receiver_t30_q_e2_q_error (when (== Receiver_state 11) (!= Receiver_m Receiver_n)) (do (:= Receiver_state 10)))
-(reach R saturate)
-(count R)
-(nodes R)

@@ -36,6 +36,3 @@
 (event Hand_t18_fullhand_emptyhand (when (== Hand_state 1) (== glob_clear_4 1)) (do (:= Hand_state 0)) (do (:= glob_clear_4 0)) (do (:= (at glob_clear glob_holding) 1)) (do (:= (at glob_on glob_holding) 4)) (do (:= glob_holding 253)))
 (event Hand_t19_fullhand_emptyhand (when (== Hand_state 1) (== glob_clear_5 1)) (do (:= Hand_state 0)) (do (:= glob_clear_5 0)) (do (:= (at glob_clear glob_holding) 1)) (do (:= (at glob_on glob_holding) 5)) (do (:= glob_holding 253)))
 (event Hand_t20_fullhand_emptyhand (when (== Hand_state 1)) (do (:= Hand_state 0)) (do (:= (at glob_clear glob_holding) 1)) (do (:= (at glob_on glob_holding) 254)) (do (:= glob_holding 253)))
-(reach R saturate)
-(count R)
-(nodes R)

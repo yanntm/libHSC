@@ -119,6 +119,3 @@
 (event intruder_t19_e1_q (when (== intruder_state 6) (!= (% intruder_m 15) 1) (!= (% intruder_m 15) 4)) (do (:= intruder_state 0)))
 (event intruder_t20_f1_q (when (== intruder_state 7) (== (% intruder_m 15) 4) (== (/ (% intruder_m (* 15 15)) 15) 10)) (do (:= intruder_state 0)) (do (:= intruder_k_Nb__B 1)))
 (event intruder_t21_f1_q (when (== intruder_state 7) (not (and (== (% intruder_m 15) 4) (== (/ (% intruder_m (* 15 15)) 15) 10)))) (do (:= intruder_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

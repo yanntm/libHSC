@@ -42,6 +42,3 @@
 (event P_2_t2_got_msg_CS (when (== P_2_state 2) (== P_2_v 255)) (do (:= P_2_state 1)))
 (event P_2_t8_got_msg_wait (when (== P_2_state 2) (!= P_2_v 255) (== P_2_v 6) (!= P_2_status 1)) (do (:= P_2_state 0)) (do (:= P_2_status 0)))
 (event P_2_t9_got_msg_CS (when (== P_2_state 2) (!= P_2_v 255) (== P_2_v 6) (== P_2_status 1)) (do (:= P_2_state 1)))
-(reach R saturate)
-(count R)
-(nodes R)

@@ -66,6 +66,3 @@
 (event P_3_t8_p8_p9 (when (== P_3_state 7) (> P_3_curr 0) (== (at glob_c (- P_3_curr 1)) 0)) (do (:= P_3_state 8)))
 (event P_3_t9_p9_elected (when (== P_3_state 8)) (do (:= P_3_state 9)))
 (event P_3_t10_p8_p1 (when (== P_3_state 7) (or (== P_3_curr 0) (== (at glob_c (- P_3_curr 1)) 1))) (do (:= P_3_state 0)) (do (:= P_3_curr (% (+ (% (+ P_3_curr 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

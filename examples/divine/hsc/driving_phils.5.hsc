@@ -81,6 +81,3 @@
 (event phil_2_t5_end_action (when (== phil_2_state 1) (== glob_phase 2) (== glob_acquiring_2 (- 0 1))) (do (:= phil_2_state 0)) (do (:= glob_fire (% (+ (% (+ glob_fire 1) 256) 256) 256))))
 (event phil_2_t6_end_action (when (== phil_2_state 1) (== glob_phase 2) (!= glob_acquiring_2 (- 0 1)) (== glob_res0_2 (- 0 1))) (do (:= phil_2_state 0)) (do (:= glob_res0_2 glob_acquiring_2)) (do (:= glob_acquiring_2 (- 0 1))) (do (:= glob_fire (% (+ (% (+ glob_fire 1) 256) 256) 256))))
 (event phil_2_t7_end_action (when (== phil_2_state 1) (== glob_phase 2) (!= glob_acquiring_2 (- 0 1)) (!= glob_res0_2 (- 0 1))) (do (:= phil_2_state 0)) (do (:= glob_res1_2 glob_acquiring_2)) (do (:= glob_acquiring_2 (- 0 1))) (do (:= glob_fire (% (+ (% (+ glob_fire 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

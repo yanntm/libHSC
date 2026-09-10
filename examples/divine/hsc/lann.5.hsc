@@ -90,6 +90,3 @@
 (event P_5_t5_got_msg_wait (when (== P_5_state 2) (!= P_5_v 255) (> P_5_v 21)) (do (:= P_5_state 0)))
 (event P_5_t8_got_msg_wait (when (== P_5_state 2) (!= P_5_v 255) (== P_5_v 21) (!= P_5_status 1)) (do (:= P_5_state 0)) (do (:= P_5_status 0)) (do (:= P_5_sended 0)))
 (event P_5_t9_got_msg_CS (when (== P_5_state 2) (!= P_5_v 255) (== P_5_v 21) (== P_5_status 1)) (do (:= P_5_state 1)) (do (:= P_5_sended 0)))
-(reach R saturate)
-(count R)
-(nodes R)

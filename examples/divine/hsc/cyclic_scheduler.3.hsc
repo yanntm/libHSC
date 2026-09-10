@@ -130,6 +130,3 @@
 (event scheduler_10_t6_wait_to_start (when (== scheduler_10_state 3) (== scheduler_10_ready 1) (== scheduler_10_done 1)) (do (:= scheduler_10_state 1)))
 (event scheduler_11_t6_wait_to_start (when (== scheduler_11_state 3) (== scheduler_11_ready 1) (== scheduler_11_done 1)) (do (:= scheduler_11_state 1)))
 (event scheduler_12_t6_wait_to_start (when (== scheduler_12_state 3) (== scheduler_12_ready 1) (== scheduler_12_done 1)) (do (:= scheduler_12_state 1)))
-(reach R saturate)
-(count R)
-(nodes R)

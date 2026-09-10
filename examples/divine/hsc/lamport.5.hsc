@@ -71,6 +71,3 @@
 (event P_3_t12_q5_NCS (when (== P_3_state 8) (== glob_y 255)) (do (:= P_3_state 0)))
 (event P_3_t13_CS_e1 (when (== P_3_state 1)) (do (:= P_3_state 9)) (do (:= glob_y 255)))
 (event P_3_t14_e1_NCS (when (== P_3_state 9)) (do (:= P_3_state 0)) (do (:= glob_b_3 0)))
-(reach R saturate)
-(count R)
-(nodes R)

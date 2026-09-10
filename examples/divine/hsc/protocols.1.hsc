@@ -27,6 +27,3 @@
 (event Consumer_t3_got_msg_consume1 (when (== Consumer_state 1) (== Consumer_value 1)) (do (:= Consumer_state 3)))
 (event Consumer_t4_consume0_ready (when (== Consumer_state 2)) (do (:= Consumer_state 0)))
 (event Consumer_t5_consume1_ready (when (== Consumer_state 3)) (do (:= Consumer_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

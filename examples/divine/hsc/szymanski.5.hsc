@@ -148,6 +148,3 @@
 (event P_4_t22_p9_p9 (when (== P_4_state 11) (< P_4_j 4) (== (at glob_w P_4_j) 0) (== (at glob_s P_4_j) 0)) (do (:= P_4_state 11)) (do (:= P_4_j (% (+ (% (+ P_4_j 1) 256) 256) 256))))
 (event P_4_t23_p9_CS (when (== P_4_state 11) (== P_4_j 4)) (do (:= P_4_state 12)))
 (event P_4_t24_CS_NCS (when (== P_4_state 12)) (do (:= P_4_state 0)) (do (:= glob_s_4 0)))
-(reach R saturate)
-(count R)
-(nodes R)

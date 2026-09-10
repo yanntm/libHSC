@@ -663,6 +663,3 @@
 (event Bus_t74_resolve2q_sub_action_gab (when (== Bus_state 10) (== (+ (+ Bus_next_0 Bus_next_1) Bus_next_2) 1) (== Bus_m 120)) (do (:= Bus_state 5)) (do (:= (at Bus_next Bus_j) 0)) (do (:= Bus_j 0)))
 (event Bus_t75_resolve2q_distribute (when (== Bus_state 10) (== (+ (+ Bus_next_0 Bus_next_1) Bus_next_2) 1) (!= Bus_m 120)) (do (:= Bus_state 11)) (do (:= Bus_busy (% (+ (% Bus_j 256) 256) 256))) (do (:= (at Bus_next Bus_j) 0)) (do (:= Bus_j 0)))
 (event Bus_t79_sub_action_gab_idle (when (== Bus_state 5) (== Bus_j 3)) (do (:= Bus_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

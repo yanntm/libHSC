@@ -128,6 +128,3 @@
 (event Elevator_t20_move_next_q (when (== Elevator_state 1) (== Elevator_serving glob_current) (== 5 glob_current)) (do (:= Elevator_state 2)) (do (:= Elevator_who (% (+ (% glob_floor_queue_5_0 256) 256) 256))) (do (:= glob_floor_queue_5_0 (% (+ (% glob_floor_queue_5_1 256) 256) 256))) (do (:= glob_floor_queue_5_1 (% (+ (% glob_floor_queue_5_2 256) 256) 256))) (do (:= glob_floor_queue_5_2 (% (+ (% glob_floor_queue_5_3 256) 256) 256))) (do (:= glob_floor_queue_5_3 (% (+ (% glob_floor_queue_5_4 256) 256) 256))) (do (:= glob_floor_queue_5_4 0)) (do (:= glob_floor_queue_5_act (% (+ (% (- glob_floor_queue_5_act 1) 256) 256) 256))))
 (event Elevator_t31_transporting_transporting (when (== Elevator_state 3) (< Elevator_going_to glob_current)) (do (:= Elevator_state 3)) (do (:= glob_current (% (+ (% (- glob_current 1) 256) 256) 256))))
 (event Elevator_t32_transporting_transporting (when (== Elevator_state 3) (> Elevator_going_to glob_current)) (do (:= Elevator_state 3)) (do (:= glob_current (% (+ (% (+ glob_current 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

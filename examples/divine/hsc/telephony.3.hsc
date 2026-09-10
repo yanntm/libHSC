@@ -121,6 +121,3 @@
 (event User_2_t30_tconnected_tconnected (when (== User_2_state 12) (== (/ glob_chan_2 20) 1) (== User_2_dev 0)) (do (:= User_2_state 12)) (do (:= User_2_dev 1)))
 (event User_2_t31_tconnected_tconnected (when (== User_2_state 12) (== (/ glob_chan_2 20) 1) (== User_2_dev 1)) (do (:= User_2_state 12)) (do (:= User_2_dev 0)))
 (event User_2_t32_tconnected_idle (when (== User_2_state 12) (== (/ glob_chan_2 20) 0)) (do (:= User_2_state 0)) (do (:= glob_partner_2 255)) (do (:= glob_chan_2 255)))
-(reach R saturate)
-(count R)
-(nodes R)

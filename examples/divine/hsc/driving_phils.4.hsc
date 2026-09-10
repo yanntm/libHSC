@@ -91,6 +91,3 @@
 (event phil_2_t9_mutex_action (when (== phil_2_state 2) (== phil_2_i 3) (== glob_res0_2 (- 0 1))) (do (:= phil_2_state 0)) (do (:= glob_res0_2 glob_acquiring_2)) (do (:= glob_acquiring_2 (- 0 1))) (do (:= glob_fire (% (+ (% (+ glob_fire 1) 256) 256) 256))) (do (:= phil_2_i 0)))
 (event phil_2_t10_mutex_action (when (== phil_2_state 2) (== phil_2_i 3) (!= glob_res0_2 (- 0 1))) (do (:= phil_2_state 0)) (do (:= glob_res1_2 glob_acquiring_2)) (do (:= glob_acquiring_2 (- 0 1))) (do (:= glob_fire (% (+ (% (+ glob_fire 1) 256) 256) 256))) (do (:= phil_2_i 0)))
 (event phil_2_t11_end_action (when (== phil_2_state 1) (== glob_phase 2) (!= glob_acquiring_2 (- 0 1))) (do (:= phil_2_state 0)) (do (:= glob_fire (% (+ (% (+ glob_fire 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

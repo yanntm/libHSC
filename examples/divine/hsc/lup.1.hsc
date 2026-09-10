@@ -54,6 +54,3 @@
 (event to_lup3_Timer_lup3_t4_t10 (when (== Timer_state 0) (== Timer_time 3) (== lup3_state 5)) (do (:= lup3_state 0)) (do (:= Timer_time 0)) (do (:= Timer_state 0)))
 (event to_lup3_Timer_lup3_t4_t11 (when (== Timer_state 0) (== Timer_time 3) (== lup3_state 5) (not (!= (| (| (| (== lup0_state 2) (== lup1_state 2)) (== lup2_state 2)) (== lup3_state 2)) 0))) (do (:= lup3_state 2)) (do (:= Timer_time 0)) (do (:= Timer_state 0)))
 (event to_lup3_Timer_lup3_t4_t12 (when (== Timer_state 0) (== Timer_time 3) (== lup3_state 5) (!= (| (| (| (== lup0_state 2) (== lup1_state 2)) (== lup2_state 2)) (== lup3_state 2)) 0)) (do (:= lup3_state 1)) (do (:= Timer_time 0)) (do (:= Timer_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

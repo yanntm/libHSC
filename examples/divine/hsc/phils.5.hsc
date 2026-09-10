@@ -73,6 +73,3 @@
 (event phil_11_t2_one_eat (when (== phil_11_state 1) (== glob_fork_0 0)) (do (:= phil_11_state 2)) (do (:= glob_fork_0 1)))
 (event phil_11_t3_eat_finish (when (== phil_11_state 2)) (do (:= phil_11_state 3)) (do (:= glob_fork_11 0)))
 (event phil_11_t4_finish_think (when (== phil_11_state 3)) (do (:= phil_11_state 0)) (do (:= glob_fork_0 0)))
-(reach R saturate)
-(count R)
-(nodes R)

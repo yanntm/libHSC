@@ -88,6 +88,3 @@
 (event P_t58_q_q (when (== P_state 0) (== (at glob_a (+ (* 4 5) 2)) 1) (== (at glob_a (+ (* (- 4 1) 5) 2)) 1) (== (at glob_a (+ (* (- 4 2) 5) 2)) 0)) (do (:= P_state 0)) (do (:= (at glob_a (+ (* 4 5) 2)) 0)) (do (:= (at glob_a (+ (* (- 4 1) 5) 2)) 0)) (do (:= (at glob_a (+ (* (- 4 2) 5) 2)) 1)) (do (:= glob_peg_count (% (+ (% (- glob_peg_count 1) 256) 256) 256))))
 (event P_t59_q_q (when (== P_state 0) (== (at glob_a (+ (* 4 5) 3)) 1) (== (at glob_a (+ (* (- 4 1) 5) 3)) 1) (== (at glob_a (+ (* (- 4 2) 5) 3)) 0)) (do (:= P_state 0)) (do (:= (at glob_a (+ (* 4 5) 3)) 0)) (do (:= (at glob_a (+ (* (- 4 1) 5) 3)) 0)) (do (:= (at glob_a (+ (* (- 4 2) 5) 3)) 1)) (do (:= glob_peg_count (% (+ (% (- glob_peg_count 1) 256) 256) 256))))
 (event P_t60_q_q (when (== P_state 0) (== (at glob_a (+ (* 4 5) 4)) 1) (== (at glob_a (+ (* (- 4 1) 5) 4)) 1) (== (at glob_a (+ (* (- 4 2) 5) 4)) 0)) (do (:= P_state 0)) (do (:= (at glob_a (+ (* 4 5) 4)) 0)) (do (:= (at glob_a (+ (* (- 4 1) 5) 4)) 0)) (do (:= (at glob_a (+ (* (- 4 2) 5) 4)) 1)) (do (:= glob_peg_count (% (+ (% (- glob_peg_count 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

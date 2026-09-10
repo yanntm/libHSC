@@ -72,6 +72,3 @@
 (event BtoC_t1_q_q (when (== BtoC_state 0) (< (at glob_b (- glob_b_act 1)) (at glob_c (- glob_c_act 1)))) (do (:= BtoC_state 0)) (do (:= (at glob_c glob_c_act) (% (+ (% (at glob_b (- glob_b_act 1)) 256) 256) 256))) (do (:= glob_c_act (% (+ (% (+ glob_c_act 1) 256) 256) 256))) (do (:= (at glob_b (- glob_b_act 1)) 0)) (do (:= glob_b_act (% (+ (% (- glob_b_act 1) 256) 256) 256))))
 (event CtoA_t1_q_q (when (== CtoA_state 0) (< (at glob_c (- glob_c_act 1)) (at glob_a (- glob_a_act 1)))) (do (:= CtoA_state 0)) (do (:= (at glob_a glob_a_act) (% (+ (% (at glob_c (- glob_c_act 1)) 256) 256) 256))) (do (:= glob_a_act (% (+ (% (+ glob_a_act 1) 256) 256) 256))) (do (:= (at glob_c (- glob_c_act 1)) 0)) (do (:= glob_c_act (% (+ (% (- glob_c_act 1) 256) 256) 256))))
 (event CtoB_t1_q_q (when (== CtoB_state 0) (< (at glob_c (- glob_c_act 1)) (at glob_b (- glob_b_act 1)))) (do (:= CtoB_state 0)) (do (:= (at glob_b glob_b_act) (% (+ (% (at glob_c (- glob_c_act 1)) 256) 256) 256))) (do (:= glob_b_act (% (+ (% (+ glob_b_act 1) 256) 256) 256))) (do (:= (at glob_c (- glob_c_act 1)) 0)) (do (:= glob_c_act (% (+ (% (- glob_c_act 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

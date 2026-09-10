@@ -70,6 +70,3 @@
 (event Elevator_t17_move_next_q (when (== Elevator_state 1) (== Elevator_serving glob_current) (== 4 glob_current)) (do (:= Elevator_state 2)) (do (:= Elevator_who (% (+ (% glob_floor_queue_4_0 256) 256) 256))) (do (:= glob_floor_queue_4_0 (% (+ (% glob_floor_queue_4_1 256) 256) 256))) (do (:= glob_floor_queue_4_1 0)) (do (:= glob_floor_queue_4_act (% (+ (% (- glob_floor_queue_4_act 1) 256) 256) 256))))
 (event Elevator_t22_transporting_transporting (when (== Elevator_state 3) (< Elevator_going_to glob_current)) (do (:= Elevator_state 3)) (do (:= glob_current (% (+ (% (- glob_current 1) 256) 256) 256))))
 (event Elevator_t23_transporting_transporting (when (== Elevator_state 3) (> Elevator_going_to glob_current)) (do (:= Elevator_state 3)) (do (:= glob_current (% (+ (% (+ glob_current 1) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

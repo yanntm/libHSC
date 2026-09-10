@@ -304,6 +304,3 @@
 (event Lift_3_t30_a_msg_active (when (== Lift_3_state 14) (!= (/ Lift_3_m 8) Lift_3_status) (!= (% (+ (% Lift_3_m 8) 1) Lift_3_nos) Lift_3_pos)) (do (:= Lift_3_state 13)))
 (event Lift_3_t31_a_msg_a_send (when (== Lift_3_state 14) (== (/ Lift_3_m 8) Lift_3_status) (== (% (+ (% Lift_3_m 8) 1) Lift_3_nos) Lift_3_pos)) (do (:= Lift_3_state 15)) (do (:= Lift_3_count (% (+ (% (+ Lift_3_count 1) 256) 256) 256))))
 (event Lift_3_t32_a_msg_a_send (when (== Lift_3_state 14) (!= (/ Lift_3_m 8) Lift_3_status) (== (% (+ (% Lift_3_m 8) 1) Lift_3_nos) Lift_3_pos)) (do (:= Lift_3_state 15)))
-(reach R saturate)
-(count R)
-(nodes R)

@@ -52,6 +52,3 @@
 (event Receiver_t8_idle_new_file (when (== Receiver_state 4) (== glob_Z (+ (+ (* (* (* 2 7) 2) 5) 1) (* 3 5))) (== (& Receiver_triple 2) 2)) (do (:= Receiver_state 0)))
 (event K_t2_in_transit_start (when (== K_state 1) (> glob_U 0) (<= glob_U 5)) (do (:= K_state 0)))
 (event L_t2_in_transit_start (when (== L_state 1) (> glob_V 0) (<= glob_V 5)) (do (:= L_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

@@ -63,6 +63,3 @@
 (event GearControl_t32_check_clutch_closed_cclose_error (when (== GearControl_state 19) (== glob_tGC 0)) (do (:= GearControl_state 24)) (do (:= glob_tGC 255)))
 (event GearControl_t33_check_clutch_closed2_cclose_error (when (== GearControl_state 22) (== glob_tGC 0)) (do (:= GearControl_state 24)) (do (:= glob_tGC 255)))
 (event Timer_t1_q_q (when (== Timer_state 0) (!= glob_tGB 0) (!= glob_tC 0) (!= glob_tE 0) (!= glob_tGC 0)) (do (:= Timer_state 0)) (do (:= glob_tGB (% (+ (% (| (- glob_tGB 1) (* (== glob_tGB 255) 255)) 256) 256) 256))) (do (:= glob_tC (% (+ (% (| (- glob_tC 1) (* (== glob_tC 255) 255)) 256) 256) 256))) (do (:= glob_tE (% (+ (% (| (- glob_tE 1) (* (== glob_tE 255) 255)) 256) 256) 256))) (do (:= glob_tGC (% (+ (% (| (- glob_tGC 1) (* (== glob_tGC 255) 255)) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

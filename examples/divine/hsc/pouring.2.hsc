@@ -1732,6 +1732,3 @@
 (event pour_full9_Bottle_3_Bottle_1_t216_t122 (when (== Bottle_3_state 14) (== Bottle_1_state 1)) (do (:= Bottle_1_state 10)) (do (:= Bottle_3_state 5)))
 (event pour_full9_Source_Bottle_1_t9_t122 (when (== Source_state 0) (== Bottle_1_state 1)) (do (:= Bottle_1_state 10)) (do (:= Source_state 0)))
 (event pour_full9_Source_Bottle_3_t9_t230 (when (== Source_state 0) (== Bottle_3_state 5)) (do (:= Bottle_3_state 14)) (do (:= Source_state 0)))
-(reach R saturate)
-(count R)
-(nodes R)

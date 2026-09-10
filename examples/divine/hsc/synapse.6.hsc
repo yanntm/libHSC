@@ -222,6 +222,3 @@
 (event Bus_t12_wait_wait (when (== Bus_state 2) (== Bus_j Bus_i)) (do (:= Bus_state 2)) (do (:= Bus_j (% (+ (% (+ Bus_j 1) 256) 256) 256))))
 (event Bus_t16_check_wait (when (== Bus_state 3) (!= Bus_m (- 0 1))) (do (:= Bus_state 2)) (do (:= Bus_value (% (+ (% Bus_m 256) 256) 256))))
 (event Bus_t20_check_wait (when (== Bus_state 3) (== Bus_m (- 0 1))) (do (:= Bus_state 2)))
-(reach R saturate)
-(count R)
-(nodes R)

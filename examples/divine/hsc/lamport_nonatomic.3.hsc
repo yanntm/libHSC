@@ -165,6 +165,3 @@
 (event P_2_t10_p5_NCS (when (== P_2_state 5) (== P_2_v 0)) (do (:= P_2_state 0)))
 (event P_2_t22_p9_p8 (when (== P_2_state 9) (or (== P_2_v 0) (> P_2_i 2))) (do (:= P_2_state 3)) (do (:= P_2_i (% (+ (% (+ P_2_i 1) 256) 256) 256))))
 (event P_2_t23_p8_CS (when (== P_2_state 3) (== P_2_i 3)) (do (:= P_2_state 10)))
-(reach R saturate)
-(count R)
-(nodes R)

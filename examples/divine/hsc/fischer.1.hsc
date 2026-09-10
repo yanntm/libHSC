@@ -28,6 +28,3 @@
 (event P_2_t4_wait_CS (when (== P_2_state 2) (== glob_t_2 255) (== glob_id (+ 2 1))) (do (:= P_2_state 3)))
 (event P_2_t5_wait_NCS (when (== P_2_state 2) (!= glob_id (+ 2 1)) (== glob_t_2 255)) (do (:= P_2_state 0)))
 (event P_2_t6_CS_NCS (when (== P_2_state 3)) (do (:= P_2_state 0)) (do (:= glob_id 0)))
-(reach R saturate)
-(count R)
-(nodes R)

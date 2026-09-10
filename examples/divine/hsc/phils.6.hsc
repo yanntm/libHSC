@@ -91,6 +91,3 @@
 (event phil_14_t2_one_eat (when (== phil_14_state 1) (== glob_fork_0 0)) (do (:= phil_14_state 2)) (do (:= glob_fork_0 1)))
 (event phil_14_t3_eat_finish (when (== phil_14_state 2)) (do (:= phil_14_state 3)) (do (:= glob_fork_14 0)))
 (event phil_14_t4_finish_think (when (== phil_14_state 3)) (do (:= phil_14_state 0)) (do (:= glob_fork_0 0)))
-(reach R saturate)
-(count R)
-(nodes R)

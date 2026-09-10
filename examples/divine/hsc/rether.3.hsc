@@ -147,6 +147,3 @@
 (event Token_t11_RT_phase_NRT_phase (when (== Token_state 1) (== Token_i 7)) (do (:= Token_state 3)))
 (event Token_t20_NRT_phase_cycle_end (when (== Token_state 3) (== Token_NRT_count 0)) (do (:= Token_state 5)))
 (event Token_t21_cycle_end_start (when (== Token_state 5)) (do (:= Token_state 0)) (do (:= Token_NRT_count (% (+ (% (- 3 glob_RT_count) 256) 256) 256))))
-(reach R saturate)
-(count R)
-(nodes R)

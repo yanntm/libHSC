@@ -97,6 +97,3 @@
 (event master_3_t17_change_r1 (when (== master_3_state 7) (== glob_b_0 3)) (do (:= master_3_state 8)) (do (:= glob_b_0 (% (+ (% glob_change_to 256) 256) 256))))
 (event master_3_t18_change_r1 (when (== master_3_state 7) (== glob_b_0 3)) (do (:= master_3_state 8)) (do (:= glob_b_0 (% (+ (% glob_change_to 256) 256) 256))))
 (event master_3_t19_r1_idle (when (== master_3_state 8)) (do (:= master_3_state 0)) (do (:= glob_sem 1)))
-(reach R saturate)
-(count R)
-(nodes R)

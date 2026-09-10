@@ -32,6 +32,3 @@
 (event Frog_t3_q_q (when (== Frog_state 0) (< glob_x (- 1 2)) (== (at glob_a (+ (+ (* glob_y 1) glob_x) 1)) 1) (== (at glob_a (+ (+ (* glob_y 1) glob_x) 2)) 2)) (do (:= Frog_state 0)) (do (:= (at glob_a (+ (* glob_y 1) glob_x)) 2)) (do (:= (at glob_a (+ (+ (* glob_y 1) glob_x) 2)) 0)) (do (:= glob_x (% (+ (% (+ glob_x 2) 256) 256) 256))))
 (event Frog_t4_q_q (when (== Frog_state 0) (< glob_y (- 17 2)) (== (at glob_a (+ (* (+ glob_y 1) 1) glob_x)) 1) (== (at glob_a (+ (* (+ glob_y 2) 1) glob_x)) 2)) (do (:= Frog_state 0)) (do (:= (at glob_a (+ (* glob_y 1) glob_x)) 2)) (do (:= (at glob_a (+ (* (+ glob_y 2) 1) glob_x)) 0)) (do (:= glob_y (% (+ (% (+ glob_y 2) 256) 256) 256))))
 (event Check_t1_not_done_done (when (== Check_state 0) (== glob_a_0 2) (== glob_a_1 2) (== glob_a_2 2) (== glob_a_3 2) (== glob_a_4 2) (== glob_a_5 2) (== glob_a_6 2) (== glob_a_7 2) (== glob_a_9 1) (== glob_a_10 1) (== glob_a_11 1) (== glob_a_12 1) (== glob_a_13 1) (== glob_a_14 1) (== glob_a_15 1) (== glob_a_16 1)) (do (:= Check_state 1)))
-(reach R saturate)
-(count R)
-(nodes R)
