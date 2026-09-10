@@ -7,11 +7,13 @@ Cluster recipes: PetriSpot `docs/CLUSTER.md`.
 
 ## Next actions
 
-1. **When the campaigns drain** (see below), collect and rebuild the pages:
-   `bash ~/git/PetriSpot/Petri/test/mcc/collect.sh 20260908-hsc600 RD.hsc600 OS.hsc600 --pages`
-   and read them against the ITS-Tools sets at the same budget. The reruns of
-   CTLC/CTLF/L go into campaign `202609080313` (`collect.sh 202609080313 CTLC
-   CTLF L --pages`), which brings those three back to 1954 logs each.
+1. **Read RD and OS against ITS-Tools at 600 s.** Both are collected
+   (`PetriSpot/Petri/test/mcc/csv/20260908-hsc600/`, its README the read):
+   2020 answers, **0 wrong**, and **0 bonus** — no instance where libHSC
+   alone holds the value — against 1818 the field has and it does not,
+   1343 of them runs at the wall. What is left is the side-by-side in the
+   pages: a set for `hsc/20260908-hsc600/*` in
+   `~/git/MCC-analysis/campaign/example.json`, then rebuild.
 2. **Submit the rest at 600 s** when the queue is short:
    `TIMEOUT=600 WALLTIME=0:15:0 CORES=4 HOSTS="tall%" TAG=hsc600 BK_TOOL=hsc
    ./run_oar.sh "oracle/*-UB.out"`, then `-RC.out`, then `-RF.out` (1953
@@ -29,17 +31,16 @@ Cluster recipes: PetriSpot `docs/CLUSTER.md`.
 
 ## What is running
 
-| what | where | state |
-|---|---|---|
-| libHSC ReachabilityDeadlock, 600 s | `RD.hsc600` | 1232 of 1953 logs |
-| libHSC OneSafe, 600 s | `OS.hsc600` | queued behind it |
-| CTLC / CTLF / L reruns (58 each) | `CTLC`, `CTLF`, `L` | queued, 1896 of 1954 logs present |
+Nothing. The cluster holds no job of ours: RD and OS at 600 s ran to
+completion and are collected; the CTLC/CTLF/L reruns landed in campaign
+`202609080313`, which is collected, read and committed
+(`PetriSpot/Petri/test/mcc/csv/202609080313/`); and the 2651 queued jobs of
+the order sweep were cancelled on 2026-09-10 when `tall%` filled with other
+users' whole-node jobs.
 
-Roughly 2900 jobs waiting, 64 running. The reruns replace the 58 instances per
-examination that failed on the native image's closed world; today's image no
-longer hits it (checked locally on `FileSystem-COL-N05I10B15`), the failed
-logs were removed on both sides, and the same instances were resubmitted at
-the campaign's own 1800 s.
+`small%` is the class to use while that lasts — 24 Westmere nodes, 576
+cores, idle, and `hsc-pn` runs there unmodified (PetriSpot
+`docs/CLUSTER.md` §1a; budget about 10 jobs a node, not 24).
 
 ## What is done
 
