@@ -413,9 +413,13 @@ int main(int argc, char** argv) {
     while (r_partial && r_diverged && !shape_only) {
       r_diverged = false;
       if (cover) {
-        for (const std::string& l : solver.feed("(pump R)")) {
-          if (verbose) std::cerr << "hsc-pn: " << l << '\n';
-          if (l.rfind("R pump ", 0) == 0 && l.find(" none") == std::string::npos) pumped = true;
+        try {
+          for (const std::string& l : solver.feed("(pump R)")) {
+            if (verbose) std::cerr << "hsc-pn: " << l << '\n';
+            if (l.rfind("R pump ", 0) == 0 && l.find(" none") == std::string::npos) pumped = true;
+          }
+        } catch (const hsc::interrupted&) {  // the pump's own search cut: no pair found
+          if (verbose) std::cerr << "hsc-pn: pump cut by the deadline\n";
         }
         if (pumped) break;
       }
@@ -579,6 +583,12 @@ int main(int argc, char** argv) {
     std::cerr << "overflow: " << e.what() << " (raise --bound)\n";
     print_open(std::cout);
     if (states) std::cout << "STATE_SPACE STATES CANNOT_COMPUTE" << std::endl;
+    return 0;
+  } catch (const hsc::interrupted&) {
+    // The deadline met outside a question (the model, the reachable set's
+    // epochs): what is open stays open; a deadline is never an error.
+    if (verbose) std::cerr << "hsc-pn: cut by the deadline, the rest is UNKNOWN\n";
+    print_open(std::cout);
     return 0;
   } catch (const std::exception& e) {
     std::cerr << "error: " << e.what() << '\n';

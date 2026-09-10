@@ -281,6 +281,19 @@ class solver {
   /// a violated invariant, a deadlock found); an empty selection, a bound,
   /// and a CTL verdict the session itself does not stand by are left open.
   bool answer(const ::petri::expr::Property& p, std::ostream& out, bool partial = false) {
+    try {
+      return answer_now(p, out, partial);
+    } catch (const hsc::interrupted&) {
+      // The deadline met inside the question (a selection, a closure, the
+      // model of the checker): the property stays open, the session is
+      // whole (every batch is fresh, a form that stopped bound nothing).
+      ++timeouts_;
+      if (verbose_) std::cerr << "hsc-pn: " << p.name << " cut by the deadline\n";
+      return false;
+    }
+  }
+
+  bool answer_now(const ::petri::expr::Property& p, std::ostream& out, bool partial) {
     using ::petri::expr::Expression;
     using ::petri::expr::PropertyKind;
     const std::vector<std::string>& pnames = property_names();

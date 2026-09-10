@@ -220,7 +220,11 @@ armed before the parse, whose handler writes `UNKNOWN <name>` for every
 property still open when `--printUnknown` is set, then exits 0. Inside the
 session the CTL properties run under cooperative deadlines (the manager's
 interrupt hook, polled at the closure loops); the other phases do not poll
-yet. This is a backstop, not a design: the budget object that replaces it —
+yet. A deadline met inside a question — a selection, a closure, the model
+the checker builds on its first property — leaves that property open and
+the run goes on to the next (`-v` says which was cut); a deadline met
+anywhere else ends the run with its `UNKNOWN` lines and exit 0. A deadline
+is never an error. This is a backstop, not a design: the budget object that replaces it —
 one deadline for time and memory, polled everywhere, tasks resumable, in
 PetriSpot's scheduler vocabulary — is `include/hsc/sched/algorithm.md`. A leaf overflow (`overflow_error`, a
 place beyond `--bound`) aborts the session: the properties without a verdict
