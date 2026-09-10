@@ -26,7 +26,30 @@ PetriSpot's LP 3363, 0 wrong; complementary (`hscb` ahead on 541
 instances, `lp` on 244). BugTracking: 854 sound one-step kills beyond the
 24 601 structural ones, converging in 250 s. Report §2.12, §2.10.
 
+## At shutdown (2026-09-10, midday)
+
+* Running in the background when the session closed, unread:
+  BugTracking's forward gfp (`tests/logs/unreach/dead_bt_gfp.err`: the
+  image under the 1915 live events took 5.3 s, the gfp rounds follow) and
+  the gfp sweep of the 86 sample models (`tests/logs/unreach/gfp/rows.tsv`,
+  62 rows in; `experiments/unreach/gfp_sweep.sh`).
+* The cluster campaign of `PetriSpot/Petri/test/mcc/campaign-2026-09-10.md`
+  is **not submitted**: at 01:28 our account held 4314 jobs of the
+  order-heuristics sweep; at 11:00, 2651 waiting and 0 running — the 19
+  alive `tall` nodes are all taken by other users' whole-node jobs (lacour
+  6, clusterbd 4, nibert 7 on 24 h jobs ending 09-11 morning, riwan 1,
+  lemattre 1; tall14 dead), the scheduler's estimate for our next job is
+  2026-09-14. Everything else is deployed and warmup-tested locally; the
+  submit script is `submit-2026-09-10.sh`. The user decides whether to wait,
+  cancel the sweep, or move to `small%`.
+
 ## Engineering — next
+
+0. **The gfp of support** (ledger #23, report §2.13): read the two runs
+   above; then the refutations on `G` against `S` and against the backward
+   search on the sample; the two-way trim; the literature
+   (`research_notes/gfp_support_litsearch.md` is the prompt; its answers go
+   to the library and are studied in a session of their own).
 
 1. **Pages for the campaign** (`MCC-analysis/campaign` style) from
    `experiments/unreach/results/*.tsv`, and the per-formula reading: which
