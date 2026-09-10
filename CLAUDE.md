@@ -107,6 +107,9 @@ If its really one shot ok, rm after use. Else add/commit. This saves tokens amon
   inspecting pids. For long self-terminating runs use the Monitor tool or Bash
   `run_in_background` (the harness tracks the task and re-invokes on completion);
   wait on completion events, never sleep/poll loops.
+- Anything touching the cluster, campaign logs or benchmark models follows
+  PetriSpot's `CLAUDE.md` and `docs/CLUSTER.md`; those instructions apply to
+  this repo's runs too.
 - **Legacy tools are bounded-or-skipped, never waited on** in the construction/test
   path — libDDD and ITS-tools run as external baselines for comparison, not as
   dependencies. A stall is reported, not blocked on.
