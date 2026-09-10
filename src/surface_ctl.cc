@@ -179,6 +179,7 @@ void translator::do_ctl(const datum& form) {
   const ctl::node_id phi = read_formula(arg(form, 2, "formula"));
   if (form.items().size() > 3) fail(form, "ctl takes one formula");
   ctl_state& st = ctl();
+  try {
   if (!st.reach) {
     st.reach = run_reach(false);
     st.reach_partial = mgr_.partial();
@@ -224,7 +225,6 @@ void translator::do_ctl(const datum& form) {
   st.pred_line = form.line();
   const ctl::forward_form ff = st.fw.convert(phi);
   st.converted[name] = ff;
-  try {
     ctl::verdict v = st.checker->check(ff);
     if (st.reach_partial && v != ctl::verdict::unknown) {
       // Every set computed within a partial `R` under-approximates the
@@ -238,7 +238,14 @@ void translator::do_ctl(const datum& form) {
     st.verdicts[name] = v;
     out_ << name << " ctl " << ctl::name(v) << '\n';
   } catch (const interrupted&) {
-    // The deadline: what was memoised stays; asked again it resumes there.
+    // The deadline, anywhere in the form: what was memoised stays; asked
+    // again it resumes there. A model cut while being built is dropped
+    // whole (its deadlocks or its seed would be missing), rebuilt next time.
+    if (!st.model) {
+      st.reach.reset();
+      st.dead.reset();
+      st.reach_partial = false;
+    }
     st.verdicts[name] = ctl::verdict::unknown;
     out_ << name << " ctl TIMEOUT\n";
   }
