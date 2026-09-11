@@ -55,6 +55,11 @@ the campaign's own 1800 s.
   weighted counter of `src/surface_weighted_count.cc`). Arc counts are only
   reported with evidence that the net's arcs are those of the net it came
   from.
+* **`hsc-pn --reduce`.** PetriSpot's reductions in memory before the
+  portfolio (`tools/README.md`): the STATESPACE record for `--states`, the
+  `prepare` pipeline for properties, the invariant-set dead test in the
+  loop. The vendor list now carries `reduction/` and `lp/`. Next: the
+  cluster run of StateSpace with `--reduce`.
 * **StateSpace through ITS-Tools.** `-hsc` beside the diagrams, `-hscBench` /
   `-hscBenchReduce` alone; all four values exact on reduced nets
   (AutonomousCar-PT-01a, Dekker-PT-010, AirplaneLD-PT-0010, BART-COL-002).

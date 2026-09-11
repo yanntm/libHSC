@@ -199,6 +199,29 @@ one-step test backward per slice), no fixpoint.
 `hsc-pn: approx …` on stderr is the record: flows, covered places, zeros,
 unit constraints, the sizes of `F` and `S`, the times, the count refuted.
 
+### `--reduce`
+
+Before anything else, PetriSpot's preparation, in memory, on the vendored
+kernel (`include/hsc/petri/reduction/`, `lp/`): with `--states` and no
+property file, the STATESPACE reductions with the counting record (constant
+places to `PDROP`, duplicate transitions to `TMULT`, free components to
+`PCOEF`, no-effect transitions once arcs are untracked), then the dead
+transitions of `--dead-test` (`linear`, the invariant set of the net as it
+is then, the default; `lp`, the state equation inside the reductions;
+`both`; `none`), the dead ones retired and the reductions run again while
+something changes, all inside `--reduce-time` seconds (10). With properties,
+`prepare` as `petri64` runs it: constants into the formulas, what the
+initial marking decides answered as `FORMULA` lines and dropped, the net
+reduced for the kinds and supports left, the properties remapped. The unit
+tree loses the removed places and, after a fusion, its one-token-per-unit
+claim. The record becomes the blocks the rest of the tool already reads, so
+`TRANSITIONS` is reported only while `TMULT` survives. `--export-net FILE`
+writes the prepared PNET with its blocks. Measured 2026-09-11 on the 21
+development models with a StateSpace oracle: no wrong value; BugTracking
+q3m002 goes from 754 places and 27 370 transitions to 240 and 2 769 in
+under a second (three rounds, 2 995 dead by the invariant set); a failing
+dead pass costs the test, not the run.
+
 ### `--states`
 
 The four values of the MCC StateSpace examination, each its own line:

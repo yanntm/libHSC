@@ -18,6 +18,8 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #ifndef _WIN32
@@ -34,6 +36,9 @@
 #include "hsc/petri/nupn.hh"
 #include "hsc/petri/parse/PTNetLoader.h"
 #include "hsc/petri/parse/PropertyFile.h"
+#include "hsc/petri/reduction/Pipeline.h"
+#include "hsc/petri/reduction/Reduce.h"
+#include "hsc/petri/reduction/cli/CountingBlocks.h"
 #include "hsc/petri/to_surface.hh"
 #include "hsc/util/errors.hh"
 #include "pn_approx_pass.hh"
@@ -60,6 +65,17 @@ extern "C" void on_alarm(int) {
   _exit(0);
 }
 
+/// The unit tree of the net as it is now: the places a reduction removed
+/// leave their units, and a tree whose places were fused no longer says one
+/// token per unit.
+hsc::petri::unit_tree restrict_units(const hsc::petri::unit_tree& tags, const SparsePetriNet<int>& net, bool fused) {
+  std::unordered_set<std::string> names(net.getPnames().begin(), net.getPnames().end());
+  hsc::petri::unit_tree out = tags;
+  for (auto& [id, u] : out.units) std::erase_if(u.places, [&](const std::string& q) { return !names.contains(q); });
+  if (fused) out.safe = false;
+  return out;
+}
+
 void print_open(std::ostream& out) {
   if (!g_print_unknown) return;
   for (std::size_t i = 0; i < g_unknown.size(); ++i) {
@@ -81,6 +97,9 @@ int main(int argc, char** argv) {
   double approx_back_time = 2.0;
   bool dead_step = false, approx_only = false, approx_units = false;
   int invariants_time = 0;
+  bool reduce = false;
+  int reduce_time = 10;
+  std::string dead_test = "linear", export_net;
   long long seed = 1;
   int bound = 2, total_time = 0;
   auto* in_opt = app.add_option("-i,--pnml", pnml, "PNML P/T net (with its NUPN unit tree when present)")
@@ -107,6 +126,10 @@ int main(int argc, char** argv) {
   app.add_flag("--approx-units", approx_units, "with --approx or --dead, add the NUPN unit constraints (one token at most per unit) to the invariant set");
   app.add_option("--shape-file", shape_file, "take the shape from this file: a (spine …)/(balanced …) expression over the place names, as --export-shape writes it (overrides --shape)");
   app.add_option("--export-shape", export_shape, "write the shape after the rewrites (FORCE, reverse) to this file, one expression");
+  app.add_flag("--reduce", reduce, "before anything, PetriSpot's STATESPACE structural reductions in memory (constant places, duplicate transitions, free components, with the counting record), then the dead transitions of --dead-test, again while something changes");
+  app.add_option("--reduce-time", reduce_time, "with --reduce, seconds for the whole preparation (default 10)");
+  app.add_option("--dead-test", dead_test, "with --reduce: linear (the invariant set, default), lp (the state equation inside the reductions), both, none");
+  app.add_option("--export-net", export_net, "with --reduce, write the prepared net and its counting blocks as a PNET to this file");
   app.add_option("--invariants", invariants_time, "compute the P-flows within S seconds and let them guide the louvain shape");
   app.add_option("--bound", bound, "leaf domain [0, N), raised to the max initial marking + 1");
   app.add_flag("--states", states, "the four StateSpace values");
@@ -168,9 +191,146 @@ int main(int argc, char** argv) {
               << e.what() << '\n';
     return 1;
   }
+  // --- the properties ---
+  std::vector<petri::expr::Property> properties;
+  if (!props.empty()) {
+    try {
+      properties = petri::loadPropertyFile<int>(props, *net, petri::propertySyntaxOf(syntax));
+    } catch (const std::string& e) {
+      std::cerr << e << '\n';
+      return 1;
+    }
+  }
+  if (!deadlock.empty()) {
+    petri::expr::Property p;
+    p.name = deadlock;
+    p.kind = petri::expr::PropertyKind::Deadlock;
+    properties.push_back(std::move(p));
+  }
+  // --- the counting record, and the reductions ---
+  // What each object stands for in the net the question is about (io/PNET.md):
+  // a PNML is that net, a PNET says what it knows through its blocks.
+  namespace red = ::petri::reduction;
+  red::Counting<int> record = pnml.empty()
+      ? red::countingFromBlocks<int>(blocks, net->getPlaceCount(), net->getTransitionCount(), quiet ? null_log : std::cerr)
+      : red::Counting<int>::identity(net->getPlaceCount(), net->getTransitionCount());
+  const hsc::petri::unit_tree tags_read = pnml.empty() ? hsc::petri::unit_tree{} : hsc::petri::read_units(pnml);
+  if (reduce) {
+    if (dead_test != "linear" && dead_test != "lp" && dead_test != "both" && dead_test != "none") {
+      std::cerr << "unknown --dead-test '" << dead_test << "'\n";
+      return 2;
+    }
+    const auto t_red = std::chrono::steady_clock::now();
+    const auto deadline = t_red + std::chrono::seconds(std::max(1, reduce_time));
+    const auto left_ms = [&] {
+      return std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now()).count();
+    };
+    const std::size_t places0 = net->getPlaceCount(), transitions0 = net->getTransitionCount();
+    if (!properties.empty()) {
+      // Properties: PetriSpot's preparation, the same procedure as petri64's:
+      // constants into the formulas, what the initial state decides answered
+      // (FORMULA lines) and dropped, the net reduced for the kinds and supports
+      // left, the properties remapped to it, to a fixpoint. No counting record
+      // survives a property reduction.
+      red::Configuration cfg;
+      cfg.timeLimit = std::chrono::milliseconds(left_ms());
+      cfg.deadMs = (dead_test == "lp" || dead_test == "both") ? 3000 : 0;
+      red::Prepared<int> prepared = red::prepare(*net, properties, true, false, cfg, &std::cout, quiet ? null_log : std::cerr);
+      *net = std::move(prepared.net);
+      record = red::Counting<int>{};
+      record.pcoef.assign(net->getPlaceCount(), 0);
+      record.arcsLost = "the net was reduced for properties";
+      if (!quiet) {
+        std::cerr << "prepared: " << places0 << " -> " << net->getPlaceCount() << " places, " << transitions0 << " -> "
+                  << net->getTransitionCount() << " transitions, " << prepared.rounds << " reduction rounds, "
+                  << properties.size() << " properties left, "
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t_red).count()
+                  << " ms\n";
+      }
+      if (properties.empty() && !states && !max_tokens) { std::cout.flush(); return 0; }
+    } else {
+    std::vector<std::size_t> known;  // the dead transitions of the last linear pass, retired first by the next reduction
+    std::size_t rounds = 0, linear_dead = 0;
+    while (left_ms() > 0) {
+      red::Configuration cfg;
+      cfg.goal = red::Goal::STATESPACE;
+      cfg.timeLimit = std::chrono::milliseconds(left_ms());
+      cfg.deadMs = (dead_test == "lp" || dead_test == "both") ? std::min<long>(left_ms(), 3000) : 0;
+      red::Result<int> result = red::reduce(*net, cfg, {}, std::optional<red::Counting<int>>(record), std::move(known));
+      known.clear();
+      ++rounds;
+      const bool edited = result.edits > 0;
+      *net = std::move(result.net);
+      record = std::move(*result.counting);
+      if (!quiet) {
+        std::cerr << "reduce round " << rounds << ": " << net->getPlaceCount() << " places, " << net->getTransitionCount()
+                  << " transitions, " << result.edits << " edits";
+        for (const auto& st : result.stats) if (st.edits) std::cerr << ", " << st.name << ' ' << st.edits;
+        if (result.dead.tested || result.dead.places) red::describeDeadTransitions(result.dead, std::cerr << "; ");
+        else std::cerr << '\n';
+      }
+      if (dead_test != "linear" && dead_test != "both") { if (!edited) break; else continue; }
+      if (left_ms() <= 0) break;
+      // libHSC's own test: the invariant set of the net as it is now, every transition tested on it
+      hsc::pn::approx_pass_options po;
+      po.flow_seconds = std::max(1, static_cast<int>(left_ms() / 2000));
+      po.cap = bound;
+      for (int m : net->getMarks()) po.cap = std::max(po.cap, m + 1);
+      po.dead = true;
+      po.dead_budget = std::max(1, static_cast<int>(left_ms() / 1000));
+      po.verbose = verbose;
+      const hsc::petri::unit_tree tags_now = restrict_units(tags_read, *net, record.weighted());
+      std::vector<::petri::expr::Property> none;
+      std::vector<char> open;
+      hsc::pn::approx_pass_report rep;
+      try {
+        rep = hsc::pn::run_approx_pass(*net, tags_now, none, open, po, null_log);
+      } catch (const hsc::interrupted&) {  // the pass's own deadline: nothing more from it this round
+        if (!quiet) std::cerr << "invariant-set dead test: deadline reached\n";
+        break;
+      } catch (const std::exception& e) {  // a pass that fails costs the test, not the run
+        std::cerr << "invariant-set dead test skipped: " << e.what() << '\n';
+        break;
+      }
+      if (!quiet) std::cerr << rep.dead_line << '\n';
+      std::unordered_map<std::string, std::size_t> index;
+      for (std::size_t t = 0; t < net->getTransitionCount(); ++t) index.emplace(net->getTnames()[t], t);
+      for (const std::string& n : rep.dead_names) {
+        const auto it = index.find(n);
+        if (it != index.end()) known.push_back(it->second);
+      }
+      linear_dead += known.size();
+      if (known.empty() && !edited) break;
+      if (known.empty()) continue;
+    }
+    if (!known.empty()) {  // the last pass found dead transitions but the budget is gone: retire them, nothing else
+      red::Configuration cfg;
+      cfg.goal = red::Goal::NONE;
+      cfg.deadMs = 0;
+      red::Result<int> result = red::reduce(*net, cfg, {}, std::optional<red::Counting<int>>(record), std::move(known));
+      *net = std::move(result.net);
+      record = std::move(*result.counting);
+    }
+    if (!quiet) {
+      std::cerr << "reduced: " << places0 << " -> " << net->getPlaceCount() << " places, " << transitions0 << " -> "
+                << net->getTransitionCount() << " transitions, " << rounds << " rounds, " << linear_dead
+                << " dead by the invariant set, "
+                << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t_red).count()
+                << " ms\n";
+      red::describeCounting(record, std::cerr);
+    }
+    }
+    blocks = red::countingToBlocks<int>(record);
+    if (!export_net.empty()) {
+      std::ofstream f(export_net, std::ios::binary);
+      if (!PNETIO<int>::write(*net, f, blocks)) { std::cerr << "cannot write " << export_net << '\n'; return 1; }
+    }
+  } else {
+    blocks = red::countingToBlocks<int>(record);
+  }
   hsc::petri::unit_tree units;
   if (shape == "nupn") {
-    if (!pnml.empty()) units = hsc::petri::read_units(pnml);
+    if (!pnml.empty()) units = restrict_units(tags_read, *net, record.weighted());
   } else if (shape == "louvain") {
     std::vector<hsc::petri::pflow> flows;
     if (invariants_time > 0) {
@@ -211,9 +371,8 @@ int main(int argc, char** argv) {
   // are the arcs of the net the caller cares about only if the producer said
   // so, which it does by attaching TMULT (and dropping it when a step could
   // not account for what it removed). A net read from PNML is the original.
-  bool arcs_countable = pnml.empty() ? false : true;
+  bool arcs_countable = record.tmult.has_value();
   if (const MatrixCol<int>* tm = PNETIO<int>::find(blocks, "TMULT")) {
-    arcs_countable = true;
     if (tm->getRowCount() != net->getTransitionCount() ||
         tm->getColumnCount() != 1) {
       std::cerr << "TMULT is " << tm->getRowCount() << " x "
@@ -284,22 +443,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  // --- the properties ---
-  std::vector<petri::expr::Property> properties;
-  if (!props.empty()) {
-    try {
-      properties = petri::loadPropertyFile<int>(props, *net, petri::propertySyntaxOf(syntax));
-    } catch (const std::string& e) {
-      std::cerr << e << '\n';
-      return 1;
-    }
-  }
-  if (!deadlock.empty()) {
-    petri::expr::Property p;
-    p.name = deadlock;
-    p.kind = petri::expr::PropertyKind::Deadlock;
-    properties.push_back(std::move(p));
-  }
   const bool any_ctl = std::any_of(
       properties.begin(), properties.end(), [](const petri::expr::Property& p) {
         return p.kind == petri::expr::PropertyKind::CTL;
@@ -387,8 +530,7 @@ int main(int argc, char** argv) {
     std::size_t refuted = 0;
     if (approx_time > 0 && !shape_only && dead_time == 0) {
       solver.set_deadline(std::nullopt);
-      hsc::petri::unit_tree tags;
-      if (!pnml.empty()) tags = hsc::petri::read_units(pnml);
+      const hsc::petri::unit_tree tags = restrict_units(tags_read, *net, record.weighted());
       hsc::pn::approx_pass_options po;
       po.flow_seconds = approx_time;
       po.cap = effective_bound;
@@ -444,8 +586,7 @@ int main(int argc, char** argv) {
     if (dead_time > 0) {
       // Dead transitions from the invariant set (include/hsc/linear/algorithm.md),
       // in the pass's own session on the abstract net.
-      hsc::petri::unit_tree tags;
-      if (!pnml.empty()) tags = hsc::petri::read_units(pnml);
+      const hsc::petri::unit_tree tags = restrict_units(tags_read, *net, record.weighted());
       hsc::pn::approx_pass_options po;
       po.flow_seconds = dead_time;
       po.cap = effective_bound;

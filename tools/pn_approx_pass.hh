@@ -67,6 +67,12 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
   for (std::size_t p = 0; p < keep.size(); ++p) keep[p] = facts.bound[p] >= 0;
   const abstraction abs = abstract_net(net, keep);
   rep.removed = abs.removed;
+  if (abs.kept.empty()) {
+    // no place bounded by a flow: the set is every marking, nothing is refuted, nothing is dead
+    rep.alive = net.getTransitionCount();
+    rep.dead_line = "DEAD_TRANSITIONS 0 of " + std::to_string(net.getTransitionCount()) + " (no place bounded by a flow)";
+    return rep;
+  }
   const std::vector<long long> orig_bound = facts.bound;  // by original place, for the questions
   // the facts renumbered to the abstract net (every place exact there)
   approx_set afacts = facts;
@@ -115,7 +121,17 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
   if (o.dead) model << "(print-spec)\n";
   solver s(anet, domain, o.verbose);
   s.set_property_names(net.getPnames());
-  for (const std::string& l : s.feed(model.str()))
+  std::vector<std::string> fed_lines;
+  try {
+    fed_lines = s.feed(model.str());
+  } catch (const hsc::surface::translate_error& e) {
+    // the model the abstract net produced is not well formed: say which line
+    std::istringstream in(model.str());
+    std::string line, head;
+    for (int i = 1; i <= 4 && std::getline(in, line); ++i) head += "\n  " + std::to_string(i) + ": " + line.substr(0, 160);
+    throw std::runtime_error(std::string(e.what()) + " in the approx model of " + std::to_string(anet.getPlaceCount()) + " places, " + std::to_string(anet.getTransitionCount()) + " transitions" + head);
+  }
+  for (const std::string& l : fed_lines)
     if (o.verbose && (l.empty() || l.front() != '(')) std::cerr << l << '\n';
   approx_options ao;
   ao.flow_seconds = o.flow_seconds;

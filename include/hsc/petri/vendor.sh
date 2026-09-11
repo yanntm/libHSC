@@ -23,6 +23,20 @@ io/SparseMatrixIO.h io/PNETIO.h io/PNET.md
 invariants/Heuristic.h invariants/InvariantCalculator.h invariants/InvariantMiddle.h
 invariants/InvariantsTrivial.h invariants/MixedSignsUniqueTable.h invariants/RowSignDomination.h
 invariants/RowSigns.h
+reduction/Configuration.h reduction/Counting.h reduction/Workspace.h reduction/Coordinator.h
+reduction/Reduce.h reduction/Composition.h reduction/TransitionAlgebra.h
+reduction/graph/Dependency.h reduction/graph/Graph.h reduction/graph/Stabilizing.h
+reduction/rules/BoundsDominance.h reduction/rules/ConstantPlace.h reduction/rules/DeadTransition.h
+reduction/rules/DuplicatePlace.h reduction/rules/DuplicateTransition.h reduction/rules/EmptySiphon.h
+reduction/rules/FreeAgglo.h reduction/rules/FreeSCC.h reduction/rules/FutureEquivalent.h
+reduction/rules/ImplicitForkJoin.h reduction/rules/InitialTokenMove.h reduction/rules/LoopBack.h
+reduction/rules/NoEffect.h reduction/rules/PartialFreeAgglo.h reduction/rules/PartialPostAgglo.h
+reduction/rules/PostAgglo.h reduction/rules/PreAgglo.h reduction/rules/PrefixOfInterest.h
+reduction/rules/RedundantComposition.h reduction/rules/ScalarTransition.h reduction/rules/SinkPlace.h
+reduction/rules/SinkTransition.h reduction/rules/SourceTransition.h reduction/rules/TrivialPost.h
+reduction/cli/CountingBlocks.h reduction/README.md reduction/algorithm.md
+reduction/Pipeline.h reduction/Properties.h reduction/PropertyFacts.h reduction/cli/PropertyResults.h expr/InitialState.h
+lp/LpProblem.h lp/Basis.h lp/Simplex.h lp/DeadTransitions.h
 "
 for f in $FILES; do
   mkdir -p "$DST/$(dirname "$f")"

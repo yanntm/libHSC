@@ -1,0 +1,49 @@
+#pragma once
+
+#include <chrono>
+#include <limits>
+#include <stdexcept>
+#include <string_view>
+
+namespace petri::reduction {
+
+enum class Goal { NONE, DEADLOCK, REACHABILITY, SI_LTL, LTL, LIVENESS,
+                  STATESPACE, LI_LTL, SI_CTL };
+
+inline Goal parseGoal(std::string_view name) {
+  if (name == "NONE") return Goal::NONE;
+  if (name == "DEADLOCK") return Goal::DEADLOCK;
+  if (name == "REACHABILITY") return Goal::REACHABILITY;
+  if (name == "SI_LTL") return Goal::SI_LTL;
+  if (name == "LTL") return Goal::LTL;
+  if (name == "LIVENESS") return Goal::LIVENESS;
+  if (name == "STATESPACE") return Goal::STATESPACE;
+  if (name == "LI_LTL") return Goal::LI_LTL;
+  if (name == "SI_CTL") return Goal::SI_CTL;
+  throw std::invalid_argument("Unknown reduction goal");
+}
+
+struct Configuration {
+  Goal goal = Goal::NONE;
+  bool agglomeration = true;
+  bool relevance = true;
+  size_t maxPasses = 1000;
+  size_t maxRounds = 8; // preparation rounds of Pipeline.h: simplify, reduce, again
+  size_t maxComposedArcs = std::numeric_limits<size_t>::max();
+  size_t postCrossProductLimit = 32;
+  size_t complexPostApplications = 101;
+  size_t redundantTransitionLimit = 20000;
+  size_t futureBucketLimit = 10000;
+  size_t maxNameBytes = 1024;
+  size_t implicitDepth = 5;
+  long deadMs = 3000;        // state-equation dead transition tests, over the whole reduction; 0 disables
+  size_t deadPivots = 20000; // per solve of that test
+  std::chrono::milliseconds timeLimit {15000};
+};
+
+inline bool permitsAgglomeration(const Configuration& c) {
+  return c.agglomeration && c.goal != Goal::NONE && c.goal != Goal::LTL
+      && c.goal != Goal::STATESPACE;
+}
+
+} // namespace petri::reduction
