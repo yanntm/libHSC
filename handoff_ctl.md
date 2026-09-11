@@ -34,11 +34,20 @@ checker: `include/hsc/ctl/algorithm.md`; the core additions it needs:
    (no protection owed); the lfp closures still need it. Queued:
    `HSC_CTL_PROTECT=never` on the small corpus. The fix is Theory's
    constrained saturation (below).
-4. **The campaign** (M6): the `hsc` MCC driver declares CTLCardinality /
-   CTLFireability (`~/git/MCC-drivers/hsc/`, committed); ITS-Tools `-hsc`
-   also runs the checker on the CTL examinations (`~/git/ITStools`,
-   committed, not pushed; the product's `hsc-pn` comes from the libHSC CI
-   branch `HSC-Linux`, so a libHSC push is what updates it).
+4. **The campaign** (M6) ran on the whole corpus and is collected:
+   `hsc/20260910`, 1681 P/T instances x 2 examinations, 600 s, small% at 6
+   cores, the driver's four-shape portfolio — **0 wrong on 19591 answers**,
+   9703 / 9888 answered, 456 / 459 complete files
+   (`experiments/ctl/REPORT.md`, the last section). What stops a run is the
+   budget (13155 of 13380 CTLC missed values are at the wall); the only error
+   string in the corpus is `std::bad_alloc` in 223 / 226 logs, a portfolio
+   member reaching its quarter of the 16 GB. Next on it: a single-shape run
+   at the full memory, to price that quartering. The `hsc` MCC driver
+   declares CTLCardinality / CTLFireability (`~/git/MCC-drivers/hsc/`,
+   committed); ITS-Tools `-hsc` also runs the checker on the CTL
+   examinations (`~/git/ITStools`, committed, not pushed; the product's
+   `hsc-pn` comes from the libHSC CI branch `HSC-Linux`, so a libHSC push is
+   what updates it).
 5. Witness trees are in (`include/hsc/trace/`, `(path …)`, `(witness …)`,
    `hsc-pn --witness` for CTL and for reachability, invariant, deadlock);
    left open there: a shortest-overall end state for

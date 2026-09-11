@@ -301,6 +301,50 @@ verdicts on ShieldRVt-PT-001A, AutoFlight-PT-01a, Raft-PT-02 against the
    three benchmarks run: Louvain + FORCE on the m6c build, plus flows,
    plus flows with contraction at 4.
 
+## The MCC campaign on the whole corpus (`hsc/20260910`)
+
+`hsc-pn` of libHSC `142fd4b` on the two CTL examinations of all 1681 P/T
+instances, through the MCC harness: `small%` nodes, 6 cores (OAR's per-core
+cap, 16 GB), 600 s a run, the driver's four-shape portfolio side by side
+(`nupn`, `nupn --force`, `louvain`, `louvain --force`), each under a quarter
+of the memory, the first complete one stopping the others. Logs collected
+into `/data/ythierry/MCC26logs/hsc/20260910/` (its `README.md`), tables in
+`csv/REPORT.md`, pages in `web/campaign/` (set `libHSC 20260910 CTL 600s`).
+
+| | CTLCardinality | CTLFireability |
+|---|---:|---:|
+| answered | 9703 | 9888 |
+| ok | 9613 | 9579 |
+| **wrong** | **0** | **0** |
+| bonus (only we have it) | 90 | 309 |
+| complete files (16/16) | 456 | 459 |
+| files with no answer | 797 | 757 |
+| runs at the 600 s wall | 1206 | 1204 |
+| truncated logs / failure signatures | 0 / 0 | 0 / 0 |
+
+**0 wrong on 19591 answers** over the whole corpus, the 809 instances above
+10^9 states included — the soundness the order sweep put in doubt holds where
+the sweep looked and everywhere else.
+
+What stops a run is the budget: 13155 of the 13380 CTLC missed values (11811
+of 11948 CTLF) are in a run killed at 600 s. The memory cap is second, and it
+is a portfolio artefact: 223 CTLC logs and 226 CTLF carry `error:
+std::bad_alloc` from a member that reached its ~3.9 GB share (394 and 407
+occurrences — several members of one run), the run continuing on the others.
+A single configuration would have had four times the memory. No segfault, no
+assertion, no truncated log; the whole corpus produced no other error string.
+
+The per-answer attribution the driver prints (`answered … by configuration`)
+cannot be read as a shape ranking: the merge credits the first configuration
+in list order that holds the answer, so `nupn` leads (CTLC 4230, louvain 2701,
+force 1616, louvain-force 1156) partly by being first. The sweep
+(`../order/`) is where shape is read against shape.
+
+For scale and not as a comparison — the budget differs threefold and the
+population is the 1953 instances, coloured included — ITS-Tools on the same
+examinations (`itstools/202609080313`, 1800 s) answers 26069 / 23682 with 1
+and 2 wrong.
+
 ## Where things stand for you
 
 * `handoff_ctl.md` has the next actions; `experiments/ctl/README.md` the
