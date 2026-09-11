@@ -54,7 +54,7 @@ def resolve_dups(rows: List[Row]) -> None:
             src = by.get((r["instance"], r["exam"], r["status"][4:]))
             if src is not None:
                 for k in ("answered", "ok", "wrong", "unknown", "complete", "wall_s", "cpu_s", "maxrss_kb",
-                          "reach_s", "reach_nodes", "belly_nodes", "answer_times", "reach_states", "partial"):
+                          "reach_s", "reach_nodes", "belly_nodes", "answer_times", "reach_states", "partial", "reach_weighted_states", "count_factor", "epochs"):
                     r[k] = src.get(k, "")
                 r["dup_of"] = r["status"][4:]
                 r["status"] = "dup"
@@ -96,7 +96,7 @@ def exam_data(rows: List[Row], exam: str, logs: Optional[str]) -> dict:
         summary.append({"heuristic": h, "runs": len(hr), "answered": sum(int(num(r["answered"]) or 0) for r in hr),
                         "complete": sum(1 for r in hr if r["complete"] == "1"),
                         "wrong": sum(int(num(r["wrong"]) or 0) for r in hr),
-                        "timeout": st["timeout"], "memory": st["memory"], "crash": st["crash"], "noreach": st["noreach"],
+                        "timeout": st["timeout"], "memory": st["memory"], "crash": st["crash"], "noreach": st["noreach"], "partial": st["partial"], "no_stats": st["no_stats"], "killed": st["killed"],
                         "dup": st["dup"], "wall50": quantile(walls, .5), "wall90": quantile(walls, .9),
                         "rss50": quantile(rss, .5), "rss90": quantile(rss, .9),
                         "unique": uniq, "marginal": vbest - without, "dominated": " ".join(dominated)})
@@ -109,7 +109,7 @@ def exam_data(rows: List[Row], exam: str, logs: Optional[str]) -> dict:
         complete = r["complete"] == "1"
         return [int(num(r["answered"]) or 0), num(r["wall_s"]) if complete else None, num(r["reach_s"]),
                 num(r["reach_nodes"]), (num(r["maxrss_kb"]) or 0) / 1e6, num(r["belly_nodes"]), r["status"],
-                r.get("dup_of", ""), r.get("shape_sig", ""), num(r.get("reach_states")), r.get("partial", "")]
+                r.get("dup_of", ""), r.get("shape_sig", ""), num(r.get("reach_states")), r.get("partial", ""), r.get("reach_weighted_states", ""), r.get("count_factor", ""), r.get("epochs", "")]
     instances = []
     for i in inst:
         cells = [metrics(cell.get((i, h))) for h in heur]
@@ -167,7 +167,7 @@ const H = DATA.heuristics; let A = 0, B = 1;
 function fmt(x, d) { return x === null || x === undefined ? "" : (typeof x === "number" ? (Number.isInteger(x) ? x : x.toFixed(d === undefined ? 2 : d)) : x); }
 function heat(v, max) { if (v === null) return "#eee"; const t = max ? v / max : 0; const g = Math.round(235 - 150 * t); return `rgb(${g},${Math.round(235 - 60 * t)},${Math.round(255 - 40 * t)})`; }
 function summaryTable() {
-  const cols = ["heuristic","runs","answered","complete","wrong","timeout","memory","crash","noreach","dup","wall50","wall90","rss50","rss90","unique","marginal","dominated"];
+  const cols = ["heuristic","runs","answered","complete","wrong","timeout","memory","crash","noreach","partial","no_stats","killed","dup","wall50","wall90","rss50","rss90","unique","marginal","dominated"];
   $("#summary").DataTable({ data: DATA.summary.map(r => cols.map(c => fmt(r[c]))), columns: cols.map(c => ({ title: c })), paging: false, searching: false, info: false, order: [[15, "desc"], [14, "desc"]] });
 }
 function pairsTable() {
@@ -176,7 +176,7 @@ function pairsTable() {
   $("#pairs").html(h + "</table>");
   $("#pairs td[data-a]").on("click", function () { A = +this.dataset.a; B = +this.dataset.b; if (A === B) return; $("#pairs td").removeClass("sel"); $(this).addClass("sel"); scatter(); });
 }
-const METRICS = [["answered", 0], ["time to complete (s)", 1], ["R time (s)", 2], ["R nodes", 3], ["peak RSS (GB)", 4], ["belly (nodes)", 5], ["states reached (partial when R not built)", 9]];
+const METRICS = [["answered", 0], ["time to complete (s)", 1], ["R time (s)", 2], ["R nodes", 3], ["peak RSS (GB)", 4], ["belly (nodes)", 5], ["raw paths reached (partial when R not built)", 9], ["weighted markings reached", 11]];
 // Click a column head of any plain table to sort by it (numbers as numbers, again to reverse).
 $(document).on("click", "table.plain th", function () {
   const th = this, tr = th.parentNode, tbl = $(th).closest("table")[0], col = Array.from(tr.children).indexOf(th);
@@ -194,18 +194,18 @@ function instancesTable() {
   if (filter === "hard") rows = rows.filter(r => r.best === 0);
   if (filter === "some0") rows = rows.filter(r => r.cells.some(c => c && c[0] === 0) && r.best > 0);
   rows.sort((x, y) => sortBy === "spread" ? y.spread - x.spread || x.instance.localeCompare(y.instance) : sortBy === "hardness" ? x.best - y.best || x.instance.localeCompare(y.instance) : x.instance.localeCompare(y.instance));
-  const logm = m === 9 || m === 3; const mv = c => (c && c[m] !== null && c[m] !== undefined) ? (logm ? Math.log10(1 + c[m]) : c[m]) : null;
+  const logm = m === 9 || m === 3 || m === 11; const mv = c => (c && c[m] !== null && c[m] !== undefined) ? (logm ? Math.log10(1 + Number(c[m])) : Number(c[m])) : null;
   const max = m === 0 ? Math.max(...rows.map(r => r.best), 1) : Math.max(...rows.flatMap(r => r.cells.map(c => mv(c) || 0)), 1);
   let h = "<table class='plain heat'><tr><th>instance</th><th>family</th><th>states</th><th>spread</th>" + H.map(x => `<th>${x}</th>`).join("") + "</tr>";
   rows.forEach((r, i) => { h += `<tr><td><a href="#" data-i="${r.instance}" class="inst">${r.instance}</a></td><td>${r.family}</td><td>${r.states === null ? "?" : r.states.toExponential(1)}</td><td>${r.spread}</td>` +
-    r.cells.map(c => { if (!c) return "<td></td>"; const v = c[m]; const bad = c[6] === "memory" || c[6] === "crash" || c[6] === "timeout"; const shown = m === 9 && v !== null && v !== undefined ? v.toExponential(1) + (c[10] === "1" ? "*" : "") : fmt(v, 1); return `<td class="h" title="${c[6]}${c[7]?' = '+c[7]:''}${c[9]!==null&&c[9]!==undefined?' — '+c[9].toExponential(2)+' states reached'+(c[10]==='1'?' (partial)':''):''}" style="background:${bad ? '#f8c8c8' : heat(mv(c), max)}">${shown}</td>`; }).join("") + "</tr>"; });
+    r.cells.map(c => { if (!c) return "<td></td>"; const v = m === 11 ? (c[m] ? Number(c[m]) : null) : c[m]; const bad = c[6] === "memory" || c[6] === "crash" || c[6] === "timeout" || c[6] === "killed"; const shown = (m === 9 || m === 11) && v !== null && v !== undefined ? v.toExponential(1) + (c[10] === "1" ? "*" : "") : fmt(v, 1); return `<td class="h" title="${c[6]}${c[7]?' = '+c[7]:''}${c[9]!==null&&c[9]!==undefined?' — '+c[9].toExponential(2)+' states reached'+(c[10]==='1'?' (partial)':''):''}" style="background:${bad ? '#f8c8c8' : heat(mv(c), max)}">${shown}</td>`; }).join("") + "</tr>"; });
   $("#instances").html(h + "</table>");
   $("a.inst").on("click", function (e) { e.preventDefault(); detail(this.dataset.i); });
 }
 function detail(inst) {
   const r = DATA.instances.find(x => x.instance === inst); if (!r) return;
-  let h = `<h3>${inst} (${r.family}, ${r.states === null ? "unknown size" : r.states.toExponential(2) + " states"})</h3><table class='plain'><tr><th>heuristic</th><th>status</th><th>answered</th><th>complete s</th><th>R s</th><th>R nodes</th><th>RSS GB</th><th>belly</th><th>states reached</th><th>shape</th><th></th></tr>`;
-  r.cells.forEach((c, k) => { if (!c) return; const base = `logs${DATA.logs}/${inst}-${DATA.exam}-${H[k]}`; h += `<tr><td>${H[k]}</td><td>${c[6]}${c[7]?' = '+c[7]:''}</td><td>${c[0]}</td><td>${fmt(c[1],1)}</td><td>${fmt(c[2],3)}</td><td>${fmt(c[3])}</td><td>${fmt(c[4],2)}</td><td>${fmt(c[5])}</td><td>${c[9]!==null&&c[9]!==undefined?c[9].toExponential(2)+(c[10]==='1'?' (partial)':''):''}</td><td><code>${c[8]||''}</code></td><td>${DATA.logs ? `<a class="log" href="${base}.out" target="_blank">out</a><a class="log" href="${base}.err" target="_blank">err</a><a class="log" href="${base}.shape" target="_blank">shape</a>` : ''}</td></tr>`; });
+  let h = `<h3>${inst} (${r.family}, ${r.states === null ? "unknown size" : r.states.toExponential(2) + " states"})</h3><table class='plain'><tr><th>heuristic</th><th>status</th><th>answered</th><th>complete s</th><th>R s</th><th>R nodes</th><th>RSS GB</th><th>belly</th><th>raw paths</th><th>weighted markings</th><th>constant factor</th><th>epochs</th><th>shape</th><th></th></tr>`;
+  r.cells.forEach((c, k) => { if (!c) return; const base = `logs${DATA.logs}/${inst}-${DATA.exam}-${H[k]}`; h += `<tr><td>${H[k]}</td><td>${c[6]}${c[7]?' = '+c[7]:''}</td><td>${c[0]}</td><td>${fmt(c[1],1)}</td><td>${fmt(c[2],3)}</td><td>${fmt(c[3])}</td><td>${fmt(c[4],2)}</td><td>${fmt(c[5])}</td><td>${c[9]!==null&&c[9]!==undefined?c[9].toExponential(2)+(c[10]==='1'?' (partial)':''):''}</td><td>${c[11]||''}</td><td>${c[12]||''}</td><td>${c[13]||''}</td><td><code>${c[8]||''}</code></td><td>${DATA.logs ? `<a class="log" href="${base}.out" target="_blank">out</a><a class="log" href="${base}.err" target="_blank">err</a><a class="log" href="${base}.shape" target="_blank">shape</a>` : ''}</td></tr>`; });
   $("#detail").html(h + "</table>");
   window.location.hash = inst;
 }
@@ -241,7 +241,7 @@ PAGE = """<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>orde
 <style>{css}</style></head><body>
 <nav><a href="index.html">index</a> {nav}</nav>
 <h1>{exam}</h1>
-<p class="muted">Generated {stamp}. {n_instances} instances, {n_full} with every heuristic; the comparisons (unique wins, marginal contribution, dominated by, pairs, families) are over those. Virtual best over them: {vbest} answered. A <b>dup</b> run produced the same shape as the heuristic it names and was not rerun. Statuses: ok, noreach (the budget ended inside the reachable set), timeout, memory (the node's cap), crash.</p>
+<p class="muted">Generated {stamp}. {n_instances} instances, {n_full} with every heuristic; the comparisons (unique wins, marginal contribution, dominated by, pairs, families) are over those. Virtual best over them: {vbest} answered. A <b>dup</b> run produced the same shape as the heuristic it names and was not rerun. Statuses: ok, partial (a cooperatively stopped reachable set), no_stats (no statistics before exit), timeout, memory (explicit allocation failure), killed (SIGKILL, cause unknown), crash. Legacy noreach means no statistics. Run sweep_audit.py to check all 17 expected entries and interrupted bundles.</p>
 <h2>Heuristics against each other</h2>
 <p class="muted">unique: instances where it alone answers the most; marginal: answers the virtual best loses without it; dominated by: heuristics that answer at least as much on every instance, more on one.</p>
 <table id="summary" class="display compact"></table>

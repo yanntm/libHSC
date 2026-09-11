@@ -90,3 +90,26 @@ when it is the unique best somewhere often enough to pay its quarter.
 | m6c_lf | louvain + force, m6c build | 7306 | 430 | the baseline of this thread's build; 16 up / 1 down vs m5e, 0 wrong |
 | m6c_lfi | + `--invariants 5` | 7397 | 438 | flows as cliques: 32 up / 23 down vs m6c_lf; TokenRing-PT-010 2 → 16 and 4 → 16, SatelliteMemory-PT-X00100Y0003 0 → 16; RwMutex-PT-r0010w2000 loses 10–11 |
 | m6c_lfi4 | + `HSC_INV_MERGE=4` | 7074 | 416 | heavy flows contracted: 16 up / 45 down vs m6c_lfi; every TwoPhaseLocking instance 0 → 16, every RwMutex 16 → 0 — complementary, not a default. Best of m6c_lf, lfi, lfi4: 7599 |
+
+## Reduced campaigns and interrupted jobs
+
+`SWEEP_REDUCE=1` applies query-aware native reduction to shape preparation
+and measured execution. Duplicate skipping requires the same prepared PNET
+and shape; a measured run is reusable only when its exported PNET and shape
+match its preparation. This accounts for timed reductions and their counting
+records. The 17 heuristics remain in one sequential job; duplicate entries
+reference the run they reuse.
+
+Each entry has a `.started` marker (current phase) and an atomic `.done`
+marker after its TSV row is written. Output-file existence alone never marks
+a run complete. A job completion marker follows the loop. Timeouts have a
+five-second SIGKILL grace, so an ignored SIGTERM cannot consume the whole
+bundle. Exit 137 is `killed`, not proof of out-of-memory. Missing statistics
+and graceful partial sets have distinct statuses.
+
+The TSV retains raw `reach_states` and adds exact `reach_weighted_states`,
+`count_factor`, and `epochs`. The pages expose all three count measurements
+(nodes, raw paths, weighted markings). `sweep_audit.py` checks against the
+explicit heuristic list, reports missing/interrupted entries, missing run
+artifacts, and deadline overruns; it does not infer a completed roster from
+whichever rows happen to exist.

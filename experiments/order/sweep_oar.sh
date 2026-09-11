@@ -7,6 +7,7 @@
 #   ./sweep_oar.sh [-x "SS CTLC CTLF"] [-t budget_s] [-w walltime] [-H hosts] -o TAG models.txt
 # Never rewrite a script while a submission loop reads it (CLUSTER.md).
 set -u
+CORES=${CORES:-1}; REDUCE=${SWEEP_REDUCE:-0}
 EXAMS="SS CTLC CTLF"; BUDGET=300; WALL=""; HOSTS="tall%"; TAG=""
 while getopts "x:t:w:H:o:" opt; do case $opt in
   x) EXAMS=$OPTARG;; t) BUDGET=$OPTARG;; w) WALL=$OPTARG;; H) HOSTS=$OPTARG;; o) TAG=$OPTARG;; esac; done
@@ -18,8 +19,8 @@ NH=$(grep -vc '^#' "$HERE/heuristics.tsv")
 mkdir -p "$HERE/results/$TAG"; cd "$HERE/results/$TAG"
 n=0
 for m in $(awk '!/^#/ && NF{print $1}' "$LIST"); do for x in $EXAMS; do
-  oarsub -l "/nodes=1/core=1,walltime=$WALL" -p "(host like '$HOSTS')" \
-    "cd $HERE && SWEEP_BUDGET=$BUDGET SWEEP_BIN=$HERE/hsc-pn SWEEP_INPUTS=$HARNESS/INPUTS SWEEP_ORACLE=$HARNESS/oracle SWEEP_OUT=$HERE/results SWEEP_TAG=$TAG ./sweep_job.sh $m $x ; exit" > /dev/null
+  oarsub -l "/nodes=1/core=$CORES,walltime=$WALL" -p "(host like '$HOSTS')" \
+    "cd $HERE && SWEEP_REDUCE=$REDUCE SWEEP_BUDGET=$BUDGET SWEEP_BIN=$HERE/hsc-pn SWEEP_INPUTS=$HARNESS/INPUTS SWEEP_ORACLE=$HARNESS/oracle SWEEP_OUT=$HERE/results SWEEP_TAG=$TAG ./sweep_job.sh $m $x ; exit" > /dev/null
   n=$((n+1))
 done; done
 echo "submitted $n jobs: $NH heuristics x ${BUDGET}s each, walltime $WALL, hosts $HOSTS, results in $HERE/results/$TAG.tsv"
