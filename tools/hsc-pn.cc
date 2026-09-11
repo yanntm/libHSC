@@ -415,6 +415,29 @@ int main(int argc, char** argv) {
     }
   }
 
+  // PCONST: factors of removed free components; their tokens are accounted
+  // for once alongside ordinary dropped constants, never in the diagram.
+  mpz_class count_factor = 1;
+  if (const MatrixCol<int>* pc = PNETIO<int>::find(blocks, "PCONST")) {
+    if (pc->getColumnCount() != 2) {
+      std::cerr << "PCONST requires two columns\n"; return 2;
+    }
+    for (size_t row = 0; row < pc->getRowCount(); ++row) {
+      const int tokens = pc->getColumn(0).get(row), coefficient = pc->getColumn(1).get(row);
+      if (tokens < 0 || coefficient < 1) {
+        std::cerr << "Invalid PCONST token total or coefficient\n"; return 2;
+      }
+      mpz_class factor;
+      mpz_bin_uiui(factor.get_mpz_t(), static_cast<unsigned long>(tokens) +
+                  static_cast<unsigned long>(coefficient), static_cast<unsigned long>(coefficient));
+      count_factor *= factor;
+      dropped_tokens.push_back(tokens);
+    }
+    arcs_countable = false;
+    if (verbose) std::cerr << "PCONST: " << pc->getRowCount()
+                           << " constant free components, factor=" << count_factor << '\n';
+  }
+
   // PCOEF: a place standing for K places of a free component the producer
   // fused. A marking of v there represents C(v+K-1, K-1) markings of the net
   // it came from, which the surface folds into its count when the model
@@ -497,6 +520,7 @@ int main(int argc, char** argv) {
     hsc::pn::solver solver(*net, effective_bound, verbose);
     if (!mult.empty()) solver.set_multiplicities(std::move(mult));
     solver.set_arcs_countable(arcs_countable);
+    solver.set_count_factor(count_factor);
     solver.set_witness(witness);
     if (!dropped_tokens.empty()) solver.set_dropped_tokens(std::move(dropped_tokens));
     const auto t_model = std::chrono::steady_clock::now();
@@ -642,6 +666,10 @@ int main(int argc, char** argv) {
                 << " belly_nodes=" << belly << " belly_level=" << belly_level << " belly_span=" << belly_span
                 << " shape_depth=" << depth << " shape_units=" << nunits << " shape_widest=" << widest
                 << " shape_sig=" << shape_signature() << '\n';
+      // Keep raw statistics even if the global deadline interrupts exact counting.
+      const std::string weighted_states = solver.exact_count(std::nullopt);
+      std::cerr << "hsc-pn: counts reach_weighted_states=" << weighted_states
+                << " count_factor=" << solver.count_factor() << '\n';
     }
     const auto note_answer = [&](std::size_t i) {
       if (verbose)

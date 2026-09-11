@@ -58,6 +58,12 @@ if(EXPAT_FOUND)
              COMMAND bash ${PROJECT_SOURCE_DIR}/tests/pn_samples.sh
                $<TARGET_FILE:hsc-pn> ${PROJECT_SOURCE_DIR}/examples/mcc)
     set_tests_properties(pn_samples PROPERTIES ENVIRONMENT "PN_TIMEOUT=5")
+    add_test(NAME pn_constant_components COMMAND python3
+      ${PROJECT_SOURCE_DIR}/tests/counting_chain.py --hsc $<TARGET_FILE:hsc-pn>)
+    add_test(NAME pn_constant_components_large COMMAND python3
+      ${PROJECT_SOURCE_DIR}/tests/counting_chain.py --hsc $<TARGET_FILE:hsc-pn>
+      --places 3 --tokens 100 --components 6 --skip-original)
+    set_tests_properties(pn_constant_components pn_constant_components_large PROPERTIES TIMEOUT 15)
   endif()
 else()
   message(STATUS "expat not found: the nupn2hsc / hsc-mcc tools will not be built")

@@ -263,3 +263,21 @@ tool-to-tool forms written by `petri64 --exportNet` and
 `--printProps=sexpr-index`, `oracle/<Model>-<EXAM>.out` the contest oracle.
 `check_samples.cmake` runs `hsc-pn` on PNML plus XML and on PNET plus
 s-expressions and compares every `FORMULA` line with the oracle.
+
+### Constant free components and sweep counts
+
+PNET `PCONST` records removed free components as pairs of constant token
+total M and place coefficient K-1. The PN solver multiplies exact state counts
+by the product of binomial(M+K-1,K-1), with arbitrary-precision arithmetic.
+Their token totals contribute once to both token maxima; transition counts
+remain unavailable. No variable is retained for these components. Live
+`PCOEF` weights still depend on the corresponding marking inside the DD.
+
+With `-v`, `hsc-pn: stats` retains `reach_nodes` and the existing approximate
+raw-path field `reach_states`, plus `partial` and `epochs`. A subsequent
+`hsc-pn: counts` line reports exact `reach_weighted_states` (including live
+coefficients and constant components) and `count_factor`. Keeping the lines
+separate preserves the cheaper statistics if the deadline cuts weighted
+counting. A partial weighted count describes represented markings, not a
+completed StateSpace answer. Property reductions do not preserve baseline
+counting semantics, so these counts then describe the property-reduced net.

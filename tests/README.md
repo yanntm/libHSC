@@ -62,3 +62,8 @@ values.
 * `dve_sweep.sh` — not a ctest: regenerates `examples/divine/hsc/` from the
   DVE corpus and classifies every model (run / refused-crossing / refused-other /
   timeout) into `examples/divine/status.tsv`; logs under `tests/logs/`.
+
+`counting_chain.py --hsc BIN` checks free-SCC fusion followed by constant
+removal, analytic state/token counts, PCONST serialization, empty residual
+nets, and repeated reductions. The large-factor CTest case uses an analytic
+oracle beyond 64-bit range. Each model invocation has a shared 15-second cap.

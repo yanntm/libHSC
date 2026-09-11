@@ -46,6 +46,10 @@ class solver {
     mult_ = std::move(mult);
   }
 
+  /// Constant free components are counted outside the diagram (PNET PCONST).
+  void set_count_factor(mpz_class factor) { count_factor_ = std::move(factor); }
+  const mpz_class& count_factor() const { return count_factor_; }
+
   /// Whether an arc count over this net is the arc count of the net the
   /// caller cares about. False when the net reached us transformed by steps
   /// that did not account for what they dropped, in which case the arcs are
@@ -255,10 +259,15 @@ class solver {
 
   /// `(count Q exact)` of a selection (`R` itself when \p atom is empty).
   std::string exact_count(const std::optional<std::string>& atom) {
-    if (!atom) return value_of(feed("(count R exact)"), "R count ");
-    const std::string q = next_name();
-    return value_of(feed("(select " + q + " R " + *atom + ") (count " + q + " exact)"),
-                    q + " count ");
+    std::string raw;
+    if (!atom) raw = value_of(feed("(count R exact)"), "R count ");
+    else {
+      const std::string q = next_name();
+      raw = value_of(feed("(select " + q + " R " + *atom + ") (count " + q + " exact)"), q + " count ");
+    }
+    mpz_class value(raw);
+    value *= count_factor_;
+    return value.get_str();
   }
 
   /// The maximum of \p form over the reachable states: `(max-sum R terms)`,
@@ -447,6 +456,7 @@ class solver {
   bool seed_named_ = false; ///< `(word hsc-pn-I …)` fed, for the paths
   const std::vector<std::string>* prop_names_ = nullptr;  ///< see set_property_names
   std::size_t timeouts_ = 0;  ///< see timeouts()
+  mpz_class count_factor_ = 1;
   std::vector<long long> mult_;  ///< empty means every multiplicity is 1
   bool arcs_countable_ = true;
   std::vector<long long> dropped_;  ///< markings of removed constant places
