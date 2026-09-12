@@ -76,7 +76,7 @@ inline std::vector<char> markable_places(const SparsePetriNet<int>& net) {
 /// the structural zeros. No session needed — computed before the model is
 /// emitted, so the leaf domains can be as wide as the box (the converses
 /// are restricted to the declared domains).
-inline approx_set approx_facts(const SparsePetriNet<int>& net, const hsc::petri::unit_tree* units, int flow_seconds, bool inequalities = false) {
+inline approx_set approx_facts(const SparsePetriNet<int>& net, const hsc::petri::unit_tree* units, int flow_seconds, bool inequalities = true) {
   using clock = std::chrono::steady_clock;
   approx_set a;
   const std::size_t np = net.getPlaceCount();

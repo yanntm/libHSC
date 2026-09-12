@@ -38,10 +38,11 @@ semiflow is a counter along the spine (nodes about `K × places`), several
 multiply, and the shape decides how badly — the same shape question as for
 `R`, and the same instruments (`(stock S)`) read it.
 
-### Optional monotone sums in the projection pass
+### Monotone sums in the projection pass
 
-`--approx-inequalities`, with `--approx` or `--dead`, collects inequalities
-in the same P-flow run. Disabled, the existing flow bridge is unchanged.
+Approximation and deadness passes collect inequalities by default in the
+same P-flow run. `--no-approx-inequalities` restores the existing equality-only
+bridge; `--approx-inequalities` is accepted for explicit enabling.
 The facts retain separate equality, decreasing and increasing lists. A
 decreasing vector supplies both per-place bounds and an at-most filter;
 an increasing vector supplies a lower-sum filter. Encode the latter as
@@ -61,7 +62,7 @@ A one-place projection uses an explicit `(spine place)` product root; the
 linear-set surface reader obtains domains from product arcs and does not
 support a bare leaf root. The unit tail introduces no additional variable.
 
-For a Bound query whose support survives, the opt-in pass can maximise its
+For a Bound query whose support survives, the inequality-enabled pass can maximise its
 sum over S. This is only an upper bound on reachability. Publish an exact
 numeric FORMULA only when that upper bound equals the sum at the initial
 marking, an attained lower bound. Otherwise report the upper bound as a

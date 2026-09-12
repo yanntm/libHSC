@@ -282,21 +282,26 @@ counting. A partial weighted count describes represented markings, not a
 completed StateSpace answer. Property reductions do not preserve baseline
 counting semantics, so these counts then describe the property-reduced net.
 
-### Optional inequality harvesting for approximation
+### Inequality harvesting for approximation
 
-`hsc-pn --approx S --approx-inequalities` (also with `--dead`) harvests
+`hsc-pn --approx S` (also with `--dead`) harvests by default
 nonnegative P vectors with one-sign effects in the existing P-flow run.
 Decreasing sums contribute place bounds before projection and at-most filters
 on the invariant set. Increasing sums contribute lower bounds only when their
-whole support survives projection. Equality results remain separate. Without
-the flag, the existing bridge and approximation are unchanged. Statistics
+whole support survives projection. Equality results remain separate. With
+`--no-approx-inequalities`, the existing equality-only bridge and approximation
+are used. `--approx-inequalities` remains accepted for explicit enabling. Statistics
 report certificate counts and additional bound coverage/tightening.
 
 This is the cheap, incomplete PetriSpot collector, not another search pass.
 See PetriSpot's `INEQUALITIES.md` for scope and the small lossy/growing nets.
 
-For Bound queries over retained places, this opt-in pass also reports the
+For Bound queries over retained places, this inequality-enabled pass also reports the
 maximum over the approximation as an upper bound. It answers the bound exactly
 only when that upper bound is attained at the initial marking; otherwise the
 query remains open. `pn_approx_bounds.hh` holds this small consumer separately
 from the invariant computation and the ordinary exact query path.
+
+Harvesting adds no second flow run, but retaining more bounded places can make
+projection diagrams larger, and additional filters cost construction time.
+The opt-out is useful for that tradeoff. Active inequality search remains off.

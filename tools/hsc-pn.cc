@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
   int dead_time = 0, approx_time = 0, approx_back = 0, dead_budget = 0, dead_depth = 1, dead_gfp = -1;
   double approx_back_time = 2.0;
   bool dead_step = false, approx_only = false, approx_units = false;
-  bool approx_inequalities = false;
+  bool approx_inequalities = true;
   int invariants_time = 0;
   bool reduce = false;
   int reduce_time = 10;
@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
   app.add_flag("--approx-only", approx_only, "with --approx, stop there: no fixpoint, UNKNOWN for the rest");
   app.add_option("--approx-back", approx_back, "with --approx, a backward search of up to K layers inside S for every property S alone leaves open: a layer meeting the initial marking decides reachable, a closed search decides unreachable (when every place is exact in S)");
   app.add_option("--approx-back-time", approx_back_time, "with --approx-back, seconds per property (default 2)");
-  app.add_flag("--approx-inequalities", approx_inequalities, "with --approx or --dead, harvest monotone sums in the P-flow run for bounds and set constraints");
+  app.add_flag("--approx-inequalities,!--no-approx-inequalities", approx_inequalities, "harvest monotone sums in approximation P-flow runs (default on; --no-approx-inequalities disables)");
   app.add_flag("--approx-units", approx_units, "with --approx or --dead, add the NUPN unit constraints (one token at most per unit) to the invariant set");
   app.add_option("--shape-file", shape_file, "take the shape from this file: a (spine …)/(balanced …) expression over the place names, as --export-shape writes it (overrides --shape)");
   app.add_option("--export-shape", export_shape, "write the shape after the rewrites (FORCE, reverse) to this file, one expression");
@@ -275,6 +275,7 @@ int main(int argc, char** argv) {
       if (left_ms() <= 0) break;
       // libHSC's own test: the invariant set of the net as it is now, every transition tested on it
       hsc::pn::approx_pass_options po;
+      po.inequalities = approx_inequalities;
       po.flow_seconds = std::max(1, static_cast<int>(left_ms() / 2000));
       po.cap = bound;
       for (int m : net->getMarks()) po.cap = std::max(po.cap, m + 1);
@@ -558,10 +559,10 @@ int main(int argc, char** argv) {
       solver.set_deadline(std::nullopt);
       const hsc::petri::unit_tree tags = restrict_units(tags_read, *net, record.weighted());
       hsc::pn::approx_pass_options po;
+      po.inequalities = approx_inequalities;
       po.flow_seconds = approx_time;
       po.cap = effective_bound;
       po.units = approx_units;
-      po.inequalities = approx_inequalities;
       po.back = static_cast<std::size_t>(approx_back);
       po.back_time = approx_back_time;
       po.verbose = verbose;
@@ -615,10 +616,10 @@ int main(int argc, char** argv) {
       // in the pass's own session on the abstract net.
       const hsc::petri::unit_tree tags = restrict_units(tags_read, *net, record.weighted());
       hsc::pn::approx_pass_options po;
+      po.inequalities = approx_inequalities;
       po.flow_seconds = dead_time;
       po.cap = effective_bound;
       po.units = approx_units;
-      po.inequalities = approx_inequalities;
       po.dead = true;
       po.dead_step = dead_step;
       po.dead_budget = dead_budget;

@@ -30,7 +30,7 @@ struct approx_pass_options {
   int flow_seconds = 5;
   int cap = 2;              ///< the leaf domain of the original model, [0, cap)
   bool units = false;       ///< the NUPN unit constraints
-  bool inequalities = false; ///< harvest monotone sums in the same flow run
+  bool inequalities = true; ///< harvest monotone sums in the same flow run
   std::size_t back = 0;     ///< layers of the backward search per open property (0: none)
   double back_time = 2.0;   ///< seconds per backward search
   bool dead = false;        ///< the dead-transition report instead of the properties
