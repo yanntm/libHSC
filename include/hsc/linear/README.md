@@ -16,6 +16,7 @@ dependency: the selectors build the set, one image tests the step.
 | `algorithm.md` | the construction, the tests, their soundness, their cost |
 | `full.hh` / `src/linear/full.cc` | the product of the leaf domains as a diagram |
 | `equality.hh` / `src/linear/equality.cc` | the diagram of a nonnegative linear equality — or inequality `≤ K` — over a box, built directly (a knapsack along the shape) |
+| [`conjunction/`](conjunction/README.md) | proposed shape-directed conjunction evaluator over an existing diagram; design before implementation |
 | `dead.hh` / `src/linear/dead.cc` | the two deadness tests over an over-approximating set |
 | `src/surface_linear.cc` (bindings) | `(full NAME [(LEAF LO HI)]*)`, `(equality NAME BOX K (* C LEAF)*)`, `(at-most NAME BOX K (* C LEAF)*)`, `(intersect NAME A B*)`, `(dead NAME SET [step] [ignore LEAF*])` |
 | `tools/pn_approx.hh` (client) | the linear facts of a net (flows, structural zeros, the NUPN safe tag) and the invariant set in a session: box, equalities, unit constraints, meet |
