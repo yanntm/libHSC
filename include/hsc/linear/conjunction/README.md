@@ -63,3 +63,14 @@ the spine hierarchy. `--force` now applies to the approximation and reduction
 sessions as well as reachability. The new evaluator has not demonstrated a
 speedup over the previous equality construction on these small Sloan examples.
 Logs are under `/data/ythierry/MCC26logs/local/conjunction/`.
+
+The invariant client now defaults to the projected NUPN hierarchy with FORCE,
+and enables certified unit constraints. On Anderson PT05 (8 declared safe
+units, 7 nontrivial unit constraints), the same 2195405-marking invariant set
+uses 631 nodes and builds in 0.0078 seconds; total reduction takes 0.056
+seconds. All four StateSpace answers agree with the oracle. These figures
+include both the shape change and enabling the redundant unit constraints,
+so they do not isolate either contribution. Without NUPN, the default stays
+Sloan; BugTracking q3m002 exercises that fallback, reducing to 240 places and
+2769 transitions with 2995 transitions proved dead, in 0.94 seconds. Its
+subsequent reachability run remains partial within the diagnostic budget.

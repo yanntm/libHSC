@@ -169,13 +169,15 @@ runs a pass of its own (`tools/pn_approx_pass.hh`) before the fixpoint: the
 net is **abstracted** to the places the linear facts bound — the others
 removed with their arcs (`tools/pn_abstract.hh`), which only adds
 behaviour, so every impossibility proved there holds of the original net
-for a question over kept places — its model emitted under the Sloan order
-optionally rewritten by `--force`, with leaf domains as wide as the box, in a session separate from the main
+for a question over kept places — its model emitted under the projected NUPN
+hierarchy with FORCE when available, otherwise the projected Sloan order
+(optionally rewritten by `--force`), with leaf domains as wide as the box,
+in a session separate from the main
 one; there the invariant set `S ⊇ R` is built: the
 P-flows within S seconds, the positive ones as bounds and equality
 diagrams, the never-marked places bounded by 0, every place bounded by 1
-when the PNML carries a safe NUPN tag, and with `--approx-units` one token
-at most per NUPN unit (`(at-most …)`); the box `F`, the constraints, `S`
+when the PNML carries a safe NUPN tag, and by default one token
+at most per certified safe NUPN unit (`(at-most …)`); the box `F`, the constraints, `S`
 their meet (`tools/pn_approx.hh`). Then every open reachability, invariant
 and deadlock property is tried on `S`: a goal that selects nothing of `S`
 is unreachable — `FALSE` for a reachability, `TRUE` for an invariant,
@@ -327,3 +329,17 @@ inherits it before model/constraint evaluation; the dead test may shorten but
 never restart that deadline. An interrupted conjunction publishes no result,
 and reduction proceeds to the solving pipeline with the last valid net.
 The deadline is cooperative, so unwinding and freeing caches can add overhead.
+
+### Invariant-set shape and unit defaults
+
+Approximation and reduction use the supplied NUPN hierarchy, projected onto
+retained places, with FORCE reordering inside that hierarchy. Certified safe
+NUPN units contribute at-most-one constraints by default. `--no-approx-units`
+disables those extra constraints without changing the hierarchy. If reductions
+invalidate the safety certificate, the hierarchy may still guide the shape,
+but no unit constraints or safe-place bounds are inferred from that certificate.
+
+Without NUPN, the fallback remains Sloan on the original dependency graph,
+projected onto retained places; `--force` can additionally reorder it. These
+defaults concern the invariant session; `--shape` still selects the main
+reachability shape. Constraint-guided shape selection beyond NUPN is future work.

@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
        verbose = false, witness = false, shape_only = false, cover = false;
   int dead_time = 0, approx_time = 0, approx_back = 0, dead_budget = 0, dead_depth = 1, dead_gfp = -1;
   double approx_back_time = 2.0;
-  bool dead_step = false, approx_only = false, approx_units = false;
+  bool dead_step = false, approx_only = false, approx_units = true;
   bool approx_inequalities = true;
   int invariants_time = 0;
   bool reduce = false;
@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
   app.add_option("--approx-back", approx_back, "with --approx, a backward search of up to K layers inside S for every property S alone leaves open: a layer meeting the initial marking decides reachable, a closed search decides unreachable (when every place is exact in S)");
   app.add_option("--approx-back-time", approx_back_time, "with --approx-back, seconds per property (default 2)");
   app.add_flag("--approx-inequalities,!--no-approx-inequalities", approx_inequalities, "harvest monotone sums in approximation P-flow runs (default on; --no-approx-inequalities disables)");
-  app.add_flag("--approx-units", approx_units, "with --approx or --dead, add the NUPN unit constraints (one token at most per unit) to the invariant set");
+  app.add_flag("--approx-units,!--no-approx-units", approx_units, "add certified NUPN unit constraints to invariant sets (default on, including reduction)");
   app.add_option("--shape-file", shape_file, "take the shape from this file: a (spine …)/(balanced …) expression over the place names, as --export-shape writes it (overrides --shape)");
   app.add_option("--export-shape", export_shape, "write the shape after the rewrites (FORCE, reverse) to this file, one expression");
   app.add_flag("--reduce", reduce, "before anything, PetriSpot's STATESPACE structural reductions in memory (constant places, duplicate transitions, free components, with the counting record), then the dead transitions of --dead-test, again while something changes");
@@ -276,6 +276,7 @@ int main(int argc, char** argv) {
       // libHSC's own test: the invariant set of the net as it is now, every transition tested on it
       hsc::pn::approx_pass_options po;
       po.deadline = deadline;
+      po.units = approx_units;
       po.inequalities = approx_inequalities;
       po.force = force;
       po.flow_seconds = std::max(1, static_cast<int>(left_ms() / 2000));

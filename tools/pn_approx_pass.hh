@@ -1,8 +1,8 @@
 /// \file pn_approx_pass.hh
 /// \brief The over-approximation pass of `hsc-pn`, in a session of its own:
 /// the net abstracted to the places the linear facts bound (`pn_abstract.hh`),
-/// its model emitted under the Sloan order with leaf domains as wide as the
-/// box, the invariant set `S` built (`pn_approx.hh`), then the questions —
+/// its model emitted under NUPN + FORCE when available, otherwise Sloan, with
+/// leaf domains as wide as the box, the invariant set `S` built (`pn_approx.hh`), then the questions —
 /// the properties `S` refutes, the backward searches inside `S`, the dead
 /// transitions. Everything here is sound for the original net on the
 /// places kept: a question that reads a removed place is not asked.
@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include "hsc/order/bandwidth.hh"
 #include "hsc/petri/decompose.hh"
@@ -31,8 +32,8 @@ struct approx_pass_options {
   std::optional<std::chrono::steady_clock::time_point> deadline; ///< shared preparation deadline
   int flow_seconds = 5;
   int cap = 2;              ///< the leaf domain of the original model, [0, cap)
-  bool units = false;       ///< the NUPN unit constraints
-  bool force = false;       ///< FORCE rewrite of the projected Sloan spine
+  bool units = true;        ///< add certified NUPN unit constraints
+  bool force = false;       ///< FORCE on the Sloan fallback (automatic for NUPN)
   bool inequalities = true; ///< harvest monotone sums in the same flow run
   std::size_t back = 0;     ///< layers of the backward search per open property (0: none)
   double back_time = 2.0;   ///< seconds per backward search
@@ -130,18 +131,28 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
     afacts.increasing = project(facts.increasing);
   }
   const SparsePetriNet<int>& anet = abs.net;
-  // the model of the abstract net: the Sloan order of the *original* net
-  // projected onto the kept places (the removed places carry dependency
-  // structure the order needs — BugTracking's set has 8249 nodes under the
-  // projected order, 39 587 under an order computed on the abstract net),
-  // domains as wide as the box
-  const std::vector<hsc::order::louvain::edge> edges = hsc::petri::dependency_edges(net);
-  const std::vector<std::uint32_t> full_order = hsc::order::sloan(static_cast<int>(net.getPlaceCount()), edges);
-  std::vector<std::uint32_t> listing;
-  listing.reserve(abs.kept.size());
-  for (const std::uint32_t p : full_order)
-    if (keep[p]) listing.push_back(static_cast<std::uint32_t>(abs.to_abstract[p]));
-  const hsc::petri::unit_tree units = hsc::petri::ordered(anet, listing);
+  // Keep unit constraints local to their declared hierarchy. Projecting away
+  // places preserves the tree and the validity of certified upper bounds.
+  hsc::petri::unit_tree units;
+  const bool nupn = tags.present();
+  if (nupn) {
+    units = tags;
+    std::unordered_set<std::string> names(anet.getPnames().begin(), anet.getPnames().end());
+    for (auto& [id, u] : units.units)
+      std::erase_if(u.places, [&](const std::string& p) { return !names.contains(p); });
+  } else {
+    // Order before projection: removed places still carry useful dependency
+    // structure for the bounded places (notably on BugTracking).
+    const std::vector<hsc::order::louvain::edge> edges = hsc::petri::dependency_edges(net);
+    const auto full_order = hsc::order::sloan(static_cast<int>(net.getPlaceCount()), edges);
+    std::vector<std::uint32_t> listing;
+    listing.reserve(abs.kept.size());
+    for (const auto p : full_order)
+      if (keep[p]) listing.push_back(static_cast<std::uint32_t>(abs.to_abstract[p]));
+    units = hsc::petri::ordered(anet, listing);
+  }
+  if (o.verbose) std::cerr << "hsc-pn: approx shape="
+                          << (nupn ? "nupn+force" : o.force ? "sloan+force" : "sloan") << '\n';
   hsc::petri::emit_options eo;
   eo.exam = hsc::petri::examination::model_only;
   eo.skip_no_effect = !o.dead;
@@ -157,7 +168,7 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
     eo.shape_form = "(spine " + anet.getPnames().front() + ")";
   std::ostringstream model;
   hsc::petri::to_surface(model, anet, units, eo);
-  if (o.force) model << "(reorder-force)\n";
+  if (nupn || o.force) model << "(reorder-force)\n";
   if (o.dead) model << "(print-spec)\n";
   solver s(anet, domain, o.verbose);
   s.set_property_names(net.getPnames());
