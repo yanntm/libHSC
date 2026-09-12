@@ -343,3 +343,9 @@ Without NUPN, the fallback remains Sloan on the original dependency graph,
 projected onto retained places; `--force` can additionally reorder it. These
 defaults concern the invariant session; `--shape` still selects the main
 reachability shape. Constraint-guided shape selection beyond NUPN is future work.
+
+Missing StateSpace metrics emit no answer line and no examination-wide failure
+token. When reductions leave transition multiplicities uncertified, the
+diagnostic is: "Currently cannot reliably compute Transitions with --reduce
+flag. Rerun without for that metric." Overflow likewise stays an ordinary
+diagnostic; computed metrics remain valid.

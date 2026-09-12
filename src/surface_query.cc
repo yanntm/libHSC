@@ -412,11 +412,9 @@ void translator::do_states(const datum& form) {
   try {
     const code r = form.items().size() > 1 ? named(form.items()[1])
                                            : run_reach(false);
-    out_ << "STATE_SPACE STATES "
-         << (weighted() ? weighted_count(r) : mgr_.diagrams().cardinal_exact(r))
-         << TECHNIQUES;
+    const auto count = weighted() ? weighted_count(r) : mgr_.diagrams().cardinal_exact(r);
+    out_ << "STATE_SPACE STATES " << count << TECHNIQUES;
   } catch (const hsc::overflow_error& e) {
-    out_ << "STATE_SPACE STATES CANNOT_COMPUTE\n";
     std::cerr << "overflow: " << e.what() << '\n';
     ++failures_;
   }

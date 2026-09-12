@@ -349,7 +349,7 @@ per-leaf maximum of a result (MAX_TOKEN_IN_PLACE; 1-safety is
 runners, `hsc-mcc`, not here). `(states [NAME])` prints an MCC-format
 cardinal, running the default reach when no result is named; on
 `overflow_error` (a leaf value left its representable range) it prints
-`CANNOT_COMPUTE` loudly rather than a wrong count. The former `one-safe`
+an ordinary overflow diagnostic, without emitting a StateSpace value. The former `one-safe`
 and `deadlock` forms are gone: the first was the Petri front end's
 question in surface clothing, the second assumed every refusal sits in
 `when` — untrue since abort-bearing events (⊥) arrived.

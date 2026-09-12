@@ -761,7 +761,6 @@ int main(int argc, char** argv) {
   } catch (const hsc::overflow_error& e) {
     std::cerr << "overflow: " << e.what() << " (raise --bound)\n";
     print_open(std::cout);
-    if (states) std::cout << "STATE_SPACE STATES CANNOT_COMPUTE" << std::endl;
     return 0;
   } catch (const hsc::interrupted&) {
     // The deadline met outside a question (the model, the reachable set's

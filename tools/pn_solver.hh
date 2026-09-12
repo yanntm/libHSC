@@ -408,8 +408,8 @@ class solver {
     out << "STATE_SPACE MAX_TOKEN_PER_MARKING " << (v == "none" ? 0 : std::stoll(v)) + constant
         << TECHNIQUES << std::endl;
     if (!arcs_countable_) {
-      std::cerr << "TRANSITIONS not reported: this net carries no evidence "
-                   "that its arcs are those of the net it came from\n";
+      std::cerr << "Currently cannot reliably compute Transitions with --reduce flag. "
+                   "Rerun without for that metric.\n";
       return;
     }
     // arcs of the reachability graph: per transition, the states enabling it,
