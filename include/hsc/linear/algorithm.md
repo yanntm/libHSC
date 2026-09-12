@@ -168,8 +168,81 @@ constraints this construction takes yet.
 
 ## 4. Uncovered places
 
-A place no semiflow covers keeps its declared domain, a cap: `S` then
-under-approximates on that place and the tests are not sound for the
-transitions whose enabling reads it — they are reported as untested. The
-honest way through is an ω-value in the leaf theory (a ceiling meaning
-"at least this"), `research_notes/ideas.md` #2.
+In the generic box builder, an uncertified finite domain is only a cap:
+it need not contain every reachable token count. Queries relying on that
+coordinate cannot use the capped set as an over-approximation.
+
+The current `hsc-pn` approximation pass avoids that situation by removing
+places with no certified finite bound, together with their incident arcs
+(`tools/pn_abstract.hh`). The initial marking is projected as well. Removing
+places relaxes enabling, so every original firing sequence projects to one
+of the abstract net. Queries reading omitted places remain open under the
+current interface; a path of the abstract net is not automatically a witness
+of the original. Certified constraints and finite domains are then applied
+to the retained coordinates to construct S.
+
+The implementation currently retains **every** place it can bound. This is
+a selection policy, not a condition of soundness: removing a bounded place
+is legal too. Bounds make places eligible for retention; they do not require
+retention. An omega-value in the leaf theory remains a different possible
+way to represent uncovered coordinates (`research_notes/ideas.md` #2).
+
+## 6. Prospective: selective bounded projection and refinement
+
+This section is a design direction, not implemented behaviour. The policy
+continues to exclude coordinates without certified bounds: potentially
+unbounded behaviour must not enter this finite approximation engine. Among
+the bounded coordinates, however, retention can be selective and incremental.
+
+Separate three pieces of knowledge:
+
+* **Available facts:** equalities, monotone inequalities, structural zeros,
+  NUPN facts, and certified per-place bounds, all in original coordinates.
+* **Eligible places B:** those with a certified finite bound. Improved facts
+  enlarge the available choices; they do not force a larger abstraction.
+* **Retained places K, a subset of B:** those selected for this abstraction.
+  Everything outside K is projected away, even when a bound is known.
+
+In particular a known bound must not stand in for a retained-coordinate flag.
+The current pass can use `bound[p] < 0` to detect omitted places because it
+retains all bounded places. A selective pass needs a separate retained mask
+for query eligibility and index mapping, while preserving bounds on omitted
+places for later refinement.
+
+A first strategy could retain bounded places read by an open query and a
+small relevant context, then add eligible places when a query cannot be
+expressed on the current projection or when an abstract behaviour is spurious.
+Unbounded or not-yet-bounded places remain omitted. Relevance, certified domain
+widths, constraint supports and observed diagram cost can guide the choice.
+Every stage must be a completed sound approximation; an unfinished diagram
+construction is not an over-approximation certificate.
+
+Facts need not all be applied at once either. A constraint whose support is
+already retained can refine S without increasing its variable set. Applying
+extra filters still costs time and can increase diagram representation size.
+Keep other facts available until they help a query or justify adding a place.
+The simplest safe rule is to use only constraints whose full support survives.
+For nonnegative sums, dropping terms from an upper bound is a valid weakening;
+dropping terms from a lower bound with the constant unchanged is unsound.
+Known upper bounds on the omitted contributions can instead weaken that lower
+bound soundly. General equalities require proper elimination or full support,
+not silently deleted terms.
+
+For fixed available facts, an incremental sequence K0 subset K1 subset ...
+can preserve earlier constraints lifted to the larger space; projecting the
+refined set back then stays inside the earlier approximation. Impossibility
+proofs remain useful. Abstract witnesses still need concrete validation.
+Any cached fact or result must retain its coordinate/provenance mapping,
+especially across structural reductions.
+
+Initially, incrementality can mean choosing and rebuilding progressively
+better abstractions. Reusing a diagram across changes of variables or shape
+is a separate optimisation, not required for this policy. A portfolio can
+also keep several small projections for different queries rather than grow
+one global projection monotonically.
+
+The inequality examples illustrate the choice: net 2's control-only query
+needs p0 and p1, whereas a resource query motivates restoring the now-bounded
+p2. Net 3's p0 bound can be answered without retaining p1; its missing total
+bound motivates better facts, not unsafe admission of an unbounded coordinate.
+The POC and further search ideas are recorded in PetriSpot's `INEQUALITIES.md`.

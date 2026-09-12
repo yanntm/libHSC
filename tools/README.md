@@ -199,6 +199,13 @@ one-step test backward per slice), no fixpoint.
 `hsc-pn: approx …` on stderr is the record: flows, covered places, zeros,
 unit constraints, the sizes of `F` and `S`, the times, the count refuted.
 
+The current projection retains all places with certified bounds. This is a
+policy choice: bounded places can also be dropped soundly. Prospective
+selection and incremental refinement, keeping eligibility separate from
+retention, are described in
+[`linear/algorithm.md` section 6](../include/hsc/linear/algorithm.md#6-prospective-selective-bounded-projection-and-refinement).
+No selective-retention implementation is enabled yet.
+
 ### `--reduce`
 
 Before anything else, PetriSpot's preparation, in memory, on the vendored
