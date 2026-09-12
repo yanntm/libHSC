@@ -34,7 +34,7 @@ one() {  # instance states exam short
   local xml="$W/INPUTS/$m/$x.xml" orc="$W/oracle/oracle/$m-$o.out"
   [ -f "$xml" ] && [ -f "$orc" ] || { echo -e "$m\t$o\t$st\t\t\t\t\t\t\t\tno-input"; return; }
   local out="$RUNS/$m-$o.out" err="$RUNS/$m-$o.err" tm="$RUNS/$m-$o.time"
-  ( ulimit -v $MEM; /usr/bin/time -f "%e %M" -o "$tm" timeout $CAP "$ROOT/$BIN" -i "$W/INPUTS/$m/model.pnml" --props "$xml" --totalTime $((CAP-1)) --printUnknown -q -v $EXTRA > "$out" 2> "$err" ); local rc=$?
+  ( ulimit -v $MEM; /usr/bin/time -f "%e %M" -o "$tm" timeout $CAP "$ROOT/$BIN" -i "$W/INPUTS/$m/model.pnml" --props "$xml" --totalTime $((CAP-1)) --printUnknown -v $EXTRA > "$out" 2> "$err" ); local rc=$?
   local wall mem; read -r wall mem < <(tail -1 "$tm" 2>/dev/null)
   local ok=0 wrong=0 unk=0 ans=0
   while read -r name verdict; do

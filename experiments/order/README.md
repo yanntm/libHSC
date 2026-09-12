@@ -113,3 +113,6 @@ The TSV retains raw `reach_states` and adds exact `reach_weighted_states`,
 explicit heuristic list, reports missing/interrupted entries, missing run
 artifacts, and deadline overruns; it does not infer a completed roster from
 whichever rows happen to exist.
+
+HSC benchmark invocations use `-v` without `-q`; complete diagnostics, including
+reduction summaries and counting records, are retained in each run’s stderr file.

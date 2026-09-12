@@ -49,7 +49,7 @@ grep -v '^#' "$HEUR" | while IFS=$'\t' read -r name flags envs; do
   # its duplicate (status dup:<name>) — the signature is cheap, no fixpoint.
   # …and the shape itself, exported beside the run (<base>.shape), for the pages and for a hand tweak.
   prep="$base.prepare"
-  ( ulimit -v "$MEM"; env $envs_ timeout -k 5 120 "$BIN" -i "$pnml" $QUERY "${REDUCE_ARGS[@]}" $flags --shape-only --export-net "$prep.pnet" --export-shape "$prep.shape" -q > "$prep.out" 2> "$prep.err" ); prep_rc=$?
+  ( ulimit -v "$MEM"; env $envs_ timeout -k 5 120 "$BIN" -i "$pnml" $QUERY "${REDUCE_ARGS[@]}" $flags --shape-only --export-net "$prep.pnet" --export-shape "$prep.shape" -v > "$prep.out" 2> "$prep.err" ); prep_rc=$?
   sig=$(grep -m1 -o 'sig=[0-9a-f]*' "$prep.out" | cut -d= -f2)
   key=""
   # The shape hash alone omits the residual net and counting record.
@@ -67,7 +67,7 @@ grep -v '^#' "$HEUR" | while IFS=$'\t' read -r name flags envs; do
     continue
   fi
   printf 'run %s\n' "$(date +%s)" > "$base.started"
-  ( ulimit -v "$MEM"; env $envs_ /usr/bin/time -f "%e %U %S %M" -o "$tm" timeout -k 5 "$BUDGET" "$BIN" -i "$pnml" $QUERY "${REDUCE_ARGS[@]}" --export-net "$base.pnet" --export-shape "$base.shape" --totalTime $((BUDGET>30 ? BUDGET-30 : 1)) --printUnknown -q -v $flags > "$out" 2> "$err" ); rc=$?
+  ( ulimit -v "$MEM"; env $envs_ /usr/bin/time -f "%e %U %S %M" -o "$tm" timeout -k 5 "$BUDGET" "$BIN" -i "$pnml" $QUERY "${REDUCE_ARGS[@]}" --export-net "$base.pnet" --export-shape "$base.shape" --totalTime $((BUDGET>30 ? BUDGET-30 : 1)) --printUnknown -v $flags > "$out" 2> "$err" ); rc=$?
   if [ -n "$key" ] && [ -s "$base.shape" ] && cmp -s "$prep.shape" "$base.shape"; then
     if [ "${#REDUCE_ARGS[@]}" = 0 ] || cmp -s "$prep.pnet" "$base.pnet"; then
       seen_sig[$key]=$name

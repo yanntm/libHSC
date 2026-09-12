@@ -28,3 +28,6 @@ statistic. Oracles: `/data/ythierry/MCC26deploy/MCC-drivers/oracle/<model>-<EXAM
 Headline (full corpus, 13 760 formulas, 60 s and 6 GB a run): `hscb` 6796
 answered, 0 wrong; `lp` 3363 answered, 0 wrong; `hscb` ahead on 541
 instances, `lp` on 244.
+
+HSC benchmark invocations use `-v` without `-q`; complete diagnostics, including
+reduction summaries and counting records, are retained in each run’s stderr file.

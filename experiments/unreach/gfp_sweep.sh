@@ -19,7 +19,7 @@ mkdir -p "$OUT"
 export ROOT CAP MEMKB BUDGET HSC INPUTS ORACLE OUT
 one() {
   local m=$1
-  (ulimit -v "$MEMKB"; timeout "$CAP" "$HSC" -i "$INPUTS/$m/model.pnml" --shape sloan --dead 5 --dead-step --dead-budget "$BUDGET" --dead-gfp 0 -q) > "$OUT/$m.out" 2> "$OUT/$m.err"
+  (ulimit -v "$MEMKB"; timeout "$CAP" "$HSC" -i "$INPUTS/$m/model.pnml" --shape sloan --dead 5 --dead-step --dead-budget "$BUDGET" --dead-gfp 0 -v) > "$OUT/$m.out" 2> "$OUT/$m.err"
   local rc=$?
   local cov s snodes img gfp r
   cov=$(grep -o "covered=[0-9]*/[0-9]*" "$OUT/$m.err" | head -1 | cut -d= -f2)

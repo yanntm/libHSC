@@ -101,3 +101,6 @@ portfolio runs four configurations and keeps the first complete one, so its
 score should sit between. No configuration ever answered wrongly.
 
 Further rows are appended as the runs complete.
+
+HSC benchmark invocations use `-v` without `-q`; complete diagnostics, including
+reduction summaries and counting records, are retained in each run’s stderr file.

@@ -36,10 +36,10 @@ one() {  # model exam
   local eng cmd t0 t1
   for eng in $ENGINES; do
     case $eng in
-      hsc)  cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only -q) ;;
-      hscu) cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only --approx-units -q) ;;
+      hsc)  cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only -v) ;;
+      hscu) cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only --approx-units -v) ;;
       lp)   cmd=("$LP" -i "$INPUTS/$m/model.pnml" "--props=$props" --lp --lpTime 5) ;;
-      hscb) cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only --approx-units --approx-back 50 --approx-back-time 2 -q) ;;
+      hscb) cmd=("$HSC" -i "$INPUTS/$m/model.pnml" --props "$props" --shape sloan --approx 5 --approx-only --approx-units --approx-back 50 --approx-back-time 2 -v) ;;
     esac
     t0=$(date +%s.%N)
     (ulimit -v "$MEMKB"; timeout "$CAP" "${cmd[@]}") > "$OUT/$m-$ex.$eng.out" 2> "$OUT/$m-$ex.$eng.err"
