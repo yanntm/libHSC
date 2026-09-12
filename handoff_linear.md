@@ -4,6 +4,16 @@ Current state only, next action first. Design: `include/hsc/linear/algorithm.md`
 Report: `research_notes/unreach_report.md`. Ledger: `research_notes/ideas.md`
 #1, #17–#22. Campaign: `experiments/unreach/`.
 
+## Inequality/projection thread
+
+Its specific next-action handoff is
+[`PetriSpot/handoff_inequalities.md`](../PetriSpot/handoff_inequalities.md);
+its design and small-model observations are in `PetriSpot/INEQUALITIES.md`.
+Approximation/deadness now harvests cheap inequalities by default; compare with
+`--no-approx-inequalities`. Selective retention of bounded places remains a
+prospective policy (linear algorithm sections 4 and 6). Experiments for this
+thread are deferred while the cluster is busy; do not submit them yet.
+
 ## What stands
 
 `hsc-pn --approx S [--approx-units] [--approx-back K] [--approx-back-time T]
