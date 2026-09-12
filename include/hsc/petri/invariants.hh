@@ -33,4 +33,14 @@ struct pflow {
 [[nodiscard]] std::vector<pflow> pflows(const SparsePetriNet<int>& net, int seconds,
                                         bool positive = false);
 
+/// Optional monotone facts, kept separate from the equality-only API.
+struct pconstraints {
+  std::vector<pflow> equalities;
+  std::vector<pflow> decreasing;  ///< sum <= constant, nonnegative coefficients
+  std::vector<pflow> increasing;  ///< sum >= constant, nonnegative coefficients
+};
+
+/// Harvest inequalities during the same bounded P-flow computation.
+[[nodiscard]] pconstraints pflows_with_inequalities(const SparsePetriNet<int>& net, int seconds);
+
 }  // namespace hsc::petri

@@ -58,4 +58,38 @@ std::vector<pflow> pflows(const SparsePetriNet<int>& net, int seconds, bool posi
   return out;
 }
 
+// Optional harvesting bridge. The original pflows entry point stays unchanged.
+pconstraints pflows_with_inequalities(const SparsePetriNet<int>& net, int seconds) {
+  pconstraints out;
+  const silenced quiet;
+  try {
+    MatrixCol<int> incidence = MatrixCol<int>::sumProd(-1, net.getFlowPT(), 1, net.getFlowTP());
+    auto result = ::petri::InvariantMiddle<int>::computePInvariantsWithInequalities(
+        incidence, false, ::petri::EliminationHeuristic(),
+        std::chrono::steady_clock::now() + std::chrono::seconds(seconds));
+    const auto convert = [&](const MatrixCol<int>& matrix, std::vector<pflow>& target) {
+      for (const auto& col : matrix.getColumns()) {
+        pflow f;
+        for (std::size_t i = 0; i < col.size(); ++i) {
+          const int p = static_cast<int>(col.keyAt(i));
+          const int c = col.valueAt(i);
+          if (!c) continue;
+          f.terms.emplace_back(p, c);
+          const long long contribution = ::petri::multiplyExact(static_cast<long long>(c),
+              static_cast<long long>(net.getMarks()[static_cast<std::size_t>(p)]));
+          f.constant = ::petri::addExact(f.constant, contribution);
+        }
+        if (!f.terms.empty()) target.push_back(std::move(f));
+      }
+      std::ranges::sort(target, {}, [](const pflow& f) { return f.terms.size(); });
+    };
+    convert(result.basis, out.equalities);
+    convert(result.inequalities.decreasing, out.decreasing);
+    convert(result.inequalities.increasing, out.increasing);
+  } catch (const std::exception&) {
+    return {};  // no fact with an unrepresentable constant is published
+  }
+  return out;
+}
+
 }  // namespace hsc::petri

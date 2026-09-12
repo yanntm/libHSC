@@ -38,6 +38,42 @@ semiflow is a counter along the spine (nodes about `K × places`), several
 multiply, and the shape decides how badly — the same shape question as for
 `R`, and the same instruments (`(stock S)`) read it.
 
+### Optional monotone sums in the projection pass
+
+`--approx-inequalities`, with `--approx` or `--dead`, collects inequalities
+in the same P-flow run. Disabled, the existing flow bridge is unchanged.
+The facts retain separate equality, decreasing and increasing lists. A
+decreasing vector supplies both per-place bounds and an at-most filter;
+an increasing vector supplies a lower-sum filter. Encode the latter as
+`-sum <= -constant` with the existing signed at-most constructor. No new
+linear primitive or additional flow computation is required.
+
+Compute facts before projecting the net. Decreasing supports become bounded
+and remain present; for either direction keep only certificates whose entire
+support survives, then reindex it. In particular never drop a term from a
+lower bound while retaining its constant. The resulting S contains every
+projected reachable marking. These inequalities are forward inductive, not
+necessarily preserved by reverse firing; backward tests must restrict their
+source and target to S as they already do. No inequality is passed as an
+equality to shape or conservation-based consumers.
+
+A one-place projection uses an explicit `(spine place)` product root; the
+linear-set surface reader obtains domains from product arcs and does not
+support a bare leaf root. The unit tail introduces no additional variable.
+
+For a Bound query whose support survives, the opt-in pass can maximise its
+sum over S. This is only an upper bound on reachability. Publish an exact
+numeric FORMULA only when that upper bound equals the sum at the initial
+marking, an attained lower bound. Otherwise report the upper bound as a
+statistic and leave the query open. The maximisation shares the per-property
+approximation deadline; no new reachability or flow pass is needed.
+
+Report collected directions plus newly covered/tightened place bounds. This
+is incomplete harvesting; it need not recover all decreasing sums. The design
+and the NUPN unit-recovery experiment proposal are in PetriSpot's
+`INEQUALITIES.md`; no active inequality search is implemented.
+
+
 ## 2. Two tests of deadness
 
 For a transition `t` with guard `en(t)` (a selector):

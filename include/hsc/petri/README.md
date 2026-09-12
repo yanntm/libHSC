@@ -43,8 +43,10 @@ shared by the two projects.
   three mandatory blocks, and the optional named blocks that say what a
   producer knows about the net's provenance).
 
-The invariant *solver* (`InvariantMiddle`/`Calculator`/`Heuristic`/`RowSigns`),
-the walk engine and the CTL checker are **not** vendored.
+The invariant solver under `invariants/` is also vendored, including the
+optional `Inequalities.h` collector and its algorithm documentation. The walk
+engine and CTL checker are not vendored. `vendor.sh SOURCE relative-file ...`
+can update a specified subset without pulling unrelated upstream changes.
 
 ## Ours
 
@@ -56,6 +58,9 @@ the walk engine and the CTL checker are **not** vendored.
   the vendored calculator (`invariants/`, PetriSpot's `InvariantMiddle`), as
   supports with coefficients and the constant the initial marking fixes; a
   deadline, no compression, flows rather than semiflows (at most |P| of them).
+  The optional `pflows_with_inequalities` result keeps decreasing and increasing
+  sums separate from equalities, for the approximation consumer. Constants
+  are formed with checked arithmetic. The existing `pflows` API is unchanged.
 * `decompose.hh` + `src/petri_decompose.cc` — a unit tree for a net that
   arrives without one, by Louvain clustering over a place co-occurrence graph
   (control→write per transition, all-to-all as fallback). The graph is built

@@ -21,6 +21,7 @@
 #include "hsc/petri/to_surface.hh"
 #include "pn_abstract.hh"
 #include "pn_approx.hh"
+#include "pn_approx_bounds.hh"
 #include "pn_solver.hh"
 
 namespace hsc::pn {
@@ -29,6 +30,7 @@ struct approx_pass_options {
   int flow_seconds = 5;
   int cap = 2;              ///< the leaf domain of the original model, [0, cap)
   bool units = false;       ///< the NUPN unit constraints
+  bool inequalities = false; ///< harvest monotone sums in the same flow run
   std::size_t back = 0;     ///< layers of the backward search per open property (0: none)
   double back_time = 2.0;   ///< seconds per backward search
   bool dead = false;        ///< the dead-transition report instead of the properties
@@ -62,7 +64,7 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
   approx_pass_report rep;
   const clock::time_point t0 = clock::now();
   // the facts on the original net; the abstraction keeps the bounded places
-  approx_set facts = approx_facts(net, tags.present() ? &tags : nullptr, o.flow_seconds);
+  approx_set facts = approx_facts(net, tags.present() ? &tags : nullptr, o.flow_seconds, o.inequalities);
   std::vector<char> keep(net.getPlaceCount(), 0);
   for (std::size_t p = 0; p < keep.size(); ++p) keep[p] = facts.bound[p] >= 0;
   const abstraction abs = abstract_net(net, keep);
@@ -95,6 +97,24 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
     if (positive) afacts.positive.push_back(afacts.flows.size());
     afacts.flows.push_back(std::move(g));
   }
+  if (o.inequalities) {
+    // Keep whole supports only, especially for lower bounds: dropping a term
+    // from sum >= K is unsound. Decreasing supports are bounded by construction.
+    const auto project = [&](const std::vector<hsc::petri::pflow>& source) {
+      std::vector<hsc::petri::pflow> target;
+      for (const auto& f : source) {
+        bool retained = true;
+        for (const auto& [p, c] : f.terms) retained = retained && keep[static_cast<std::size_t>(p)];
+        if (!retained) continue;
+        auto g = f;
+        for (auto& [p, c] : g.terms) p = static_cast<int>(abs.to_abstract[static_cast<std::size_t>(p)]);
+        target.push_back(std::move(g));
+      }
+      return target;
+    };
+    afacts.decreasing = project(facts.decreasing);
+    afacts.increasing = project(facts.increasing);
+  }
   const SparsePetriNet<int>& anet = abs.net;
   // the model of the abstract net: the Sloan order of the *original* net
   // projected onto the kept places (the removed places carry dependency
@@ -116,6 +136,11 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
   const long long w = widest_bound(afacts);
   if (w >= 0 && w + 1 > domain) domain = static_cast<int>(std::min<long long>(w + 1, 1 << 30));
   eo.bound = domain;
+  // A single kept place must still have a product root for the linear-set
+  // surface reader (which reads domains from product arcs). The unit tail
+  // adds no variable or state; a bare leaf root is not supported there.
+  if (o.inequalities && abs.kept.size() == 1)
+    eo.shape_form = "(spine " + anet.getPnames().front() + ")";
   std::ostringstream model;
   hsc::petri::to_surface(model, anet, units, eo);
   if (o.dead) model << "(print-spec)\n";
@@ -196,6 +221,13 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
     ++rep.open_before;
     if (rep.removed != 0 && properties[i].kind == ::petri::expr::PropertyKind::Deadlock) { ++rep.skipped_removed; continue; }
     if (solver::reads_removed(properties[i], orig_bound)) { ++rep.skipped_removed; continue; }
+    if (o.inequalities && properties[i].kind == ::petri::expr::PropertyKind::Bound) {
+      if (bound_from_approx(s, properties[i], net, o.back_time, out)) {
+        open[i] = 0;
+        ++rep.refuted;
+      }
+      continue;
+    }
     if (s.refute(properties[i], "S", orig_bound, out, o.back_time)) {
       open[i] = 0;
       ++rep.refuted;

@@ -36,6 +36,9 @@ struct approx_options {
 
 struct approx_set {
   std::vector<hsc::petri::pflow> flows;
+  std::vector<hsc::petri::pflow> decreasing, increasing;
+  bool inequalities = false;
+  std::size_t inequality_covered = 0, inequality_tightened = 0;
   std::vector<std::size_t> positive;  ///< indices into `flows`: the semiflows the set uses
   std::vector<long long> bound;       ///< per place: a bound (0 for never marked), -1 when only capped
   std::size_t covered = 0, zeros = 0, unit_constraints = 0;
@@ -73,12 +76,20 @@ inline std::vector<char> markable_places(const SparsePetriNet<int>& net) {
 /// the structural zeros. No session needed — computed before the model is
 /// emitted, so the leaf domains can be as wide as the box (the converses
 /// are restricted to the declared domains).
-inline approx_set approx_facts(const SparsePetriNet<int>& net, const hsc::petri::unit_tree* units, int flow_seconds) {
+inline approx_set approx_facts(const SparsePetriNet<int>& net, const hsc::petri::unit_tree* units, int flow_seconds, bool inequalities = false) {
   using clock = std::chrono::steady_clock;
   approx_set a;
   const std::size_t np = net.getPlaceCount();
   const clock::time_point t0 = clock::now();
-  a.flows = hsc::petri::pflows(net, flow_seconds);
+  a.inequalities = inequalities;
+  if (inequalities) {
+    auto found = hsc::petri::pflows_with_inequalities(net, flow_seconds);
+    a.flows = std::move(found.equalities);
+    a.decreasing = std::move(found.decreasing);
+    a.increasing = std::move(found.increasing);
+  } else {
+    a.flows = hsc::petri::pflows(net, flow_seconds);
+  }
   a.bound.assign(np, -1);
   for (std::size_t i = 0; i < a.flows.size(); ++i) {
     const hsc::petri::pflow& f = a.flows[i];
@@ -99,6 +110,20 @@ inline approx_set approx_facts(const SparsePetriNet<int>& net, const hsc::petri:
   for (std::size_t p = 0; p < np; ++p) {
     if (!markable[p]) { a.bound[p] = 0; ++a.zeros; }
     if (a.bound[p] >= 0) ++a.covered;
+  }
+  // Optional decreasing sums improve the box before any place is projected away.
+  if (inequalities) {
+    const auto previous = a.bound;
+    for (const auto& f : a.decreasing)
+      for (const auto& [p, c] : f.terms) {
+        auto& bound = a.bound[static_cast<std::size_t>(p)];
+        const long long candidate = f.constant / c;
+        if (bound < 0 || candidate < bound) bound = candidate;
+      }
+    for (std::size_t p = 0; p < np; ++p) {
+      if (previous[p] < 0 && a.bound[p] >= 0) { ++a.inequality_covered; ++a.covered; }
+      else if (previous[p] >= 0 && a.bound[p] < previous[p]) ++a.inequality_tightened;
+    }
   }
   a.flows_s = std::chrono::duration<double>(clock::now() - t0).count();
   return a;
@@ -137,6 +162,22 @@ inline void build_approx(solver& s, const SparsePetriNet<int>& net, const hsc::p
     for (const auto& [p, c] : f.terms) eq += " (* " + std::to_string(c) + ' ' + pnames[static_cast<std::size_t>(p)] + ')';
     cs.push_back({std::llabs(f.constant), "(equality E" + std::to_string(n) + eq + ")", "E" + std::to_string(n)});
   }
+  // Both directions use the existing signed at-most constructor. No equality
+  // consumer sees these facts. Their support has already survived projection.
+  if (a.inequalities) {
+    for (bool decreasing : {true, false}) {
+      const auto& facts = decreasing ? a.decreasing : a.increasing;
+      for (std::size_t n = 0; n < facts.size(); ++n) {
+        const auto& f = facts[n];
+        const std::string name = std::string(decreasing ? "L" : "G") + std::to_string(n);
+        std::string form = "(at-most " + name + " F " + std::to_string(decreasing ? f.constant : -f.constant);
+        for (const auto& [p, c] : f.terms)
+          form += " (* " + std::to_string(decreasing ? static_cast<long long>(c) : -static_cast<long long>(c))
+               + ' ' + pnames[static_cast<std::size_t>(p)] + ')';
+        cs.push_back({f.constant, form + ')', name});
+      }
+    }
+  }
   if (o.units && a.tagged && units != nullptr) {
     std::unordered_map<std::string, std::size_t> index;
     for (std::size_t p = 0; p < np; ++p) index.emplace(pnames[p], p);
@@ -169,6 +210,10 @@ inline void build_approx(solver& s, const SparsePetriNet<int>& net, const hsc::p
 
 /// One line of statistics for the logs.
 inline void print_approx_stats(std::ostream& out, const approx_set& a, std::size_t np) {
+  if (a.inequalities)
+    out << "hsc-pn: approx inequalities decreasing=" << a.decreasing.size()
+        << " increasing=" << a.increasing.size() << " newly_covered=" << a.inequality_covered
+        << " tightened=" << a.inequality_tightened << '\n';
   out << "hsc-pn: approx flows=" << a.flows.size() << " positive=" << a.positive.size()
       << " covered=" << a.covered << "/" << np << " zeros=" << a.zeros << " units=" << a.unit_constraints
       << " box=" << a.box_states << " set=" << a.set_states << " set_nodes=" << a.set_nodes

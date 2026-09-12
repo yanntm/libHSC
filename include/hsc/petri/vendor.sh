@@ -5,7 +5,7 @@
 # include root. No local edit: anything the copies need is changed upstream
 # first. Ends by checking that every copy is byte-identical to its source.
 #
-#   include/hsc/petri/vendor.sh [~/git/PetriSpot]
+#   include/hsc/petri/vendor.sh [~/git/PetriSpot] [relative-file ...]
 set -e
 SRC="${1:-$HOME/git/PetriSpot}/Petri/src"
 DST="$(cd "$(dirname "$0")" && pwd)"
@@ -22,7 +22,7 @@ expr/SexprPrinter.h expr/Hint.h expr/README.md expr/algorithm.md
 io/SparseMatrixIO.h io/PNETIO.h io/PNET.md
 invariants/Heuristic.h invariants/InvariantCalculator.h invariants/InvariantMiddle.h
 invariants/InvariantsTrivial.h invariants/MixedSignsUniqueTable.h invariants/RowSignDomination.h
-invariants/RowSigns.h
+invariants/RowSigns.h invariants/Inequalities.h invariants/README.md invariants/algorithm.md
 reduction/Configuration.h reduction/Counting.h reduction/Workspace.h reduction/Coordinator.h
 reduction/Reduce.h reduction/Composition.h reduction/TransitionAlgebra.h
 reduction/graph/Dependency.h reduction/graph/Graph.h reduction/graph/Stabilizing.h
@@ -38,6 +38,8 @@ reduction/cli/CountingBlocks.h reduction/README.md reduction/algorithm.md
 reduction/Pipeline.h reduction/Properties.h reduction/PropertyFacts.h reduction/cli/PropertyResults.h expr/InitialState.h
 lp/LpProblem.h lp/Basis.h lp/Simplex.h lp/DeadTransitions.h
 "
+# Optional explicit subset after the source root; the default remains the full list.
+if [ "$#" -gt 1 ]; then shift; FILES="$*"; fi
 for f in $FILES; do
   mkdir -p "$DST/$(dirname "$f")"
   cp "$SRC/$f" "$DST/$f"
