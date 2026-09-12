@@ -501,6 +501,7 @@ class translator final : public name_scope {
   /// declared weight, nothing runs.
   ///@{
   void do_leaf_weight(const datum& form);
+  void do_count_enabled(const datum& form);
   /// Are any weights declared (and not all one)?
   [[nodiscard]] bool weighted() const { return !weights_.empty(); }
   /// The exact count of \p c with the declared weights folded in.

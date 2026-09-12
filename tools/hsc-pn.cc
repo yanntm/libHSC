@@ -87,6 +87,7 @@ void print_open(std::ostream& out) {
 }  // namespace
 
 int main(int argc, char** argv) {
+  const auto run_started = std::chrono::steady_clock::now();
   CLI::App app{"hsc-pn — answer Petri net properties with the HSC engine.\n"
                "Net: -i model.pnml or --net model.pnet. Properties: MCC XML or\n"
                "s-expression forms (INTEROP.md). Answers: FORMULA lines on stdout."};
@@ -216,6 +217,8 @@ int main(int argc, char** argv) {
   red::Counting<int> record = pnml.empty()
       ? red::countingFromBlocks<int>(blocks, net->getPlaceCount(), net->getTransitionCount(), quiet ? null_log : std::cerr)
       : red::Counting<int>::identity(net->getPlaceCount(), net->getTransitionCount());
+  if (states && !pnml.empty() && properties.empty() && reduce)
+    record.enabling.emplace(*net);
   const hsc::petri::unit_tree tags_read = pnml.empty() ? hsc::petri::unit_tree{} : hsc::petri::read_units(pnml);
   if (reduce) {
     if (dead_test != "linear" && dead_test != "lp" && dead_test != "both" && dead_test != "none") {
@@ -315,7 +318,7 @@ int main(int argc, char** argv) {
       cfg.deadMs = 0;
       red::Result<int> result = red::reduce(*net, cfg, {}, std::optional<red::Counting<int>>(record), std::move(known));
       *net = std::move(result.net);
-      record = std::move(*result.counting);
+      record = record.compact(result.placeMap, result.transitionMap);
     }
     if (!quiet) {
       std::cerr << "reduced: " << places0 << " -> " << net->getPlaceCount() << " places, " << transitions0 << " -> "
@@ -526,6 +529,7 @@ int main(int argc, char** argv) {
     hsc::pn::solver solver(*net, effective_bound, verbose);
     if (!mult.empty()) solver.set_multiplicities(std::move(mult));
     solver.set_arcs_countable(arcs_countable);
+    if (record.enabling) solver.set_enabling(&*record.enabling);
     solver.set_count_factor(count_factor);
     solver.set_witness(witness);
     if (!dropped_tokens.empty()) solver.set_dropped_tokens(std::move(dropped_tokens));
@@ -756,7 +760,10 @@ int main(int argc, char** argv) {
       print_open(std::cout);
       return 0;
     }
-    if (states) solver.state_space(std::cout);
+    if (states) {
+      if (total_time > 0) solver.set_deadline(run_started + std::chrono::seconds(total_time));
+      solver.state_space(std::cout);
+    }
     else if (max_tokens) solver.max_tokens(std::cout);
   } catch (const hsc::overflow_error& e) {
     std::cerr << "overflow: " << e.what() << " (raise --bound)\n";

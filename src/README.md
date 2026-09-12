@@ -18,7 +18,8 @@ By package:
   (`surface_translator.hh` internal header, bodies in
   `surface_translate.cc` declarations/dispatch, `surface_events.cc` event
   compiler and algebra, `surface_families.cc` certified families,
-  `surface_query.cc` commands, `surface_ctl.cc` the CTL commands,
+  `surface_query.cc` commands,
+  `surface_enabled_count.cc` exact demand-weighted counting, `surface_ctl.cc` the CTL commands,
   `surface_trace.cc` the path commands);
   `surface_run.cc` the runner (public
   entry, knows both engines); `surface_spec.cc` declarations as data +

@@ -224,7 +224,8 @@ initial marking decides answered as `FORMULA` lines and dropped, the net
 reduced for the kinds and supports left, the properties remapped. The unit
 tree loses the removed places and, after a fusion, its one-token-per-unit
 claim. The record becomes the blocks the rest of the tool already reads, so
-`TRANSITIONS` is reported only while `TMULT` survives. `--export-net FILE`
+`TRANSITIONS` uses original enabling reconstruction for directly loaded PNML;
+PNET inputs require surviving `TMULT` evidence. `--export-net FILE`
 writes the prepared PNET with its blocks. Measured 2026-09-11 on the 21
 development models with a StateSpace oracle: no wrong value; BugTracking
 q3m002 goes from 754 places and 27 370 transitions to 240 and 2 769 in
@@ -349,3 +350,15 @@ token. When reductions leave transition multiplicities uncertified, the
 diagnostic is: "Currently cannot reliably compute Transitions with --reduce
 flag. Rerun without for that metric." Overflow likewise stays an ordinary
 diagnostic; computed metrics remain valid.
+
+### Original transition counts after native reduction
+
+For StateSpace on directly loaded PNML, native reduction retains an in-memory
+original enabling record. Free-SCC fusion, constant representatives, duplicate
+transitions and removed internal moves are accounted for by exact weighted
+queries on the completed reduced DD. This restores TRANSITIONS without
+reconstructing the full state diagram or exploring the original net again.
+See [enabling/README.md](enabling/README.md). The record is not serialized; PNET
+inputs without transition-count evidence still leave the metric unanswered.
+`HSC_ENABLING_TRACE=1` reports each original transition's enabled count; without
+reduction that diagnostic uses the existing independent selector/count path.

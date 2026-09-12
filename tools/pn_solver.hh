@@ -7,6 +7,8 @@
 #pragma once
 
 #include <gmpxx.h>
+#include <cstdlib>
+#include "enabling/count.hh"
 #include <chrono>
 
 #include <cstddef>
@@ -55,6 +57,7 @@ class solver {
   /// that did not account for what they dropped, in which case the arcs are
   /// simply not reported rather than reported low.
   void set_arcs_countable(bool countable) { arcs_countable_ = countable; }
+  void set_enabling(const ::petri::reduction::Enabling<int>* record) { enabling_ = record; }
   /// Forward the witness tree of every CTL verdict to stderr (`--witness`).
   void set_witness(bool on) { witness_ = on; }
 
@@ -74,6 +77,7 @@ class solver {
   /// at that instant answers `TIMEOUT` and is left open; `nullopt` removes
   /// it. Reachability questions are single applications and run to their end.
   void set_deadline(std::optional<std::chrono::steady_clock::time_point> at) {
+    deadline_ = at;
     session_.set_deadline(at);
   }
 
@@ -407,6 +411,22 @@ class solver {
     const std::string v = value_of(feed("(max-sum R)"), "R max-sum ");
     out << "STATE_SPACE MAX_TOKEN_PER_MARKING " << (v == "none" ? 0 : std::stoll(v)) + constant
         << TECHNIQUES << std::endl;
+    if (enabling_) {
+      const auto check = [&] {
+        if (deadline_ && std::chrono::steady_clock::now() >= *deadline_)
+          throw hsc::interrupted("transition counting deadline reached");
+      };
+      const auto query = [&](const std::string& form) {
+        const auto text = value_of(feed(form), "R enabled ");
+        if (text.empty()) throw std::runtime_error("Missing exact enabling count");
+        return mpz_class(text);
+      };
+      const auto edges = count_original_enablings(*enabling_, net_.getPnames(), query, check,
+                          std::getenv("HSC_ENABLING_TRACE") ? &std::cerr : nullptr,
+                          verbose_ ? &std::cerr : nullptr);
+      out << "STATE_SPACE TRANSITIONS " << edges << TECHNIQUES << std::endl;
+      return;
+    }
     if (!arcs_countable_) {
       std::cerr << "Currently cannot reliably compute Transitions with --reduce flag. "
                    "Rerun without for that metric.\n";
@@ -417,7 +437,10 @@ class solver {
     mpz_class edges = 0;
     for (std::size_t t = 0; t < net_.getTransitionCount(); ++t) {
       const mpz_class states(exact_count(hsc::petri::guard_atom(net_, t)));
-      edges += mpz_class(static_cast<long>(multiplicity(t))) * states;
+      const mpz_class enabled = mpz_class(static_cast<long>(multiplicity(t))) * states;
+      if (std::getenv("HSC_ENABLING_TRACE"))
+        std::cerr << "hsc-pn: enabling " << net_.getTnames()[t] << ' ' << enabled << '\n';
+      edges += enabled;
     }
     out << "STATE_SPACE TRANSITIONS " << edges << TECHNIQUES << std::endl;
   }
@@ -459,6 +482,8 @@ class solver {
   mpz_class count_factor_ = 1;
   std::vector<long long> mult_;  ///< empty means every multiplicity is 1
   bool arcs_countable_ = true;
+  const ::petri::reduction::Enabling<int>* enabling_ = nullptr;
+  std::optional<std::chrono::steady_clock::time_point> deadline_;
   std::vector<long long> dropped_;  ///< markings of removed constant places
   std::ostringstream buf_;
   hsc::surface::session session_;

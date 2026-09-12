@@ -72,3 +72,9 @@ oracle beyond 64-bit range. Each model invocation has a shared 15-second cap.
 regression suite. Build target `conjunction_model` explicitly and invoke
 `timeout -k 1 15 build/tools/conjunction_model MODEL.pnml`; see
 `include/hsc/linear/conjunction/README.md` for its scope and assumptions.
+
+`enabling_models.py MODEL.pnml --oracle MODEL-SS.out --output DIRECTORY` compares
+reduced and unreduced StateSpace and every original transition's enabling count.
+It uses one real input with a shared 14-second subprocess budget (wrap the script
+in `timeout -k 1 15`). Results include commands and full diagnostics. The plain
+reference uses the existing selector/count path, not the reconstruction query.

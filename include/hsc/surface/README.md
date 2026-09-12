@@ -79,3 +79,9 @@ filters an existing diagram using `linear/conjunction/filter.hh`. Coefficients
 may have either sign; names resolve to the current frontier positions. It
 publishes NAME only after an exact completed result. This explicit operation
 does not change how arbitrary Boolean conjunctions compile.
+
+`(count-enabled RESULT (PLACE DEMAND) ...)` counts enabling distributions using
+the current `leaf-weight` declarations. Undemanded coordinates retain their
+state-count weight; a demanded K-place coordinate with value M contributes
+`binomial(M-DEMAND+K-1,K-1)` or zero. Fixed components belong to the caller.
+It is an exact, memoized, interruptible query; no partial count is emitted.
