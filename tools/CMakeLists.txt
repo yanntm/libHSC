@@ -25,6 +25,11 @@ if(EXPAT_FOUND)
     ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/include/hsc/petri)
   target_link_libraries(petri_import PUBLIC EXPAT::EXPAT hsc_louvain)
 
+  if(HSC_BUILD_TESTS)
+    add_executable(conjunction_model EXCLUDE_FROM_ALL ${PROJECT_SOURCE_DIR}/tests/conjunction_model.cc)
+    target_link_libraries(conjunction_model PRIVATE petri_import hsc::hsc)
+  endif()
+
   add_executable(nupn2hsc nupn2hsc.cc)
   target_link_libraries(nupn2hsc PRIVATE petri_import)
   target_compile_options(nupn2hsc PRIVATE

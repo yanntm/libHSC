@@ -1,7 +1,7 @@
 # Shape-directed conjunction of linear selectors
 
-Status: design for review and implementation. This document specifies the
-specialised evaluator first; automatic selection by the general expression
+Status: specialised evaluator implemented in `filter.hh` and
+`src/linear/conjunction/filter.cc`; automatic selection by the general expression
 compiler is a later integration step.
 
 ## 1. Operation and scope
@@ -30,9 +30,9 @@ proves no fact about reachability.
 The first API exposes this operation directly: input diagram, shape/coordinate
 context, a collection of sparse linear constraints, and an absolute deadline.
 It returns a completed exact diagram or signals interruption/failure. An exact
-empty result must be distinguishable from an unfinished computation. Concrete
-C++ names and ownership details follow the implementation; there is no new
-public declaration yet.
+empty result must be distinguishable from an unfinished computation. The API is `linear::conjunction(manager, integer_leaf_theory, shape, input,
+constraints)`. The absolute deadline is inherited from the manager; all caches
+are local to the call.
 
 ## 2. Why the schedule is legal
 
@@ -106,9 +106,9 @@ At a leaf, intersect its existing value set with its scheduled local tests.
 An empty schedule returns its input immediately. Shared subdiagrams reuse the
 memoised result for the same schedule and coordinate context.
 
-Local filtering can make formerly disjoint primes overlap: their associated
-subs must then be joined by canonicalisation. Merely rewriting the arc array
-without restoring the diagram invariants is insufficient.
+Pure filtering preserves disjointness of the primes, but distinct subs can
+become equal. Reconstruction restores canonical grouping through the existing
+diagram machinery rather than assuming a rewritten arc array is canonical.
 
 “One pass” means one scheduled application of each constraint at its level.
 It does not mean that each physical diagram node is visited exactly once:

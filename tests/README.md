@@ -67,3 +67,8 @@ values.
 removal, analytic state/token counts, PCONST serialization, empty residual
 nets, and repeated reductions. The large-factor CTest case uses an analytic
 oracle beyond 64-bit range. Each model invocation has a shared 15-second cap.
+
+`conjunction_model.cc` is an optional real-PNML comparison, not a synthetic
+regression suite. Build target `conjunction_model` explicitly and invoke
+`timeout -k 1 15 build/tools/conjunction_model MODEL.pnml`; see
+`include/hsc/linear/conjunction/README.md` for its scope and assumptions.

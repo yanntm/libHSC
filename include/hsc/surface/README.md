@@ -72,3 +72,10 @@ that is expressed as a `(when …)` filter term and applied with `apply`.
 
 See `algorithm.md` for the grammar, the parametric pass, and the compile
 map.
+
+The specialised linear conjunction binding
+`(constrain NAME SOURCE (eq K (* C LEAF)*) (le K (* C LEAF)*) ...)`
+filters an existing diagram using `linear/conjunction/filter.hh`. Coefficients
+may have either sign; names resolve to the current frontier positions. It
+publishes NAME only after an exact completed result. This explicit operation
+does not change how arbitrary Boolean conjunctions compile.

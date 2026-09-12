@@ -16,6 +16,7 @@
 
 #include "hsc/core/operation.hh"
 #include "hsc/linear/dead.hh"
+#include "hsc/linear/conjunction/filter.hh"
 #include "hsc/linear/equality.hh"
 #include "hsc/linear/full.hh"
 #include "surface_translator.hh"
@@ -112,6 +113,33 @@ void translator::linear_constraint(const datum& form, bool at_most) {
   acc.subset = [&](std::size_t, std::span<const std::int32_t> vs) -> code { return theory_->of(vs); };
   results_[name] = linear::equality(mgr_, top_, coeff, k, acc, at_most);
   out_ << name << (at_most ? " at-most " : " equality ") << (results_[name] == core::none ? 0.0 : mgr_.diagrams().cardinal(results_[name])) << '\n';
+}
+
+/// `(constrain NAME SOURCE (eq K (* C LEAF)*) (le K (* C LEAF)*) ...)`.
+void translator::do_constrain(const datum& form) {
+  const std::string name = sym(arg(form, 1, "result name"));
+  const code input = named(arg(form, 2, "input diagram"));
+  std::vector<linear::constraint> constraints;
+  for (std::size_t i = 3; i < form.items().size(); ++i) {
+    mgr_.check_interrupt();
+    const datum& f = form.items()[i];
+    if (!f.is_list() || f.items().size() < 2 || (f.head() != "eq" && f.head() != "le"))
+      fail(f, "constrain takes (eq K terms...) or (le K terms...)");
+    linear::constraint c;
+    c.target = std::stoll(f.items()[1].text());
+    c.at_most = f.head() == "le";
+    for (std::size_t j = 2; j < f.items().size(); ++j) {
+      const auto& t = f.items()[j];
+      if (!t.is_list() || t.items().size() != 3 || t.head() != "*") fail(t, "expected (* C LEAF)");
+      const auto p = position(sym(t.items()[2]));
+      if (!p) fail(t, "unknown constraint leaf");
+      c.terms.emplace_back(*p, std::stoll(t.items()[1].text()));
+    }
+    constraints.push_back(std::move(c));
+  }
+  const code result = linear::conjunction(mgr_, *theory_, top_, input, constraints);
+  results_[name] = result;
+  out_ << name << " constrained " << constraints.size() << " constraints\n";
 }
 
 /// `(intersect NAME A B*)`: the meet of bound results.

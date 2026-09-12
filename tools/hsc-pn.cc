@@ -275,7 +275,9 @@ int main(int argc, char** argv) {
       if (left_ms() <= 0) break;
       // libHSC's own test: the invariant set of the net as it is now, every transition tested on it
       hsc::pn::approx_pass_options po;
+      po.deadline = deadline;
       po.inequalities = approx_inequalities;
+      po.force = force;
       po.flow_seconds = std::max(1, static_cast<int>(left_ms() / 2000));
       po.cap = bound;
       for (int m : net->getMarks()) po.cap = std::max(po.cap, m + 1);
@@ -560,6 +562,7 @@ int main(int argc, char** argv) {
       const hsc::petri::unit_tree tags = restrict_units(tags_read, *net, record.weighted());
       hsc::pn::approx_pass_options po;
       po.inequalities = approx_inequalities;
+      po.force = force;
       po.flow_seconds = approx_time;
       po.cap = effective_bound;
       po.units = approx_units;
@@ -617,6 +620,7 @@ int main(int argc, char** argv) {
       const hsc::petri::unit_tree tags = restrict_units(tags_read, *net, record.weighted());
       hsc::pn::approx_pass_options po;
       po.inequalities = approx_inequalities;
+      po.force = force;
       po.flow_seconds = dead_time;
       po.cap = effective_bound;
       po.units = approx_units;

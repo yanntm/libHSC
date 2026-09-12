@@ -170,7 +170,7 @@ net is **abstracted** to the places the linear facts bound — the others
 removed with their arcs (`tools/pn_abstract.hh`), which only adds
 behaviour, so every impossibility proved there holds of the original net
 for a question over kept places — its model emitted under the Sloan order
-with leaf domains as wide as the box, in a session separate from the main
+optionally rewritten by `--force`, with leaf domains as wide as the box, in a session separate from the main
 one; there the invariant set `S ⊇ R` is built: the
 P-flows within S seconds, the positive ones as bounds and equality
 diagrams, the never-marked places bounded by 0, every place bounded by 1
@@ -312,3 +312,18 @@ from the invariant computation and the ordinary exact query path.
 Harvesting adds no second flow run, but retaining more bounded places can make
 projection diagrams larger, and additional filters cost construction time.
 The opt-out is useful for that tradeoff. Active inequality search remains off.
+
+### Scheduled invariant conjunctions
+
+The approximation pass submits all retained linear equalities, inequalities
+and requested unit constraints in one `constrain` call. The evaluator schedules
+constraints by support and filters the existing diagram at each application
+level; it does not build an independent whole-box diagram per constraint.
+See `include/hsc/linear/conjunction/algorithm.md`.
+
+During reduction, `--reduce-time` is one absolute deadline shared by flow
+computation, construction and dead-transition testing. The construction session
+inherits it before model/constraint evaluation; the dead test may shorten but
+never restart that deadline. An interrupted conjunction publishes no result,
+and reduction proceeds to the solving pipeline with the last valid net.
+The deadline is cooperative, so unwinding and freeing caches can add overhead.

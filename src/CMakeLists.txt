@@ -58,6 +58,7 @@ target_sources(hsc PRIVATE
   linear/full.cc
   linear/dead.cc
   linear/equality.cc
+  linear/conjunction/filter.cc
   event.cc
   xpl/eval.cc
   xpl/model.cc

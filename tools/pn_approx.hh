@@ -16,6 +16,8 @@
 #include <cstdlib>
 #include <cstddef>
 #include <iostream>
+#include <limits>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -143,7 +145,7 @@ inline void build_approx(solver& s, const SparsePetriNet<int>& net, const hsc::p
   const std::vector<std::string>& pnames = net.getPnames();
   const std::size_t np = net.getPlaceCount();
   const clock::time_point t1 = clock::now();
-  // the box, then the constraints tightest first, then their meet
+  // The box and a single scheduled conjunction over its existing arcs.
   std::string full = "(full F";
   for (std::size_t p = 0; p < np; ++p) {
     const long long b = a.bound[p] >= 0 ? a.bound[p] : o.cap - 1;
@@ -153,28 +155,28 @@ inline void build_approx(solver& s, const SparsePetriNet<int>& net, const hsc::p
     if (l.rfind("F full ", 0) == 0) a.box_states = l.substr(7);
     else if (o.verbose) std::cerr << l << '\n';
   }
-  struct constraint { long long k; std::string form; std::string name; };
-  std::vector<constraint> cs;
+  std::vector<std::string> constraints;
   for (std::size_t n = 0; n < a.flows.size(); ++n) {  // every flow, the mixed-sign ones included
     const hsc::petri::pflow& f = a.flows[n];
     if (f.terms.empty()) continue;
-    std::string eq = " F " + std::to_string(f.constant);
+    std::string eq = "(eq " + std::to_string(f.constant);
     for (const auto& [p, c] : f.terms) eq += " (* " + std::to_string(c) + ' ' + pnames[static_cast<std::size_t>(p)] + ')';
-    cs.push_back({std::llabs(f.constant), "(equality E" + std::to_string(n) + eq + ")", "E" + std::to_string(n)});
+    constraints.push_back(eq + ")");
   }
-  // Both directions use the existing signed at-most constructor. No equality
+  // Both directions use signed at-most constraints. No equality
   // consumer sees these facts. Their support has already survived projection.
   if (a.inequalities) {
     for (bool decreasing : {true, false}) {
       const auto& facts = decreasing ? a.decreasing : a.increasing;
       for (std::size_t n = 0; n < facts.size(); ++n) {
         const auto& f = facts[n];
-        const std::string name = std::string(decreasing ? "L" : "G") + std::to_string(n);
-        std::string form = "(at-most " + name + " F " + std::to_string(decreasing ? f.constant : -f.constant);
+        if (!decreasing && f.constant == std::numeric_limits<long long>::min())
+          throw std::overflow_error("lower-bound negation overflow");
+        std::string form = "(le " + std::to_string(decreasing ? f.constant : -f.constant);
         for (const auto& [p, c] : f.terms)
           form += " (* " + std::to_string(decreasing ? static_cast<long long>(c) : -static_cast<long long>(c))
                + ' ' + pnames[static_cast<std::size_t>(p)] + ')';
-        cs.push_back({f.constant, form + ')', name});
+        constraints.push_back(form + ')');
       }
     }
   }
@@ -188,18 +190,14 @@ inline void build_approx(solver& s, const SparsePetriNet<int>& net, const hsc::p
       for (const std::string& pl : u.places)
         if (index.count(pl)) { terms += " (* 1 " + pl + ')'; ++k; }
       if (k < 2) continue;  // one place: the safe bound says it already
-      cs.push_back({1, "(at-most U" + std::to_string(n) + " F 1" + terms + ")", "U" + std::to_string(n)});
+      constraints.push_back("(le 1" + terms + ")");
       ++n;
     }
     a.unit_constraints = n;
   }
-  std::stable_sort(cs.begin(), cs.end(), [](const constraint& x, const constraint& y) { return x.k < y.k; });
-  std::string sel = "(intersect S F";
-  for (const constraint& c : cs) {
-    for (const std::string& l : s.feed(c.form)) if (o.verbose) std::cerr << l << '\n';
-    sel += ' ' + c.name;
-  }
-  for (const std::string& l : s.feed(sel + ")")) if (o.verbose) std::cerr << l << '\n';
+  std::string conjunction = "(constrain S F";
+  for (const auto& c : constraints) conjunction += ' ' + c;
+  for (const std::string& l : s.feed(conjunction + ")")) if (o.verbose) std::cerr << l << '\n';
   for (const std::string& l : s.feed("(count S) (nodes S)")) {
     if (l.rfind("S count ", 0) == 0) a.set_states = l.substr(8);
     else if (l.rfind("S nodes ", 0) == 0) a.set_nodes = l.substr(8);

@@ -10,6 +10,7 @@
 #include <chrono>
 #include <cstddef>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -27,9 +28,11 @@
 namespace hsc::pn {
 
 struct approx_pass_options {
+  std::optional<std::chrono::steady_clock::time_point> deadline; ///< shared preparation deadline
   int flow_seconds = 5;
   int cap = 2;              ///< the leaf domain of the original model, [0, cap)
   bool units = false;       ///< the NUPN unit constraints
+  bool force = false;       ///< FORCE rewrite of the projected Sloan spine
   bool inequalities = true; ///< harvest monotone sums in the same flow run
   std::size_t back = 0;     ///< layers of the backward search per open property (0: none)
   double back_time = 2.0;   ///< seconds per backward search
@@ -64,7 +67,18 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
   approx_pass_report rep;
   const clock::time_point t0 = clock::now();
   // the facts on the original net; the abstraction keeps the bounded places
-  approx_set facts = approx_facts(net, tags.present() ? &tags : nullptr, o.flow_seconds, o.inequalities);
+  const auto check = [&] {
+    if (o.deadline && clock::now() >= *o.deadline) throw hsc::interrupted("preparation deadline reached");
+  };
+  check();
+  int flow_seconds = o.flow_seconds;
+  if (o.deadline) {
+    const auto left = std::chrono::duration_cast<std::chrono::seconds>(*o.deadline - clock::now()).count();
+    if (left < 1) throw hsc::interrupted("no flow budget left");
+    flow_seconds = std::min(flow_seconds, static_cast<int>(left));
+  }
+  approx_set facts = approx_facts(net, tags.present() ? &tags : nullptr, flow_seconds, o.inequalities);
+  check();
   std::vector<char> keep(net.getPlaceCount(), 0);
   for (std::size_t p = 0; p < keep.size(); ++p) keep[p] = facts.bound[p] >= 0;
   const abstraction abs = abstract_net(net, keep);
@@ -143,9 +157,12 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
     eo.shape_form = "(spine " + anet.getPnames().front() + ")";
   std::ostringstream model;
   hsc::petri::to_surface(model, anet, units, eo);
+  if (o.force) model << "(reorder-force)\n";
   if (o.dead) model << "(print-spec)\n";
   solver s(anet, domain, o.verbose);
   s.set_property_names(net.getPnames());
+  check();
+  s.set_deadline(o.deadline);
   std::vector<std::string> fed_lines;
   try {
     fed_lines = s.feed(model.str());
@@ -163,13 +180,21 @@ inline approx_pass_report run_approx_pass(const SparsePetriNet<int>& net, const 
   ao.cap = o.cap;
   ao.units = o.units;
   ao.verbose = o.verbose;
+  check();
   build_approx(s, anet, tags.present() ? &tags : nullptr, afacts, ao);
+  check();
   print_approx_stats(std::cerr, afacts, net.getPlaceCount());
   if (rep.removed != 0) std::cerr << "hsc-pn: approx abstraction removed " << rep.removed << " uncovered places\n";
 
   if (o.dead) {
     const clock::time_point t2 = clock::now();
-    if (o.dead_budget > 0) s.set_deadline(t2 + std::chrono::seconds(o.dead_budget));
+    check();
+    auto until = o.deadline;
+    if (o.dead_budget > 0) {
+      const auto local = t2 + std::chrono::seconds(o.dead_budget);
+      until = until ? std::min(*until, local) : local;
+    }
+    s.set_deadline(until);
     const std::string form = o.dead_step ? "(dead D S step " + std::to_string(o.dead_depth) + ")" : "(dead D S)";
     for (const std::string& l : s.feed(form)) {
       if (l.rfind("D dead ", 0) == 0) {
